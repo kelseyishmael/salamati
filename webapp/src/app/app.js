@@ -11,6 +11,7 @@
  * @require plugins/Zoom.js
  * @require plugins/AddLayers.js
  * @require plugins/RemoveLayer.js
+ * @require plugins/DistanceBearing.js
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
  * @require overrides/override-ext-ajax.js
@@ -68,6 +69,9 @@ Ext.onReady(function() {
         }, {
             ptype: "gxp_navigationhistory",
             actionTarget: "map.tbar"
+        }, {
+            ptype: "gxp_distancebearing",
+            actionTarget: "map.tbar"
         }],
         
         // layer sources
@@ -104,6 +108,5 @@ Ext.onReady(function() {
                 height: 100
             }]
         }
-
     });
 });

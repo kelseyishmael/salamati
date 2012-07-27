@@ -11,6 +11,8 @@
  * @requires OpenLayers/StyleMap.js
  * @requires OpenLayers/Rule.js
  * @requires OpenLayers/Control/Measure.js
+ * @requires OpenLayers/Handler/Path.js
+ * @requires OpenLayers/Handler/Polygon.js
  */
 
 /** api: (define)
