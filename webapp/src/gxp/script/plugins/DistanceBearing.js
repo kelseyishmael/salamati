@@ -264,6 +264,13 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
             autoSelect:		true // BUG: "true to select the first result gathered by the data store (defaults to true)." - From docs - doesn't seem to work
         });
         
+        
+        //Project the mouse XY coordinates to WGS84 LatLon
+        var map = this.target.mapPanel.map;
+        var geographic = new OpenLayers.Projection("EPSG:4326");
+        var clickLocation = map.getLonLatFromPixel(evt.xy);
+        clickLocation = clickLocation.transform(new OpenLayers.Projection(map.getProjection()), geographic);
+        
         var win = new Ext.Window({
 			title:			"Distance/Bearing",
 			closable:		true,
@@ -276,11 +283,11 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				combo,
 				new Ext.form.Field({
 					fieldLabel:	"Longitude",
-					value:		evt.xy.x	// turn this into longitude
+					value:		clickLocation.lon	// turn this into longitude
 				}),
 				new Ext.form.Field({
 					fieldLabel:	"Latitude",
-					value:		evt.xy.y	// turn this into latitude
+					value:		clickLocation.lat	// turn this into latitude
 				}),
 				new Ext.form.Field({
 					fieldLabel:	"Radius (m)"	// TODO: Needs validation event handler to prevent empty radius being submitted
