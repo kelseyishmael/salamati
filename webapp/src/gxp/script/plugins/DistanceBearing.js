@@ -18,6 +18,7 @@
  * @requires OpenLayers/Renderer/VML.js
  * @requires OpenLayers/Renderer/Canvas.js
  * @requires OpenLayers/Feature/Vector.js
+ * @requires OpenLayers/Geometry/LineString.js
  * @requires OpenLayers/Geometry/Point.js
  * @requires OpenLayers/Symbolizer/Point.js
  * @requires OpenLayers/Projection.js
@@ -192,58 +193,86 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
     },
     
     addJsonFeatures: function(center, json) {
-    	var Symbolizer = new OpenLayers.Symbolizer.Point({
-			pointRadius: 		20,
-			externalGraphic: 	"${image}",		//Make it an image of an arrow?
-			fillOpacity: 		1,
-			rotation: 			"${rotation}"	//would this be the bearing??
-		});
+    	var map = this.target.mapPanel.map;
+    	
+    	//var Symbolizer = new OpenLayers.Symbolizer.Point({
+		//	pointRadius: 		20,
+		//	externalGraphic: 	"${image}",		//Make it an image of an arrow?
+		//	fillOpacity: 		1,
+		//	rotation: 			"${rotation}"	//would this be the bearing??
+		//});
 	
-		var Style = new OpenLayers.StyleMap({
-			"default" : new OpenLayers.Style(null, {
-				rules : [ new OpenLayers.Rule({
-					symbolizer : Symbolizer
-				})]
-			})
-		});
+		//var Style = new OpenLayers.StyleMap({
+		//	"default" : new OpenLayers.Style(null, {
+		//		rules : [ new OpenLayers.Rule({
+		//			symbolizer : Symbolizer
+		//		})]
+		//	})
+		//});
 		
 		//Create a new layer to store all the features.
-		var Layer = new OpenLayers.Layer.Vector("Distance Bearing");
+		var Layer = new OpenLayers.Layer.Vector("Distance Bearing", {
+			projection: new OpenLayers.Projection(map.getProjection()),
+			styleMap: new OpenLayers.StyleMap({'default':{
+                    //strokeColor: "#FFFF00",
+                    strokeOpacity: 1,
+                    strokeWidth: 3,
+                    //fillColor: "#FF5500",
+                    fillOpacity: 0.5,
+                    pointRadius: 6,
+                    pointerEvents: "visiblePainted",
+                    // label with \n linebreaks
+                    label : "Distance: ${distance}\nBearing: ${bearing}",
+                    
+                    fontColor: "${fontColor}",
+                    fontSize: "14px",
+                    fontFamily: "Courier New, monospace",
+                    fontWeight: "bold",
+                    labelAlign: "cm", //"${align}",
+                    labelXOffset: "${xOffset}",
+                    labelYOffset: "${yOffset}",
+                    labelOutlineColor: "black",
+                    labelOutlineWidth: 4
+                }})
+		});
 		
 		//Create an array of features
 		var features = [];
 		
-		var centerPoint = new OpenLayers.Geometry.Point(center.x, center.y);
-		features.push(new OpenLayers.Feature.Vector(centerPoint));
+		var centerPoint = new OpenLayers.Geometry.Point(center.lon, center.lat).transform(
+				new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection(map.getProjection()));
+		//features.push(new OpenLayers.Feature.Vector(centerPoint));
 		
 		//Loop through the json object and parse the data.
 		// - TODO: Base the loop on the json data
 		for(var i = 0; i < json.length; i++) {
 		
-			//json[i].distance
-			//json[i].bearing
-		
 			//Given the center point, calculate the point based on the distance and bearing
-			// - TODO: Use json data
-			var endPoint = new OpenLayers.Geometry.Point(json[i].endPoint.x, json[i].endPoint.y);
+			var endPoint = new OpenLayers.Geometry.Point(json[i].endPoint.x, json[i].endPoint.y).transform(
+				new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection(map.getProjection()));
 			
-			var array = new Array(
-				centerPoint,
-				endPoint);
-			var line = new OpenLayers.Geometry.LineString(array);
+			line = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([endPoint, centerPoint]));
+			
+			line.attributes = {
+                distance: json[i].distance,
+                bearing: json[i].bearing,
+                fontColor: 'white',
+                align: "cm",
+                xOffset: 0,
+                yOffset: 0
+            };
+			
 			features.push(line);
 			
 			//Create a feature based on the new point.
-			features.push(new OpenLayers.Feature.Vector(endPoint,{
-				image:"http://www.openlayers.org/dev/img/marker.png",
-				rotation:0}));
+			//features.push(new OpenLayers.Feature.Vector(endPoint));
 		}
 		
 		//Finally add all the features to the new layer...
 		Layer.addFeatures(features);
 		
 		//and add the layer to the map!
-		this.target.mapPanel.map.addLayer(Layer);
+		map.addLayer(Layer);
     },
 
     /** private: method[displayPopup]
@@ -306,8 +335,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		}).show();
 		
 		//Once you have your json, pass it to addJsonFeatures
-		var testJson = [{endPoint:{x: 1000, y: 1000}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: 2000, y: 2000}, distance:561.9445569621694,bearing:60.2591284662917}];
-		this.addJsonFeatures(evt.xy, testJson);
+		var testJson = [{endPoint:{x: -100.4589843750024, y: 44.480830278562756}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: -106.1059570312543, y: 34.49750272138203}, distance:561.9445569621694,bearing:60.2591284662917}];
+		this.addJsonFeatures(clickLocation, testJson);
     }
 });
 
