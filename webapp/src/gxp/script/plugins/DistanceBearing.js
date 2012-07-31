@@ -213,6 +213,9 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		//Create an array of features
 		var features = [];
 		
+		var centerPoint = new OpenLayers.Geometry.Point(center.x, center.y);
+		features.push(new OpenLayers.Feature.Vector(centerPoint));
+		
 		//Loop through the json object and parse the data.
 		// - TODO: Base the loop on the json data
 		for(var i = 0; i < json.length; i++) {
@@ -222,9 +225,16 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		
 			//Given the center point, calculate the point based on the distance and bearing
 			// - TODO: Use json data
-			var point = new OpenLayers.Geometry.Point(center.x * i, center.y * i);
+			var endPoint = new OpenLayers.Geometry.Point(json[i].endPoint.x, json[i].endPoint.y);
+			
+			var array = new Array(
+				centerPoint,
+				endPoint);
+			var line = new OpenLayers.Geometry.LineString(array);
+			features.push(line);
+			
 			//Create a feature based on the new point.
-			features.push(new OpenLayers.Feature.Vector(point,{
+			features.push(new OpenLayers.Feature.Vector(endPoint,{
 				image:"http://www.openlayers.org/dev/img/marker.png",
 				rotation:0}));
 		}
@@ -289,7 +299,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		}).show();
 		
 		//Once you have your json, pass it to addJsonFeatures
-		var testJson = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
+		var testJson = [{endPoint:{x: 1000, y: 1000}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: 2000, y: 2000}, distance:561.9445569621694,bearing:60.2591284662917}];
 		this.addJsonFeatures(evt.xy, testJson);
     }
 });
