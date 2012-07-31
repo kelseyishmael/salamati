@@ -11,6 +11,16 @@
  * @requires GeoExt/widgets/Popup.js
  * @requires OpenLayers/Control/WMSGetFeatureInfo.js
  * @requires OpenLayers/Format/WMSGetFeatureInfo.js
+ * @requires OpenLayers/StyleMap.js
+ * @requires OpenLayers/Rule.js
+ * @requires OpenLayers/Layer/Vector.js
+ * @requires OpenLayers/Renderer/SVG.js
+ * @requires OpenLayers/Renderer/VML.js
+ * @requires OpenLayers/Renderer/Canvas.js
+ * @requires OpenLayers/Feature/Vector.js
+ * @requires OpenLayers/Geometry/Point.js
+ * @requires OpenLayers/Symbolizer/Point.js
+ * @requires OpenLayers/Projection.js
  */
 
 /** api: (define)
@@ -126,7 +136,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 control.deactivate();  // TODO: remove when http://trac.openlayers.org/ticket/2130 is closed
                 control.destroy();
             }
-
+            
             info.controls = [];
             queryableLayers.each(function(x){
                 var layer = x.getLayer();
@@ -180,6 +190,51 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         
         return actions;
     },
+    
+    addJsonFeatures: function(center, json) {
+    	var Symbolizer = new OpenLayers.Symbolizer.Point({
+			pointRadius: 		20,
+			externalGraphic: 	"${image}",		//Make it an image of an arrow?
+			fillOpacity: 		1,
+			rotation: 			"${rotation}"	//would this be the bearing??
+		});
+	
+		var Style = new OpenLayers.StyleMap({
+			"default" : new OpenLayers.Style(null, {
+				rules : [ new OpenLayers.Rule({
+					symbolizer : Symbolizer
+				})]
+			})
+		});
+		
+		//Create a new layer to store all the features.
+		var Layer = new OpenLayers.Layer.Vector("Distance Bearing");
+		
+		//Create an array of features
+		var features = [];
+		
+		//Loop through the json object and parse the data.
+		// - TODO: Base the loop on the json data
+		for(var i = 0; i < json.length; i++) {
+		
+			//json[i].distance
+			//json[i].bearing
+		
+			//Given the center point, calculate the point based on the distance and bearing
+			// - TODO: Use json data
+			var point = new OpenLayers.Geometry.Point(center.x * i, center.y * i);
+			//Create a feature based on the new point.
+			features.push(new OpenLayers.Feature.Vector(point,{
+				image:"http://www.openlayers.org/dev/img/marker.png",
+				rotation:0}));
+		}
+		
+		//Finally add all the features to the new layer...
+		Layer.addFeatures(features);
+		
+		//and add the layer to the map!
+		this.target.mapPanel.map.addLayer(Layer);
+    },
 
     /** private: method[displayPopup]
      * :arg evt: the event object from a 
@@ -232,7 +287,11 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				})
 			]
 		}).show();
-    }    
+		
+		//Once you have your json, pass it to addJsonFeatures
+		var testJson = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
+		this.addJsonFeatures(evt.xy, testJson);
+    }
 });
 
 Ext.preg(gxp.plugins.DistanceBearing.prototype.ptype, gxp.plugins.DistanceBearing);

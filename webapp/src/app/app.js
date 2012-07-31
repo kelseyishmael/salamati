@@ -99,7 +99,7 @@ Ext.onReady(function() {
                 group: "background"
             }, {
                 source: "local",
-                name: "usa:states",
+                name: "topp:states",
                 selected: true
             }],
             items: [{
@@ -109,4 +109,6 @@ Ext.onReady(function() {
             }]
         }
     });
+    	
+	
 });
