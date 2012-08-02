@@ -193,8 +193,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         return actions;
     },
     
-    addJsonFeatures: function(center, json) {
-    	var map = this.target.mapPanel.map;
+    addJsonFeatures: function(map, center, jsonFeatures) {
 		
 		//Create a new layer to store all the features.
 		var LineLayer = new OpenLayers.Layer.Vector("Distance Bearing", {
@@ -236,17 +235,19 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		
 		//Loop through the json object and parse the data.
 		// - TODO: Base the loop on the json data
-		for(var i = 0; i < json.length; i++) {
-		
+		for(var i = 0; i < jsonFeatures.length; i++) {		
+			
+			var feature = jsonFeatures[i];
+			
 			//Given the center point, calculate the point based on the distance and bearing
-			var endPoint = new OpenLayers.Geometry.Point(json[i].endPoint.x, json[i].endPoint.y).transform(
+			var endPoint = new OpenLayers.Geometry.Point(feature.endPoint.x, feature.endPoint.y).transform(
 				new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection(map.getProjection()));
 			
 			line = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([endPoint, centerPoint]));
 			
 			line.attributes = {
-                distance: json[i].distance,
-                bearing: json[i].bearing,
+                distance: feature.distance,
+                bearing: feature.bearing,
                 fontColor: 'white',
                 align: "cm",
                 xOffset: 0,
@@ -333,8 +334,13 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
          */
 
         var jsonFormat = new OpenLayers.Format.JSON();
-        var requestData = jsonFormat.write({ x:-122.86, y: 42.33, radius: 600, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
+        //TODO: use radius field from dialog
+        var requestData = jsonFormat.write({ x: clickLocation.lon, y: clickLocation.lat, radius: 100000, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
         var responseDataJson = null;
+        
+        //TODO: resolve scope issue
+        var addJsonFeatures_ = this.addJsonFeatures;
+        var map_ = this.target.mapPanel.map;
 
         OpenLayers.Request.POST({
             url: "http://localhost:8080/wps",
@@ -347,13 +353,13 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 console.log("success: ", response);
                 responseDataJson = eval(response.responseText);
                 console.log("responseDataJson: ", responseDataJson)
+                
+                //----------------------------
+        		//Once you have your json, pass it to addJsonFeatures
+        		//var responseData = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
+        		addJsonFeatures_(map_, clickLocation, responseDataJson);                
             },
         });
-        
-        //----------------------------
-		//Once you have your json, pass it to addJsonFeatures
-		//var responseData = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
-		this.addJsonFeatures(clickLocation, responseDataJson);
     }
 });
 
