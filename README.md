@@ -23,3 +23,14 @@ Here are some ways to deploy the generated war file (there are probably others):
  * Use the Tomcat Manager web app, or equivalent for other J2EE container, to deploy an uploaded war
  * Use the *deploy* target in the suitesdk/build.xml ant script to deploy using [Cargo](http://cargo.codehaus.org/)
  * Set up a custom [Cargo](http://cargo.codehaus.org/) deployment
+ 
+ ##Deploying through GeoServer
+ **Example**
+ 
+ * Run GeoServer.
+ * In Terminal, navigate to the Salamati folder and run the following:
+ 
+ ```ant -f suitesdk/build.xml -Dapp.path=../webapp/ -Dsdk.build=../build -Dapp.name=salamati -Dapp.proxy.geoserver=http://localhost:8080/geoserver debug```
+ 
+ * This should deploy to port 9080 by default (the console will output the port number)
+ * This will also allow you to update the files without having to remake the war file. Just save and refresh the webpage.
