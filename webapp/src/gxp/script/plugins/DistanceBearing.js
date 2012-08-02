@@ -21,6 +21,7 @@
  * @requires OpenLayers/Geometry/Point.js
  * @requires OpenLayers/Symbolizer/Point.js
  * @requires OpenLayers/Projection.js
+ * @requires OpenLayers/Format/JSON.js
  */
 
 /** api: (define)
@@ -294,10 +295,34 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				})
 			]
 		}).show();
-		
+        
+        
+        /**
+         * Post the request and expect success.
+         */
+
+        var jsonFormat = new OpenLayers.Format.JSON();
+        var requestData = jsonFormat.write({ x:-122.86, y: 42.33, radius: 600, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
+        var responseDataJson = null;
+
+        OpenLayers.Request.POST({
+            url: "http://localhost:8080/wps",
+            proxy: null,
+            data: requestData,
+            headers: {
+            	"Content-Type": "application/json"
+	        },            
+            success: function(response) {
+                console.log("success: ", response);
+                responseDataJson = eval(response.responseText);
+                console.log("responseDataJson: ", responseDataJson)
+            },
+        });
+        
+        //----------------------------
 		//Once you have your json, pass it to addJsonFeatures
-		var testJson = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
-		this.addJsonFeatures(evt.xy, testJson);
+		//var responseData = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
+		this.addJsonFeatures(evt.xy, responseDataJson);
     }
 });
 
