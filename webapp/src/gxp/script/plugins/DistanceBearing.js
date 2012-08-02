@@ -194,24 +194,9 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
     
     addJsonFeatures: function(center, json) {
     	var map = this.target.mapPanel.map;
-    	
-    	//var Symbolizer = new OpenLayers.Symbolizer.Point({
-		//	pointRadius: 		20,
-		//	externalGraphic: 	"${image}",		//Make it an image of an arrow?
-		//	fillOpacity: 		1,
-		//	rotation: 			"${rotation}"	//would this be the bearing??
-		//});
-	
-		//var Style = new OpenLayers.StyleMap({
-		//	"default" : new OpenLayers.Style(null, {
-		//		rules : [ new OpenLayers.Rule({
-		//			symbolizer : Symbolizer
-		//		})]
-		//	})
-		//});
 		
 		//Create a new layer to store all the features.
-		var Layer = new OpenLayers.Layer.Vector("Distance Bearing", {
+		var LineLayer = new OpenLayers.Layer.Vector("Distance Bearing", {
 			projection: new OpenLayers.Projection(map.getProjection()),
 			styleMap: new OpenLayers.StyleMap({'default':{
                     //strokeColor: "#FFFF00",
@@ -236,12 +221,17 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 }})
 		});
 		
+		var PointLayer = new OpenLayers.Layer.Vector("Markers", {
+			projection: new OpenLayers.Projection(map.getProjection())
+		});
+		
 		//Create an array of features
 		var features = [];
+		var pointFeatures = [];
 		
 		var centerPoint = new OpenLayers.Geometry.Point(center.lon, center.lat).transform(
 				new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection(map.getProjection()));
-		//features.push(new OpenLayers.Feature.Vector(centerPoint));
+		pointFeatures.push(new OpenLayers.Feature.Vector(centerPoint));
 		
 		//Loop through the json object and parse the data.
 		// - TODO: Base the loop on the json data
@@ -265,14 +255,16 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			features.push(line);
 			
 			//Create a feature based on the new point.
-			//features.push(new OpenLayers.Feature.Vector(endPoint));
+			pointFeatures.push(new OpenLayers.Feature.Vector(endPoint));
 		}
 		
 		//Finally add all the features to the new layer...
-		Layer.addFeatures(features);
+		LineLayer.addFeatures(features);
+		PointLayer.addFeatures(pointFeatures);
 		
 		//and add the layer to the map!
-		map.addLayer(Layer);
+		map.addLayer(PointLayer);
+		map.addLayer(LineLayer);
     },
 
     /** private: method[displayPopup]
