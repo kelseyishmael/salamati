@@ -389,13 +389,13 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
             success: function(response) {
                 console.log("success: ", response);
                 responseDataJson = eval(response.responseText);
-                console.log("responseDataJson: ", responseDataJson)
+                console.log("responseDataJson: ", responseDataJson);
                 
                 //----------------------------
         		//Once you have your json, pass it to addJsonFeatures
         		//var responseData = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
         		addJsonFeatures_(map_, clickLocation, responseDataJson);                
-            },
+            }
         });
     }
 });
