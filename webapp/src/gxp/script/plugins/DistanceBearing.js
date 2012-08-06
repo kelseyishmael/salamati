@@ -193,6 +193,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
     },
     
     addJsonFeatures: function(center, json) {
+    
     	var map = this.target.mapPanel.map;
 		
 		//Create a new layer to store all the features.
@@ -219,6 +220,12 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                     labelOutlineColor: "black",
                     labelOutlineWidth: 4
                 }})
+		});
+		
+		var ArrowLayer = new OpenLayers.Layer.Vector("Directional Arrow", {
+			styleMap: new OpenLayers.StyleMap(OpenLayers.Util.applyDefaults(
+					{graphicName:"arrow",rotation : "${angle}"},
+					OpenLayers.Feature.Vector.style["default"]))
 		});
 		
 		var PointLayer = new OpenLayers.Layer.Vector("Markers", {
@@ -257,7 +264,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			//Create a feature based on the new point.
 			pointFeatures.push(new OpenLayers.Feature.Vector(endPoint));
 		}
-		
+	
 		//Finally add all the features to the new layer...
 		LineLayer.addFeatures(features);
 		PointLayer.addFeatures(pointFeatures);
@@ -265,6 +272,37 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		//and add the layer to the map!
 		map.addLayer(PointLayer);
 		map.addLayer(LineLayer);
+		map.addLayer(ArrowLayer);
+		
+		//Add arrow
+		OpenLayers.Renderer.symbol.arrow = [0,2, 1,0, 2,2, 1,0, 0,2];
+		
+		var points=[];
+		var features =map.layers[1].features;
+		for (var i=0;i<features.length ;i++ ) {
+			var linePoints = createDirection(features[i].geometry,get_position_value(),get_foreachseg_value()) ;
+			for (var j=0;j<linePoints.length ;j++ ) {
+				linePoints[j].attributes.lineFid = features[i].fid;
+			}
+			points =points.concat(linePoints);
+		}
+		map.layers[2].addFeatures(points);
+    },
+    
+    get_position_value: function() {
+		for (var i=0; i < document.direction.position.length; i++) {
+			if (document.direction.position[i].checked) {
+				  return document.direction.position[i].value;
+			}
+		}
+    },
+    
+    get_foreachseg_value: function() {
+    	if (document.direction.foreachseg.checked){
+			return true;
+		} else {
+			return false;
+		}
     },
 
     /** private: method[displayPopup]
