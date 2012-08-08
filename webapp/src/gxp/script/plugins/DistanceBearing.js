@@ -296,7 +296,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		
 		var arrowHead = [];
 		for (var i = 0; i < features.length; i++) {
-			var linePoints = gxp.plugins.DistanceBearing.prototype.createDirection(features[i].geometry, "end", false);
+			var linePoints = createDirection(features[i].geometry, "end", false);
 			for (var j=0; j < linePoints.length; j++ ) {
 				linePoints[j].attributes.lineFid = features[i].fid;
 			}
@@ -310,7 +310,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		if(line instanceof OpenLayers.Geometry.MultiLineString) {
 			//TODO
 		} else if(line instanceof OpenLayers.Geometry.LineString) {
-			return gxp.plugins.DistanceBearing.prototype.createLineStringDirection(line,position,forEachSegment);
+			return createLineStringDirection(line,position,forEachSegment);
 		} else {
 			return [];
 		}
@@ -321,7 +321,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		if(forEachSegment == undefined) { forEachSegment = false; }
 		
 		var points = [];
-		var allSegs = gxp.plugins.DistanceBearing.prototype.getSegments(line);
+		var allSegs = getSegments(line);
 		var segs = [];
 
 		if(forEachSegment)	{		
@@ -332,19 +332,19 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			} else if(position == "end") {
 				segs.push(allSegs[allSegs.length-1]);
 			} else if(position == "middle") {
-				return [gxp.plugins.DistanceBearing.prototype.getPointOnLine(line,.5)];
+				return [getPointOnLine(line,.5)];
 			} else {
 				return [];
 			}
 		}
 		for (var i = 0; i < segs.length; i++) {
-			points = points.concat(gxp.plugins.DistanceBearing.prototype.createSegDirection(segs[i],position));
+			points = points.concat(createSegDirection(segs[i],position));
 		}
 		return points;
 	},
 
 	createSegDirection: function(seg,position) {
-		var segBearing = gxp.plugins.DistanceBearing.prototype.bearing(seg);
+		var segBearing = bearing(seg);
 		var positions = [];
 		var points = [];
 		if  (position == "start") {
@@ -490,7 +490,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				        /**
 				         * Post the request and expect success.
 				         */
-
+						
 				        var jsonFormat = new OpenLayers.Format.JSON();
 				        //TODO: use radius field from dialog
 				        var requestData = jsonFormat.write({ x: clickLocation.lon, y: clickLocation.lat, radius: 100000, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
@@ -502,7 +502,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				            data: requestData,
 				            headers: {
 				            	"Content-Type": "application/json"
-					        },            
+					        },
 				            success: function(response) {
 				                console.log("success: ", response);
 				                responseDataJson = eval(response.responseText);
@@ -511,7 +511,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				                //----------------------------
 				        		//Once you have your json, pass it to addJsonFeatures
 				        		//var responseData = [{endPoint:{x: -100.4589843750024, y: 44.480830278562756}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: -106.1059570312543, y: 34.49750272138203}, distance:561.9445569621694,bearing:60.2591284662917}];
-				        		plugin.addJsonFeatures.call(plugin, plugin.target.mapPanel.map, clickLocation, responseDataJson); //responseData);                
+				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, clickLocation, responseDataJson); //responseData);                
 				            }
 				        });
 					}
