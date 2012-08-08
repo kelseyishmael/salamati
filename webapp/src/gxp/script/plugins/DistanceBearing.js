@@ -304,6 +304,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         var clickLocation = map.getLonLatFromPixel(evt.xy);
         clickLocation = clickLocation.transform(new OpenLayers.Projection(map.getProjection()), geographic);
         
+        var plugin = this;
         var win = new Ext.Window({
 			title:			"Distance/Bearing",
 			closable:		true,
@@ -316,50 +317,55 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				combo,
 				new Ext.form.Field({
 					fieldLabel:	"Longitude",
-					value:		clickLocation.lon	// turn this into longitude
+					value:		clickLocation.lon
 				}),
 				new Ext.form.Field({
 					fieldLabel:	"Latitude",
-					value:		clickLocation.lat	// turn this into latitude
+					value:		clickLocation.lat
 				}),
 				new Ext.form.Field({
 					fieldLabel:	"Radius (m)"	// TODO: Needs validation event handler to prevent empty radius being submitted
+				}),
+				new Ext.Button({
+					text: 		"Cancel",
+					handler:	function(b, e) {
+						win.destroy();
+					}
+				}),
+				new Ext.Button({
+					text: 		"OK",
+					handler:	function(b, e) {
+				        /**
+				         * Post the request and expect success.
+				         */
+				        
+				        var jsonFormat = new OpenLayers.Format.JSON();
+				        //TODO: use fields from dialog
+				        var requestData = jsonFormat.write({ x: clickLocation.lon, y: clickLocation.lat, radius: 100000, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
+				        var responseDataJson = null;
+				        
+				        OpenLayers.Request.POST({
+				            url: "http://geoserver.rogue.lmnsolutions.com/geoserver/wps",
+				            proxy: null,
+				            data: requestData,
+				            headers: {
+				            	"Content-Type": "application/json"
+					        },            
+				            success: function(response) {
+				                console.log("success: ", response);
+				                responseDataJson = eval(response.responseText);
+				                console.log("responseDataJson: ", responseDataJson)
+				                
+				                //----------------------------
+				        		//Once you have your json, pass it to addJsonFeatures
+				        		//var responseData = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
+				        		plugin.addJsonFeatures.call(plugin, plugin.target.mapPanel.map, clickLocation, responseDataJson);                
+				            }
+				        });
+					}
 				})
 			]
 		}).show();
-        
-        
-        /**
-         * Post the request and expect success.
-         */
-
-        var jsonFormat = new OpenLayers.Format.JSON();
-        //TODO: use radius field from dialog
-        var requestData = jsonFormat.write({ x: clickLocation.lon, y: clickLocation.lat, radius: 100000, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
-        var responseDataJson = null;
-        
-        //TODO: resolve scope issue
-        var addJsonFeatures_ = this.addJsonFeatures;
-        var map_ = this.target.mapPanel.map;
-
-        OpenLayers.Request.POST({
-            url: "http://localhost:8080/wps",
-            proxy: null,
-            data: requestData,
-            headers: {
-            	"Content-Type": "application/json"
-	        },            
-            success: function(response) {
-                console.log("success: ", response);
-                responseDataJson = eval(response.responseText);
-                console.log("responseDataJson: ", responseDataJson)
-                
-                //----------------------------
-        		//Once you have your json, pass it to addJsonFeatures
-        		//var responseData = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
-        		addJsonFeatures_(map_, clickLocation, responseDataJson);                
-            },
-        });
     }
 });
 
