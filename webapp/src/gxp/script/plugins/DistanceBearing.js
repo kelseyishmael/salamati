@@ -23,6 +23,7 @@
  * @requires OpenLayers/Symbolizer/Point.js
  * @requires OpenLayers/Projection.js
  * @requires OpenLayers/Format/JSON.js
+ * @requires OpenLayers/Request.js
  */
 
 /** api: (define)
@@ -191,38 +192,50 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         this.target.mapPanel.layers.on("remove", updateInfo, this);
         
         return actions;
-    },
-    
+    }, 
+
     addJsonFeatures: function(map, center, jsonFeatures) {
 		
 		//Create a new layer to store all the features.
-		var LineLayer = new OpenLayers.Layer.Vector("Distance Bearing", {
+		var LineLayer = new OpenLayers.Layer.Vector("Distance Lines", {
 			projection: new OpenLayers.Projection(map.getProjection()),
-			styleMap: new OpenLayers.StyleMap({'default':{
-                    //strokeColor: "#FFFF00",
+			styleMap: new OpenLayers.StyleMap(OpenLayers.Util.applyDefaults( {
+					graphicName:"arrow",
+					rotation : "${angle}",
+					strokeColor: "black",
                     strokeOpacity: 1,
                     strokeWidth: 3,
-                    //fillColor: "#FF5500",
+                    fillColor: "black",
+                    fillOpacity: 1,
+                    pointerEvents: "visiblePainted"
+				},
+				OpenLayers.Feature.Vector.style["default"]
+			))
+		});
+		
+		var PointLayer = new OpenLayers.Layer.Vector("Markers", {
+			projection: new OpenLayers.Projection(map.getProjection()),
+			styleMap: new OpenLayers.StyleMap({'default':{
+                    strokeColor: "${markerColor}",
+                    strokeOpacity: 1,
+                    strokeWidth: 2,
+                    fillColor: "${markerColor}",
                     fillOpacity: 0.5,
-                    pointRadius: 6,
+                    pointRadius: 8,
                     pointerEvents: "visiblePainted",
                     // label with \n linebreaks
-                    label : "Distance: ${distance}\nBearing: ${bearing}",
+                    label : "${label}",
                     
                     fontColor: "${fontColor}",
                     fontSize: "14px",
                     fontFamily: "Courier New, monospace",
                     fontWeight: "bold",
-                    labelAlign: "cm", //"${align}",
+                    labelAlign: "${align}",
                     labelXOffset: "${xOffset}",
                     labelYOffset: "${yOffset}",
                     labelOutlineColor: "black",
                     labelOutlineWidth: 4
                 }})
-		});
-		
-		var PointLayer = new OpenLayers.Layer.Vector("Markers", {
-			projection: new OpenLayers.Projection(map.getProjection())
 		});
 		
 		//Create an array of features
@@ -231,7 +244,17 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		
 		var centerPoint = new OpenLayers.Geometry.Point(center.lon, center.lat).transform(
 				new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection(map.getProjection()));
-		pointFeatures.push(new OpenLayers.Feature.Vector(centerPoint));
+				
+		var startPoint = new OpenLayers.Feature.Vector(centerPoint);
+			startPoint.attributes = {
+                label: "Start",
+                markerColor: "green",
+                fontColor: 'white',
+                align: "cm",
+                xOffset: 0,
+                yOffset: 15
+            };
+		pointFeatures.push(startPoint);
 		
 		//Loop through the json object and parse the data.
 		// - TODO: Base the loop on the json data
@@ -243,23 +266,23 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			var endPoint = new OpenLayers.Geometry.Point(feature.endPoint.x, feature.endPoint.y).transform(
 				new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection(map.getProjection()));
 			
-			line = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([endPoint, centerPoint]));
+			line = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([centerPoint, endPoint]));
+			features.push(line);
 			
-			line.attributes = {
-                distance: feature.distance,
-                bearing: feature.bearing,
+			var point = new OpenLayers.Feature.Vector(endPoint);
+			point.attributes = {
+                label: "Distance: " + (feature.distance / 1000.0).toFixed(3) + " km\nBearing: " + feature.bearing.toFixed(1),
+                markerColor: "red",
                 fontColor: 'white',
                 align: "cm",
                 xOffset: 0,
-                yOffset: 0
+                yOffset: 30
             };
 			
-			features.push(line);
-			
 			//Create a feature based on the new point.
-			pointFeatures.push(new OpenLayers.Feature.Vector(endPoint));
+			pointFeatures.push(point);
 		}
-		
+	
 		//Finally add all the features to the new layer...
 		LineLayer.addFeatures(features);
 		PointLayer.addFeatures(pointFeatures);
@@ -267,7 +290,136 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		//and add the layer to the map!
 		map.addLayer(PointLayer);
 		map.addLayer(LineLayer);
+		
+		//Add arrow
+		OpenLayers.Renderer.symbol.arrow = [0,2, 1,0, 2,2, 1,0, 0,2];
+		
+		var arrowHead = [];
+		for (var i = 0; i < features.length; i++) {
+			var linePoints = gxp.plugins.DistanceBearing.prototype.createDirection(features[i].geometry, "end", false);
+			for (var j=0; j < linePoints.length; j++ ) {
+				linePoints[j].attributes.lineFid = features[i].fid;
+			}
+			arrowHead = arrowHead.concat(linePoints);
+		}
+		LineLayer.addFeatures(arrowHead);
+		//map.addLayer(ArrowLayer);	
     },
+    
+    createDirection: function(line,position,forEachSegment) {
+		if(line instanceof OpenLayers.Geometry.MultiLineString) {
+			//TODO
+		} else if(line instanceof OpenLayers.Geometry.LineString) {
+			return gxp.plugins.DistanceBearing.prototype.createLineStringDirection(line,position,forEachSegment);
+		} else {
+			return [];
+		}
+	},
+
+	createLineStringDirection: function(line,position, forEachSegment) {
+		if(position == undefined) { position = "end"; }
+		if(forEachSegment == undefined) { forEachSegment = false; }
+		
+		var points = [];
+		var allSegs = gxp.plugins.DistanceBearing.prototype.getSegments(line);
+		var segs = [];
+
+		if(forEachSegment)	{		
+			segs = allSegs;
+		} else {
+			if(position == "start") {
+				segs.push(allSegs[0]);
+			} else if(position == "end") {
+				segs.push(allSegs[allSegs.length-1]);
+			} else if(position == "middle") {
+				return [gxp.plugins.DistanceBearing.prototype.getPointOnLine(line,.5)];
+			} else {
+				return [];
+			}
+		}
+		for (var i = 0; i < segs.length; i++) {
+			points = points.concat(gxp.plugins.DistanceBearing.prototype.createSegDirection(segs[i],position));
+		}
+		return points;
+	},
+
+	createSegDirection: function(seg,position) {
+		var segBearing = gxp.plugins.DistanceBearing.prototype.bearing(seg);
+		var positions = [];
+		var points = [];
+		if  (position == "start") {
+			positions.push([seg.x1,seg.y1]);
+		} else if (position == "end") {
+			positions.push([seg.x2,seg.y2]);
+		} else if (position == "middle") {
+			positions.push([(seg.x1+seg.x2)/2,(seg.y1+seg.y2)/2]);
+		} else {
+			return null;
+		}
+		for (var i=0;i<positions.length;i++ ) {
+			var pt = new OpenLayers.Geometry.Point(positions[i][0],positions[i][1]);
+			var ptFeature = new OpenLayers.Feature.Vector(pt,{angle:segBearing}); 
+			points.push(ptFeature);
+		}
+		return points;	
+	},
+
+	bearing: function(seg) {
+		b_x = 0;
+		b_y = 1;
+		a_x = seg.x2 - seg.x1;
+		a_y = seg.y2 - seg.y1;
+		angle_rad = Math.acos((a_x*b_x+a_y*b_y)/Math.sqrt(a_x*a_x+a_y*a_y)) ;
+		angle = 360/(2*Math.PI)*angle_rad;
+		if (a_x < 0) {
+	 	   return 360 - angle;
+		} else {
+		    return angle;
+		}
+	},
+
+	getPointOnLine: function (line,measure) {
+    	var segs = getSegments(line);
+    	var lineLength = line.getLength();
+    	var measureLength = lineLength*measure;
+   		var length = 0;
+		var partLength=0;
+    	for (var i=0;i<segs.length ;i++ ) {
+        	var segLength = getSegmentLength(segs[i]);        
+       		if (measureLength < length + segLength) {
+				partLength = measureLength - length;
+				var x = segs[i].x1 + (segs[i].x2 - segs[i].x1) * partLength/segLength;
+				var y = segs[i].y1 + (segs[i].y2 - segs[i].y1) * partLength/segLength;
+				var segBearing = bearing(segs[i]);
+				console.log("x: " + x+", y: " + y + ", bearing: " + segBearing);
+				var pt = new OpenLayers.Geometry.Point(x,y);
+				var ptFeature = new OpenLayers.Feature.Vector(pt,{angle:segBearing}); 
+				return ptFeature;
+        	} 
+			length = length + segLength;
+    	}
+		return false;
+	},
+
+	getSegmentLength: function(seg) {
+	    return Math.sqrt( Math.pow((seg.x2 -seg.x1),2) + Math.pow((seg.y2 -seg.y1),2) );
+	},
+
+	getSegments: function(line) {	
+		var numSeg = line.components.length - 1;
+		var segments = new Array(numSeg), point1, point2;
+		for(var i=0; i<numSeg; ++i) {
+	    	point1 = line.components[i];
+	    	point2 = line.components[i + 1];
+	    	segments[i] = {
+	        	x1: point1.x,
+	        	y1: point1.y,
+	        	x2: point2.x,
+	        	y2: point2.y
+	    	};
+		}
+		return segments;
+	},
 
     /** private: method[displayPopup]
      * :arg evt: the event object from a 
@@ -338,14 +490,14 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				        /**
 				         * Post the request and expect success.
 				         */
-				        
+
 				        var jsonFormat = new OpenLayers.Format.JSON();
-				        //TODO: use fields from dialog
+				        //TODO: use radius field from dialog
 				        var requestData = jsonFormat.write({ x: clickLocation.lon, y: clickLocation.lat, radius: 100000, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
 				        var responseDataJson = null;
 				        
 				        OpenLayers.Request.POST({
-				            url: "http://geoserver.rogue.lmnsolutions.com/geoserver/wps",
+				            url: "http://localhost:8080/wps",
 				            proxy: null,
 				            data: requestData,
 				            headers: {
@@ -354,12 +506,12 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				            success: function(response) {
 				                console.log("success: ", response);
 				                responseDataJson = eval(response.responseText);
-				                console.log("responseDataJson: ", responseDataJson)
+				                console.log("responseDataJson: ", responseDataJson);
 				                
 				                //----------------------------
 				        		//Once you have your json, pass it to addJsonFeatures
-				        		//var responseData = [{distance:551.9238246859647,bearing:95.71837619624442},{distance:561.9445569621694,bearing:60.2591284662917}];
-				        		plugin.addJsonFeatures.call(plugin, plugin.target.mapPanel.map, clickLocation, responseDataJson);                
+				        		//var responseData = [{endPoint:{x: -100.4589843750024, y: 44.480830278562756}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: -106.1059570312543, y: 34.49750272138203}, distance:561.9445569621694,bearing:60.2591284662917}];
+				        		plugin.addJsonFeatures.call(plugin, plugin.target.mapPanel.map, clickLocation, responseDataJson); //responseData);                
 				            }
 				        });
 					}
