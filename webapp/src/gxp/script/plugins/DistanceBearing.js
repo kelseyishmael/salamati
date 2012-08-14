@@ -267,6 +267,10 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection(map.getProjection()));
 			
 			line = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([centerPoint, endPoint]));
+			line.attributes = {
+				bearing: feature.bearing.toFixed(1)
+			};
+										 
 			features.push(line);
 			
 			var point = new OpenLayers.Feature.Vector(endPoint);
@@ -296,7 +300,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		
 		var arrowHead = [];
 		for (var i = 0; i < features.length; i++) {
-			var linePoints = createDirection(features[i].geometry, "end", false);
+										 console.log(features[i]);
+			var linePoints = this.createDirection(features[i].geometry, "end", features[i].attributes.bearing,false);
 			for (var j=0; j < linePoints.length; j++ ) {
 				linePoints[j].attributes.lineFid = features[i].fid;
 			}
@@ -306,22 +311,22 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		//map.addLayer(ArrowLayer);	
     },
     
-    createDirection: function(line,position,forEachSegment) {
+    createDirection: function(line,position,bearing,forEachSegment) {
 		if(line instanceof OpenLayers.Geometry.MultiLineString) {
 			//TODO
 		} else if(line instanceof OpenLayers.Geometry.LineString) {
-			return createLineStringDirection(line,position,forEachSegment);
+			return this.createLineStringDirection(line,position,bearing,forEachSegment);
 		} else {
 			return [];
 		}
 	},
 
-	createLineStringDirection: function(line,position, forEachSegment) {
+	createLineStringDirection: function(line,position,bearing,forEachSegment) {
 		if(position == undefined) { position = "end"; }
 		if(forEachSegment == undefined) { forEachSegment = false; }
 		
 		var points = [];
-		var allSegs = getSegments(line);
+		var allSegs = this.getSegments(line);
 		var segs = [];
 
 		if(forEachSegment)	{		
@@ -332,19 +337,20 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			} else if(position == "end") {
 				segs.push(allSegs[allSegs.length-1]);
 			} else if(position == "middle") {
-				return [getPointOnLine(line,.5)];
+				return [this.getPointOnLine(line,.5)];
 			} else {
 				return [];
 			}
 		}
 		for (var i = 0; i < segs.length; i++) {
-			points = points.concat(createSegDirection(segs[i],position));
+			points = points.concat(this.createSegDirection(segs[i],position,bearing));
 		}
 		return points;
 	},
 
-	createSegDirection: function(seg,position) {
-		var segBearing = bearing(seg);
+	createSegDirection: function(seg,position,bearing) {
+		//var segBearing = this.bearing(seg);
+		var segBearing = bearing;
 		var positions = [];
 		var points = [];
 		if  (position == "start") {
@@ -379,18 +385,18 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 	},
 
 	getPointOnLine: function (line,measure) {
-    	var segs = getSegments(line);
+    	var segs = this.getSegments(line);
     	var lineLength = line.getLength();
     	var measureLength = lineLength*measure;
    		var length = 0;
 		var partLength=0;
     	for (var i=0;i<segs.length ;i++ ) {
-        	var segLength = getSegmentLength(segs[i]);        
+        	var segLength = this.getSegmentLength(segs[i]);        
        		if (measureLength < length + segLength) {
 				partLength = measureLength - length;
 				var x = segs[i].x1 + (segs[i].x2 - segs[i].x1) * partLength/segLength;
 				var y = segs[i].y1 + (segs[i].y2 - segs[i].y1) * partLength/segLength;
-				var segBearing = bearing(segs[i]);
+				var segBearing = this.bearing(segs[i]);
 				console.log("x: " + x+", y: " + y + ", bearing: " + segBearing);
 				var pt = new OpenLayers.Geometry.Point(x,y);
 				var ptFeature = new OpenLayers.Feature.Vector(pt,{angle:segBearing}); 
@@ -497,7 +503,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				        var responseDataJson = null;
 				        
 				        OpenLayers.Request.POST({
-				            url: "http://localhost:8080/wps",
+				            url: "http://localhost:8081/wps",
 				            proxy: null,
 				            data: requestData,
 				            headers: {
@@ -506,7 +512,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				            success: function(response) {
 				                console.log("success: ", response);
 				                responseDataJson = eval(response.responseText);
-				                console.log("responseDataJson: ", responseDataJson);
+				                //console.log("responseDataJson: ", responseDataJson);
 				                
 				                //----------------------------
 				        		//Once you have your json, pass it to addJsonFeatures
