@@ -15,6 +15,8 @@
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
  * @require overrides/override-ext-ajax.js
+ * @require plugins/DistanceBearingHospitals.js
+ * @require plugins/DistanceBearingSchools.js
  */
 
 var app;
@@ -71,7 +73,16 @@ Ext.onReady(function() {
             actionTarget: "map.tbar"
         }, {
             ptype: "gxp_distancebearing",
-            actionTarget: "map.tbar"
+            actionTarget: "map.tbar",
+            toggleGroup: "distanceBearing"
+        }, {
+            ptype: "gxp_distancebearinghospitals",
+            actionTarget: "map.tbar",
+            toggleGroup: "distanceBearing"
+        }, {
+            ptype: "gxp_distancebearingschools",
+            actionTarget: "map.tbar",
+            toggleGroup: "distanceBearing"
         }],
         
         // layer sources
@@ -99,7 +110,7 @@ Ext.onReady(function() {
                 group: "background"
             }, {
                 source: "local",
-                name: "topp:states",
+                name: "usa:states",
                 selected: true
             }],
             items: [{

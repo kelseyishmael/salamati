@@ -300,8 +300,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		
 		var arrowHead = [];
 		for (var i = 0; i < features.length; i++) {
-										 console.log(features[i]);
-			var linePoints = this.createDirection(features[i].geometry, "end", features[i].attributes.bearing,false);
+			var linePoints = this.createDirection(features[i].geometry, features[i].attributes.bearing);
 			for (var j=0; j < linePoints.length; j++ ) {
 				linePoints[j].attributes.lineFid = features[i].fid;
 			}
@@ -311,100 +310,42 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		//map.addLayer(ArrowLayer);	
     },
     
-    createDirection: function(line,position,bearing,forEachSegment) {
+    createDirection: function(line,bearing) {
 		if(line instanceof OpenLayers.Geometry.MultiLineString) {
 			//TODO
 		} else if(line instanceof OpenLayers.Geometry.LineString) {
-			return this.createLineStringDirection(line,position,bearing,forEachSegment);
+			return this.createLineStringDirection(line,bearing);
 		} else {
 			return [];
 		}
 	},
 
-	createLineStringDirection: function(line,position,bearing,forEachSegment) {
-		if(position == undefined) { position = "end"; }
-		if(forEachSegment == undefined) { forEachSegment = false; }
-		
+	createLineStringDirection: function(line,bearing) {
 		var points = [];
 		var allSegs = this.getSegments(line);
 		var segs = [];
 
-		if(forEachSegment)	{		
-			segs = allSegs;
-		} else {
-			if(position == "start") {
-				segs.push(allSegs[0]);
-			} else if(position == "end") {
-				segs.push(allSegs[allSegs.length-1]);
-			} else if(position == "middle") {
-				return [this.getPointOnLine(line,.5)];
-			} else {
-				return [];
-			}
-		}
+		segs.push(allSegs[allSegs.length-1]);
+			
 		for (var i = 0; i < segs.length; i++) {
-			points = points.concat(this.createSegDirection(segs[i],position,bearing));
+			points = points.concat(this.createSegDirection(segs[i],bearing));
 		}
 		return points;
 	},
 
-	createSegDirection: function(seg,position,bearing) {
+	createSegDirection: function(seg,bearing) {
 		//var segBearing = this.bearing(seg);
-		var segBearing = bearing;
 		var positions = [];
 		var points = [];
-		if  (position == "start") {
-			positions.push([seg.x1,seg.y1]);
-		} else if (position == "end") {
-			positions.push([seg.x2,seg.y2]);
-		} else if (position == "middle") {
-			positions.push([(seg.x1+seg.x2)/2,(seg.y1+seg.y2)/2]);
-		} else {
-			return null;
-		}
+		
+		positions.push([seg.x2,seg.y2]);
+										 
 		for (var i=0;i<positions.length;i++ ) {
 			var pt = new OpenLayers.Geometry.Point(positions[i][0],positions[i][1]);
-			var ptFeature = new OpenLayers.Feature.Vector(pt,{angle:segBearing}); 
+			var ptFeature = new OpenLayers.Feature.Vector(pt,{angle:bearing}); 
 			points.push(ptFeature);
 		}
 		return points;	
-	},
-
-	bearing: function(seg) {
-		b_x = 0;
-		b_y = 1;
-		a_x = seg.x2 - seg.x1;
-		a_y = seg.y2 - seg.y1;
-		angle_rad = Math.acos((a_x*b_x+a_y*b_y)/Math.sqrt(a_x*a_x+a_y*a_y)) ;
-		angle = 360/(2*Math.PI)*angle_rad;
-		if (a_x < 0) {
-	 	   return 360 - angle;
-		} else {
-		    return angle;
-		}
-	},
-
-	getPointOnLine: function (line,measure) {
-    	var segs = this.getSegments(line);
-    	var lineLength = line.getLength();
-    	var measureLength = lineLength*measure;
-   		var length = 0;
-		var partLength=0;
-    	for (var i=0;i<segs.length ;i++ ) {
-        	var segLength = this.getSegmentLength(segs[i]);        
-       		if (measureLength < length + segLength) {
-				partLength = measureLength - length;
-				var x = segs[i].x1 + (segs[i].x2 - segs[i].x1) * partLength/segLength;
-				var y = segs[i].y1 + (segs[i].y2 - segs[i].y1) * partLength/segLength;
-				var segBearing = this.bearing(segs[i]);
-				console.log("x: " + x+", y: " + y + ", bearing: " + segBearing);
-				var pt = new OpenLayers.Geometry.Point(x,y);
-				var ptFeature = new OpenLayers.Feature.Vector(pt,{angle:segBearing}); 
-				return ptFeature;
-        	} 
-			length = length + segLength;
-    	}
-		return false;
 	},
 
 	getSegmentLength: function(seg) {
@@ -427,6 +368,36 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		return segments;
 	},
 
+	validateLon: function(lon){
+		if(isNaN(lon) || (radius == ""))
+			return false;
+	 
+		if((lon >= -180) && (lon <= 180))
+			return true;
+	 
+			return false;
+	},
+	 
+	validateLat: function(lat){
+		if(isNaN(lat) || (radius == ""))
+			return false;
+	 
+		if((lat >= -90) && (lat <= 90))
+			return true;
+	 
+			return false;
+	},
+	 
+	validateRadius: function(radius){
+		if(isNaN(radius) || (radius == ""))
+			return false;
+	 
+		if(radius >= 0)
+			return true;
+	 
+			return false;
+	},
+										 
     /** private: method[displayPopup]
      * :arg evt: the event object from a 
      *     :class:`OpenLayers.Control.GetFeatureInfo` control
@@ -435,24 +406,29 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
      * :arg text: ``String`` Body text.
      */
     displayPopup: function(evt, title, text) {
-        var queryableLayers = this.target.mapPanel.layers.queryBy(function(x){
+        /*var queryableLayers = this.target.mapPanel.layers.queryBy(function(x){
             return x.get("queryable");
-        });
+        });*/
         
-        var layers = [];
-        queryableLayers.each(function(x){
+        var wps = [["medfordschools", "Medford Schools"], 
+        ["medfordhospitals", "Medford Hospitals"]];
+        
+        /*queryableLayers.each(function(x){
             var layer = x.getLayer();
             layers.push([layer.url, x.get("name")]);
-        });
+        });*/
         
         // Create the combo box, attached to the states data store
         var combo = new Ext.form.ComboBox({
         	editable:		false,
+            id:             "wpsCombo",
         	mode:			"local",
         	lazyRender:		true,
-            fieldLabel:		"Choose Layer",
-            store:			layers,
-            autoSelect:		true // BUG: "true to select the first result gathered by the data store (defaults to true)." - From docs - doesn't seem to work
+            fieldLabel:		"Choose WPS",
+            store:			wps,
+            autoSelect:		true, // BUG: "true to select the first result gathered by the data store (defaults to true)." - From docs - doesn't seem to work
+            triggerAction: "all",
+            lastQuery: "" 
         });
         
         
@@ -475,14 +451,17 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				combo,
 				new Ext.form.Field({
 					fieldLabel:	"Longitude",
+					id: "lon",
 					value:		clickLocation.lon
 				}),
 				new Ext.form.Field({
 					fieldLabel:	"Latitude",
+					id: "lat",
 					value:		clickLocation.lat
 				}),
 				new Ext.form.Field({
-					fieldLabel:	"Radius (m)"	// TODO: Needs validation event handler to prevent empty radius being submitted
+					fieldLabel:	"Radius (m)",	// TODO: Needs validation event handler to prevent empty radius being submitted
+					id: "radius"
 				}),
 				new Ext.Button({
 					text: 		"Cancel",
@@ -498,12 +477,27 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				         */
 						
 				        var jsonFormat = new OpenLayers.Format.JSON();
-				        //TODO: use radius field from dialog
-				        var requestData = jsonFormat.write({ x: clickLocation.lon, y: clickLocation.lat, radius: 100000, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
+							   
+						var lon = Ext.getCmp("lon").getValue();
+						var lat = Ext.getCmp("lat").getValue();
+						var radius = Ext.getCmp("radius").getValue();
+							   
+						if(!plugin.validateLon(lon))
+							   return;
+						if(!plugin.validateLat(lat))
+							   return;
+						if(!plugin.validateRadius(radius))
+							   return;
+				        
+                        var selectedWPS = combo.getValue();
+                        
+						//TODO: use radius field from dialog
+				        //var requestData = jsonFormat.write({ x: lon, y: lat, radius: radius, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
+                        var requestData = jsonFormat.write({ x: lon, y: lat, radius: radius });
 				        var responseDataJson = null;
 				        
 				        OpenLayers.Request.POST({
-				            url: "http://localhost:8081/wps",
+				            url: "http://localhost:8081/" + selectedWPS,
 				            proxy: null,
 				            data: requestData,
 				            headers: {
@@ -517,7 +511,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				                //----------------------------
 				        		//Once you have your json, pass it to addJsonFeatures
 				        		//var responseData = [{endPoint:{x: -100.4589843750024, y: 44.480830278562756}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: -106.1059570312543, y: 34.49750272138203}, distance:561.9445569621694,bearing:60.2591284662917}];
-				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, clickLocation, responseDataJson); //responseData);                
+								var lonlat = new OpenLayers.LonLat(lon, lat);
+				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson); //responseData);                
 				            }
 				        });
 					}
