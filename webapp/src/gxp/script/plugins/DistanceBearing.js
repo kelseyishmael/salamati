@@ -102,11 +102,22 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
      *      html: text, // responseText from server - only for "html" format
      */
 
+    /**
+     * Is the popup visible?
+     */
+    popupVisible: false,
+    
+    /**
+     * Popup Window
+     */
+    win: null,
+    
     /** api: method[addActions]
      */
     addActions: function() {
         this.popupCache = {};
         
+        var plugin = this;
         var actions = gxp.plugins.DistanceBearing.superclass.addActions.call(this, [{
             tooltip: this.infoActionTip,
             iconCls: "gxp-icon-getfeatureinfo",
@@ -119,6 +130,9 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                         info.controls[i].activate();
                     } else {
                         info.controls[i].deactivate();
+                        if(plugin.popupVisible && plugin.win)
+                            plugin.win.destroy();
+                        plugin.popupVisible = false;
                     }
                 }
              }
@@ -168,7 +182,14 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                             if (infoFormat == "text/html") {
                                 var match = evt.text.match(/<body[^>]*>([\s\S]*)<\/body>/);
                                 if (match && !match[1].match(/^\s*$/)) {
-                                    this.displayPopup(evt, title, match[1]);
+                                    if(this.popupVisible){
+                                        if(this.win)
+                                            this.win.destroy();
+                                        this.displayPopup(evt, title, match[1]);
+                                    }else{
+                                        this.popupVisible = true;
+                                        this.displayPopup(evt, title, match[1]);
+                                    }
                                 }
                             } else if (infoFormat == "text/plain") {
                                 this.displayPopup(evt, title, '<pre>' + evt.text + '</pre>');
@@ -194,10 +215,17 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         return actions;
     }, 
 
-    addJsonFeatures: function(map, center, jsonFeatures) {
+    addJsonFeatures: function(map, center, jsonFeatures, type) {
 		
+        var prefix;
+        
+        if(type == "medfordhospitals")
+                prefix = "Hospitals ";
+        else
+                prefix = "Schools ";
+                
 		//Create a new layer to store all the features.
-		var LineLayer = new OpenLayers.Layer.Vector("Distance Lines", {
+		var LineLayer = new OpenLayers.Layer.Vector(prefix + "Distance Lines", {
 			projection: new OpenLayers.Projection(map.getProjection()),
 			styleMap: new OpenLayers.StyleMap(OpenLayers.Util.applyDefaults( {
 					graphicName:"arrow",
@@ -213,7 +241,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			))
 		});
 		
-		var PointLayer = new OpenLayers.Layer.Vector("Markers", {
+		var PointLayer = new OpenLayers.Layer.Vector(prefix + "Markers", {
 			projection: new OpenLayers.Projection(map.getProjection()),
 			styleMap: new OpenLayers.StyleMap({'default':{
                     strokeColor: "${markerColor}",
@@ -439,7 +467,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         clickLocation = clickLocation.transform(new OpenLayers.Projection(map.getProjection()), geographic);
         
         var plugin = this;
-        var win = new Ext.Window({
+        this.win = new Ext.Window({
 			title:			"Distance/Bearing",
 			closable:		true,
 			closeAction:	"destroy",
@@ -466,7 +494,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				new Ext.Button({
 					text: 		"Cancel",
 					handler:	function(b, e) {
-						win.destroy();
+						plugin.win.destroy();
+                        plugin.popupVisible = false;
 					}
 				}),
 				new Ext.Button({
@@ -512,7 +541,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				        		//Once you have your json, pass it to addJsonFeatures
 				        		//var responseData = [{endPoint:{x: -100.4589843750024, y: 44.480830278562756}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: -106.1059570312543, y: 34.49750272138203}, distance:561.9445569621694,bearing:60.2591284662917}];
 								var lonlat = new OpenLayers.LonLat(lon, lat);
-				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson); //responseData);                
+				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson, selectedWPS); //responseData);                
 				            }
 				        });
 					}

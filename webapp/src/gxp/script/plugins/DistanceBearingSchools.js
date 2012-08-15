@@ -122,7 +122,7 @@ gxp.plugins.DistanceBearingSchools = Ext.extend(gxp.plugins.DistanceBearing, {
         clickLocation = clickLocation.transform(new OpenLayers.Projection(map.getProjection()), geographic);
         
         var plugin = this;
-        var win = new Ext.Window({
+        this.win = new Ext.Window({
 			title:			"Distance/Bearing of schools",
 			closable:		true,
 			closeAction:	"destroy",
@@ -149,7 +149,8 @@ gxp.plugins.DistanceBearingSchools = Ext.extend(gxp.plugins.DistanceBearing, {
 				new Ext.Button({
 					text: 		"Cancel",
 					handler:	function(b, e) {
-						win.destroy();
+						plugin.win.destroy();
+                        plugin.popupVisible = false;
 					}
 				}),
 				new Ext.Button({
@@ -191,7 +192,7 @@ gxp.plugins.DistanceBearingSchools = Ext.extend(gxp.plugins.DistanceBearing, {
 				        		//Once you have your json, pass it to addJsonFeatures
 				        		//var responseData = [{endPoint:{x: -100.4589843750024, y: 44.480830278562756}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: -106.1059570312543, y: 34.49750272138203}, distance:561.9445569621694,bearing:60.2591284662917}];
 								var lonlat = new OpenLayers.LonLat(lon, lat);
-				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson); //responseData);                
+				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson, "medfordschools"); //responseData);                
 				            }
 				        });
 					}
