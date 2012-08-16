@@ -177,7 +177,7 @@ gxp.plugins.DistanceBearingSchools = Ext.extend(gxp.plugins.DistanceBearing, {
 				        var responseDataJson = null;
 				        
 				        OpenLayers.Request.POST({
-				            url: "http://localhost:8081/medfordschools",
+				            url: "http://geoserver.rogue.lmnsolutions.com/medfordschools",
 				            proxy: null,
 				            data: requestData,
 				            headers: {

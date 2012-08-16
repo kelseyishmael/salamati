@@ -179,7 +179,7 @@ gxp.plugins.DistanceBearingHospitals = Ext.extend(gxp.plugins.DistanceBearing, {
 				        var responseDataJson = null;
 				        
 				        OpenLayers.Request.POST({
-				            url: "http://localhost:8081/medfordhospitals",
+				            url: "http://geoserver.rogue.lmnsolutions.com/medfordhospitals",
 				            proxy: null,
 				            data: requestData,
 				            headers: {

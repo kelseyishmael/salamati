@@ -526,7 +526,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				        var responseDataJson = null;
 				        
 				        OpenLayers.Request.POST({
-				            url: "http://localhost:8081/" + selectedWPS,
+				            url: "http://geoserver.rogue.lmnsolutions.com/" + selectedWPS,
 				            proxy: null,
 				            data: requestData,
 				            headers: {
