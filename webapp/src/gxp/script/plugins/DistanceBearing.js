@@ -578,8 +578,15 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 ]
             });
         }else{
+            var wpsName;
+            
+            if(this.wpsType == "medfordhospitals")
+                wpsName = "Medford Hospitals";
+            else
+                wpsName = "Medford Schools";
+                
             this.win = new Ext.Window({
-                title:			"Distance/Bearing",
+                title:			"Distance/Bearing of " + wpsName,
                 closable:		true,
                 closeAction:	"destroy",
                 width:			300,
