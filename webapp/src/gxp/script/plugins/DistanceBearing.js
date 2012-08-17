@@ -107,6 +107,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
      */
     popupVisible: false,
     
+    wpsType: null,
+    
     /**
      * Popup Window
      */
@@ -308,9 +310,11 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 fontColor: 'white',
                 align: "cm",
                 xOffset: 0,
-                yOffset: 30
+                yOffset: 30,
+                fid: feature.fid
             };
 			
+            console.log(point.attributes.fid);
 			//Create a feature based on the new point.
 			pointFeatures.push(point);
 		}
@@ -425,7 +429,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 	 
 			return false;
 	},
-										 
+	
     /** private: method[displayPopup]
      * :arg evt: the event object from a 
      *     :class:`OpenLayers.Control.GetFeatureInfo` control
@@ -434,31 +438,31 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
      * :arg text: ``String`` Body text.
      */
     displayPopup: function(evt, title, text) {
-        /*var queryableLayers = this.target.mapPanel.layers.queryBy(function(x){
-            return x.get("queryable");
-        });*/
+        var wps;
+        var combo;
         
-        var wps = [["medfordschools", "Medford Schools"], 
-        ["medfordhospitals", "Medford Hospitals"]];
+        if(this.wpsType == "generic"){
+            wps = [["medfordschools", "Medford Schools"], 
+            ["medfordhospitals", "Medford Hospitals"]];
         
-        /*queryableLayers.each(function(x){
-            var layer = x.getLayer();
-            layers.push([layer.url, x.get("name")]);
-        });*/
-        
-        // Create the combo box, attached to the states data store
-        var combo = new Ext.form.ComboBox({
-        	editable:		false,
-            id:             "wpsCombo",
-        	mode:			"local",
-        	lazyRender:		true,
-            fieldLabel:		"Choose WPS",
-            store:			wps,
-            autoSelect:		true, // BUG: "true to select the first result gathered by the data store (defaults to true)." - From docs - doesn't seem to work
-            triggerAction: "all",
-            lastQuery: "" 
-        });
-        
+            /*queryableLayers.each(function(x){
+                var layer = x.getLayer();
+                layers.push([layer.url, x.get("name")]);
+            });*/
+            
+            // Create the combo box, attached to the states data store
+            combo = new Ext.form.ComboBox({
+                editable:		false,
+                id:             "wpsCombo",
+                mode:			"local",
+                lazyRender:		true,
+                fieldLabel:		"Choose WPS",
+                store:			wps,
+                autoSelect:		true, // BUG: "true to select the first result gathered by the data store (defaults to true)." - From docs - doesn't seem to work
+                triggerAction: "all",
+                lastQuery: "" 
+            });
+        }
         
         //Project the mouse XY coordinates to WGS84 LatLon
         var map = this.target.mapPanel.map;
@@ -467,87 +471,142 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         clickLocation = clickLocation.transform(new OpenLayers.Projection(map.getProjection()), geographic);
         
         var plugin = this;
-        this.win = new Ext.Window({
-			title:			"Distance/Bearing",
-			closable:		true,
-			closeAction:	"destroy",
-			width:			400,
-			height:			350,
-			layout:			"form",
-			bodyStyle:		"padding: 5px;",
-			items: [
-				combo,
-				new Ext.form.Field({
-					fieldLabel:	"Longitude",
-					id: "lon",
-					value:		clickLocation.lon
-				}),
-				new Ext.form.Field({
-					fieldLabel:	"Latitude",
-					id: "lat",
-					value:		clickLocation.lat
-				}),
-				new Ext.form.Field({
-					fieldLabel:	"Radius (m)",	// TODO: Needs validation event handler to prevent empty radius being submitted
-					id: "radius"
-				}),
-				new Ext.Button({
-					text: 		"Cancel",
-					handler:	function(b, e) {
-						plugin.win.destroy();
-                        plugin.popupVisible = false;
-					}
-				}),
-				new Ext.Button({
-					text: 		"OK",
-					handler:	function(b, e) {
-				        /**
-				         * Post the request and expect success.
-				         */
-						
-				        var jsonFormat = new OpenLayers.Format.JSON();
-							   
-						var lon = Ext.getCmp("lon").getValue();
-						var lat = Ext.getCmp("lat").getValue();
-						var radius = Ext.getCmp("radius").getValue();
-							   
-						if(!plugin.validateLon(lon))
-							   return;
-						if(!plugin.validateLat(lat))
-							   return;
-						if(!plugin.validateRadius(radius))
-							   return;
-				        
-                        var selectedWPS = combo.getValue();
+        
+        var cancelButton = new Ext.Button({
+            text: 		"Cancel",
+            handler:	function(b, e) {
+                plugin.win.destroy();
+                plugin.popupVisible = false;
+            }
+        });
+            
+                
+        var okButton = new Ext.Button({
+            text: 		"OK",
+            handler:	function(b, e) {
+                /**
+                 * Post the request and expect success.
+                 */
+                
+                var jsonFormat = new OpenLayers.Format.JSON();
+                       
+                var lon = Ext.getCmp("lon").getValue();
+                var lat = Ext.getCmp("lat").getValue();
+                var radius = Ext.getCmp("radius").getValue();
+                       
+                if(!plugin.validateLon(lon))
+                       return;
+                if(!plugin.validateLat(lat))
+                       return;
+                if(!plugin.validateRadius(radius))
+                       return;
+                
+                var selectedWPS;
+                
+                if(plugin.wpsType == "generic"){
+                    selectedWPS = combo.getValue();
+                
+                    if(selectedWPS == "")
+                        return;
+                }else
+                    selectedWPS = plugin.wpsType;
+                    
+                var requestData = jsonFormat.write({ x: lon, y: lat, radius: radius });
+                var responseDataJson = null;
+                
+              //  Ext.getCmp("mymap").addClass("loading");
+                OpenLayers.Request.POST({
+                    url: "http://localhost:8081/" + selectedWPS,
+                    proxy: null,
+                    data: requestData,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    success: function(response) {
+                        console.log("success: ", response);
+                        responseDataJson = eval(response.responseText);
+                        //console.log("responseDataJson: ", responseDataJson);
                         
-						//TODO: use radius field from dialog
-				        //var requestData = jsonFormat.write({ x: lon, y: lat, radius: radius, wfs: "http://geoserver.rogue.lmnsolutions.com/geoserver/wfs", typeName: "medford:schools" });
-                        var requestData = jsonFormat.write({ x: lon, y: lat, radius: radius });
-				        var responseDataJson = null;
-				        
-				        OpenLayers.Request.POST({
-				            url: "http://geoserver.rogue.lmnsolutions.com/" + selectedWPS,
-				            proxy: null,
-				            data: requestData,
-				            headers: {
-				            	"Content-Type": "application/json"
-					        },
-				            success: function(response) {
-				                console.log("success: ", response);
-				                responseDataJson = eval(response.responseText);
-				                //console.log("responseDataJson: ", responseDataJson);
-				                
-				                //----------------------------
-				        		//Once you have your json, pass it to addJsonFeatures
-				        		//var responseData = [{endPoint:{x: -100.4589843750024, y: 44.480830278562756}, distance:551.9238246859647,bearing:95.71837619624442},{endPoint:{x: -106.1059570312543, y: 34.49750272138203}, distance:561.9445569621694,bearing:60.2591284662917}];
-								var lonlat = new OpenLayers.LonLat(lon, lat);
-				        		plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson, selectedWPS); //responseData);                
-				            }
-				        });
-					}
-				})
-			]
-		}).show();
+                        //----------------------------
+                        //Once you have your json, pass it to addJsonFeatures
+                        var lonlat = new OpenLayers.LonLat(lon, lat);
+                        plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson, selectedWPS); //responseData);
+                       // Ext.getCmp("mymap").removeClass("loading");                
+                    }
+                });
+            }
+        });
+          
+        var buttonGroup = new Ext.Panel({
+            tbar: [{
+                xtype: 'buttongroup',
+                columns: 2,
+                buttonAlign: 'center',
+                items: [
+                    cancelButton,
+                    okButton
+                ]
+            }]
+        });
+        
+        if(this.wpsType == "generic"){
+            this.win = new Ext.Window({
+                title:			"Distance/Bearing",
+                closable:		true,
+                closeAction:	"destroy",
+                width:			300,
+                height:			180,
+                layout:			"form",
+                bodyStyle:		"padding: 5px;",
+                items: [
+                    combo,
+                    new Ext.form.Field({
+                        fieldLabel:	"Longitude",
+                        id: "lon",
+                        value:		clickLocation.lon
+                    }),
+                    new Ext.form.Field({
+                        fieldLabel:	"Latitude",
+                        id: "lat",
+                        value:		clickLocation.lat
+                    }),
+                    new Ext.form.Field({
+                        fieldLabel:	"Radius (m)",	// TODO: Needs validation event handler to prevent empty radius being submitted
+                        id: "radius"
+                    }),
+                    buttonGroup
+                ]
+            });
+        }else{
+            this.win = new Ext.Window({
+                title:			"Distance/Bearing",
+                closable:		true,
+                closeAction:	"destroy",
+                width:			300,
+                height:			160,
+                layout:			"form",
+                bodyStyle:		"padding: 5px;",
+                items: [
+                    new Ext.form.Field({
+                        fieldLabel:	"Longitude",
+                        id: "lon",
+                        value:		clickLocation.lon
+                    }),
+                    new Ext.form.Field({
+                        fieldLabel:	"Latitude",
+                        id: "lat",
+                        value:		clickLocation.lat
+                    }),
+                    new Ext.form.Field({
+                        fieldLabel:	"Radius (m)",	// TODO: Needs validation event handler to prevent empty radius being submitted
+                        id: "radius"
+                    }),
+                    buttonGroup
+                ]
+            });
+        }
+        
+        this.win.show();
     }
 });
 

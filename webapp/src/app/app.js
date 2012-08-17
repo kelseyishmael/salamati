@@ -74,15 +74,18 @@ Ext.onReady(function() {
         }, {
             ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
-            toggleGroup: "distanceBearing"
+            toggleGroup: "distanceBearing",
+            wpsType: "generic"
         }, {
-            ptype: "gxp_distancebearinghospitals",
+            ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
-            toggleGroup: "distanceBearing"
+            toggleGroup: "distanceBearing",
+            wpsType: "medfordhospitals"
         }, {
-            ptype: "gxp_distancebearingschools",
+            ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
-            toggleGroup: "distanceBearing"
+            toggleGroup: "distanceBearing",
+            wpsType: "medfordschools"
         }],
         
         // layer sources
