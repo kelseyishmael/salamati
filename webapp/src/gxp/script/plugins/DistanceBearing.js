@@ -311,10 +311,10 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 align: "cm",
                 xOffset: 0,
                 yOffset: 30,
-                fid: feature.fid
+                fid: feature.fid,
+                group: "testgroup"
             };
 			
-            console.log(point.attributes.fid);
 			//Create a feature based on the new point.
 			pointFeatures.push(point);
 		}

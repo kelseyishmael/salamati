@@ -15,8 +15,7 @@
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
  * @require overrides/override-ext-ajax.js
- * @require plugins/DistanceBearingHospitals.js
- * @require plugins/DistanceBearingSchools.js
+ * @require plugins/NestedLayerTree.js
  */
 
 var app;
@@ -55,7 +54,17 @@ Ext.onReady(function() {
                 border: true,
                 tbar: [] // we will add buttons to "tree.bbar" later
             },
-            outputTarget: "westpanel"
+            outputTarget: "westpanel",
+            groups: {
+                "default": "Overlays",
+                "background": {
+                    title: "Base Layers",
+                    exclusive: true
+                },
+                "openlayersSchools": {
+                    title: "Schools"
+                }
+            }
         }, {
             ptype: "gxp_addlayers",
             actionTarget: "tree.tbar"
@@ -97,6 +106,9 @@ Ext.onReady(function() {
             },
             osm: {
                 ptype: "gxp_osmsource"
+            },
+            ol: {
+                ptype: "gxp_olsource"
             }
         },
         
@@ -115,6 +127,11 @@ Ext.onReady(function() {
                 source: "local",
                 name: "usa:states",
                 selected: true
+            }, {
+                source: "ol",
+                type: "OpenLayers.Layer.Vector",
+                title: "Schools Markers",
+                group: "openlayersSchools"
             }],
             items: [{
                 xtype: "gx_zoomslider",
