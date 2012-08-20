@@ -15,7 +15,6 @@
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
  * @require overrides/override-ext-ajax.js
- * @require plugins/NestedLayerTree.js
  */
 
 var app;
