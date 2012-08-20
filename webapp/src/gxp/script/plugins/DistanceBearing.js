@@ -109,6 +109,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
     
     wpsType: null,
     
+    iconCls: null,
+    
     /**
      * Popup Window
      */
@@ -122,7 +124,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         var plugin = this;
         var actions = gxp.plugins.DistanceBearing.superclass.addActions.call(this, [{
             tooltip: this.infoActionTip,
-            iconCls: "gxp-icon-getfeatureinfo",
+            iconCls: this.iconCls,
             toggleGroup: this.toggleGroup,
             enableToggle: true,
             allowDepress: true,
@@ -305,7 +307,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			
 			var point = new OpenLayers.Feature.Vector(endPoint);
 			point.attributes = {
-                label: "Distance: " + (feature.distance / 1000.0).toFixed(3) + " km\nBearing: " + feature.bearing.toFixed(1),
+                label: "Distance: " + (feature.distance / 1000.0).toFixed(3) + " km\nBearing: " + feature.bearing + "\u00B0",
                 markerColor: "red",
                 fontColor: 'white',
                 align: "cm",
@@ -324,8 +326,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		PointLayer.addFeatures(pointFeatures);
 		
 		//and add the layer to the map!
-		map.addLayer(PointLayer);
 		map.addLayer(LineLayer);
+        map.addLayer(PointLayer);
 		
 		//Add arrow
 		OpenLayers.Renderer.symbol.arrow = [0,2, 1,0, 2,2, 1,0, 0,2];
@@ -501,6 +503,8 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 if(!plugin.validateRadius(radius))
                        return;
                 
+                radius = radius * 1000;
+                
                 var selectedWPS;
                 
                 if(plugin.wpsType == "generic"){
@@ -516,7 +520,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 
               //  Ext.getCmp("mymap").addClass("loading");
                 OpenLayers.Request.POST({
-                    url: "http://localhost:8081/" + selectedWPS,
+                    url: "http://geoserver.rogue.lmnsolutions.com/" + selectedWPS,
                     proxy: null,
                     data: requestData,
                     headers: {
@@ -571,8 +575,9 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                         value:		clickLocation.lat
                     }),
                     new Ext.form.Field({
-                        fieldLabel:	"Radius (m)",	// TODO: Needs validation event handler to prevent empty radius being submitted
-                        id: "radius"
+                        fieldLabel:	"Radius (km)",	// TODO: Needs validation event handler to prevent empty radius being submitted
+                        id: "radius",
+                        value: 10
                     }),
                     buttonGroup
                 ]
@@ -605,8 +610,9 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                         value:		clickLocation.lat
                     }),
                     new Ext.form.Field({
-                        fieldLabel:	"Radius (m)",	// TODO: Needs validation event handler to prevent empty radius being submitted
-                        id: "radius"
+                        fieldLabel:	"Radius (km)",	// TODO: Needs validation event handler to prevent empty radius being submitted
+                        id: "radius",
+                        value: 10
                     }),
                     buttonGroup
                 ]

@@ -53,17 +53,7 @@ Ext.onReady(function() {
                 border: true,
                 tbar: [] // we will add buttons to "tree.bbar" later
             },
-            outputTarget: "westpanel",
-            groups: {
-                "default": "Overlays",
-                "background": {
-                    title: "Base Layers",
-                    exclusive: true
-                },
-                "openlayersSchools": {
-                    title: "Schools"
-                }
-            }
+            outputTarget: "westpanel"
         }, {
             ptype: "gxp_addlayers",
             actionTarget: "tree.tbar"
@@ -83,17 +73,23 @@ Ext.onReady(function() {
             ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
             toggleGroup: "distanceBearing",
-            wpsType: "generic"
+            wpsType: "generic",
+            infoActionTip: "Distance/Bearing of features from click location",
+            iconCls: "gxp-icon-getfeatureinfo"
         }, {
             ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
             toggleGroup: "distanceBearing",
-            wpsType: "medfordhospitals"
+            wpsType: "medfordhospitals",
+            infoActionTip: "Distance/Bearing of Hospitals from click location",
+            iconCls: "gxp-icon-stop"
         }, {
             ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
             toggleGroup: "distanceBearing",
-            wpsType: "medfordschools"
+            wpsType: "medfordschools",
+            infoActionTip: "Distance/Bearing of Schools from click location",
+            iconCls: "gxp-icon-addfeature"
         }],
         
         // layer sources
@@ -105,9 +101,6 @@ Ext.onReady(function() {
             },
             osm: {
                 ptype: "gxp_osmsource"
-            },
-            ol: {
-                ptype: "gxp_olsource"
             }
         },
         
@@ -126,11 +119,6 @@ Ext.onReady(function() {
                 source: "local",
                 name: "usa:states",
                 selected: true
-            }, {
-                source: "ol",
-                type: "OpenLayers.Layer.Vector",
-                title: "Schools Markers",
-                group: "openlayersSchools"
             }],
             items: [{
                 xtype: "gx_zoomslider",
