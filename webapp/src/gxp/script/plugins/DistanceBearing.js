@@ -520,7 +520,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 
               //  Ext.getCmp("mymap").addClass("loading");
                 OpenLayers.Request.POST({
-                    url: "http://geoserver.rogue.lmnsolutions.com/" + selectedWPS,
+                    url: "http://geoserver.rogue.lmnsolutions.com/wps" + selectedWPS,
                     proxy: null,
                     data: requestData,
                     headers: {
