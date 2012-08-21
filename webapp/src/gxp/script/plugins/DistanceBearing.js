@@ -26,6 +26,42 @@
  * @requires OpenLayers/Request.js
  */
 
+OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {                
+    defaultHandlerOptions: {
+        'single': true,
+        'double': false,
+        'pixelTolerance': 0,
+        'stopSingle': false,
+        'stopDouble': false
+    },
+
+    initialize: function(options) {
+        this.handlerOptions = OpenLayers.Util.extend(
+            {}, this.defaultHandlerOptions
+        );
+        OpenLayers.Control.prototype.initialize.apply(
+            this, arguments
+        ); 
+        this.handler = new OpenLayers.Handler.Click(
+            this, {
+                'click': this.trigger
+            }, this.handlerOptions
+        );
+    }, 
+
+    trigger: function(evt) {
+            if(this.plugin.popupVisible){
+                if(this.plugin.win)
+                    this.plugin.win.destroy();
+                this.plugin.displayPopup(evt);
+            }else{
+                this.plugin.popupVisible = true;
+                this.plugin.displayPopup(evt);
+            }
+    }
+
+});
+            
 /** api: (define)
  *  module = gxp.plugins
  *  class = DistanceBearing
@@ -122,6 +158,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         this.popupCache = {};
         
         var plugin = this;
+        var map = this.target.mapPanel.map;
         var actions = gxp.plugins.DistanceBearing.superclass.addActions.call(this, [{
             tooltip: this.infoActionTip,
             iconCls: this.iconCls,
@@ -150,7 +187,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 return x.get("queryable");
             });
 
-            var map = this.target.mapPanel.map;
+            
             var control;
             for (var i = 0, len = info.controls.length; i < len; i++){
                 control = info.controls[i];
@@ -159,59 +196,19 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
             }
             
             info.controls = [];
-            queryableLayers.each(function(x){
-                var layer = x.getLayer();
-                var vendorParams = Ext.apply({}, this.vendorParams), param;
-                if (this.layerParams) {
-                    for (var i=this.layerParams.length-1; i>=0; --i) {
-                        param = this.layerParams[i].toUpperCase();
-                        vendorParams[param] = layer.params[param];
-                    }
-                }
-                var infoFormat = x.get("infoFormat");
-                if (infoFormat === undefined) {
-                    // TODO: check if chosen format exists in infoFormats array
-                    // TODO: this will not work for WMS 1.3 (text/xml instead for GML)
-                    infoFormat = this.format == "html" ? "text/html" : "application/vnd.ogc.gml";
-                }
-                var control = new OpenLayers.Control.WMSGetFeatureInfo(Ext.applyIf({
-                    url: layer.url,
-                    queryVisible: true,
-                    layers: [layer],
-                    infoFormat: infoFormat,
-                    vendorParams: vendorParams,
-                    eventListeners: {
-                        getfeatureinfo: function(evt) {
-                            var title = x.get("title") || x.get("name");
-                            if (infoFormat == "text/html") {
-                                var match = evt.text.match(/<body[^>]*>([\s\S]*)<\/body>/);
-                                if (match && !match[1].match(/^\s*$/)) {
-                                    if(this.popupVisible){
-                                        if(this.win)
-                                            this.win.destroy();
-                                        this.displayPopup(evt, title, match[1]);
-                                    }else{
-                                        this.popupVisible = true;
-                                        this.displayPopup(evt, title, match[1]);
-                                    }
-                                }
-                            } else if (infoFormat == "text/plain") {
-                                this.displayPopup(evt, title, '<pre>' + evt.text + '</pre>');
-                            } else if (evt.features && evt.features.length > 0) {
-                                this.displayPopup(evt, title);
-                            }
-                        },
-                        scope: this
-                    }
-                }, this.controlOptions));
-                map.addControl(control);
-                info.controls.push(control);
+            
+            var clickControl = new OpenLayers.Control.Click({
+                    plugin: plugin
+                });
+            
+                map.addControl(clickControl);
+                info.controls.push(clickControl);
+                
                 if(infoButton.pressed) {
-                    control.activate();
+                    clickControl.activate();
                 }
-            }, this);
         };
-        
+            
         this.target.mapPanel.layers.on("update", updateInfo, this);
         this.target.mapPanel.layers.on("add", updateInfo, this);
         this.target.mapPanel.layers.on("remove", updateInfo, this);
@@ -439,7 +436,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
      *     reporting the info to the user
      * :arg text: ``String`` Body text.
      */
-    displayPopup: function(evt, title, text) {
+    displayPopup: function(evt) {
         var wps;
         var combo;
         
