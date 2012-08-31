@@ -26,6 +26,8 @@
  * @requires OpenLayers/Request.js
  */
 
+//var addressOfWPS = "http://192.168.10.126:8081/";
+
 OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {                
     defaultHandlerOptions: {
         'single': true,
@@ -517,7 +519,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 
               //  Ext.getCmp("mymap").addClass("loading");
                 OpenLayers.Request.POST({
-                    url: "http://192.168.10.187:8081/" + selectedWPS,
+                    url: addressOfWPS + selectedWPS,
                     proxy: null,
                     data: requestData,
                     headers: {

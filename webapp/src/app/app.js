@@ -24,6 +24,8 @@
  */
 
 var app;
+var addressOfWPS = "http://192.168.10.126:8081/";
+
 var WGS84 = new OpenLayers.Projection("EPSG:4326");
 var GoogleMercator = new OpenLayers.Projection("EPGS:900913");
     
@@ -124,7 +126,7 @@ Ext.onReady(function() {
                        // console.log(requestData);
                         
                         OpenLayers.Request.POST({
-                            url: "http://localhost:8081/validate",
+                            url: addressOfWPS + "validate",
                             proxy: null,
                             data: requestData,
                             headers: {
@@ -132,7 +134,7 @@ Ext.onReady(function() {
                             },
                             success: function(response){
                                 responseDataJson = JSON.parse(response.responseText);
-                                if(responseDataJson.intersects != "true")
+                                if(responseDataJson.intersects == true)
                                 {
                                     console.log("it doesn't intersect!");
                                 }

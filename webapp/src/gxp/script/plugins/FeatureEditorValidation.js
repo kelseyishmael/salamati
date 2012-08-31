@@ -16,11 +16,12 @@
  * @requires OpenLayers/Handler/Polygon.js
  * @requires OpenLayers/Control/SelectFeature.js
  * @requires GeoExt/widgets/form.js
+ * @requires plugins/FeatureEditor.js
  */
 
 /** api: (define)
  *  module = gxp.plugins
- *  class = FeatureEditor
+ *  class = FeatureEditorValidation
  */
 
 /** api: (extends)
@@ -38,6 +39,22 @@ gxp.plugins.FeatureEditorValidation = Ext.extend(gxp.plugins.FeatureEditor, {
     
     /** api: ptype = gxp_featureeditor */
     ptype: "gxp_featureeditorvalidation",
+    
+    /** private: method[onsave]
+     */
+    onsave: null,
+    
+    constructor: function(config) {
+        gxp.plugins.FeatureEditorValidation.superclass.constructor.apply(this, arguments);
+    },
+    
+    init: function(target){
+        gxp.plugins.FeatureEditorValidation.superclass.init.apply(this, arguments);
+    },
+    
+    destroy: function() {
+        gxp.plugins.FeatureEditorValidation.superclass.destroy.apply(this, arguments);
+    },
     
     /** api: method[addActions]
      */
@@ -168,9 +185,7 @@ gxp.plugins.FeatureEditorValidation = Ext.extend(gxp.plugins.FeatureEditor, {
                             "canceledit": function(popup, feature) {
                                 featureStore.commitChanges();
                             },
-                            "beforefeaturemodified": function(panel, feature) {
-                                console.log("hi friend...");
-                            },
+                            "beforefeaturemodified": plugin.onsave,
                             scope: plugin
                         }
                     });
