@@ -15,10 +15,20 @@
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
  * @require overrides/override-ext-ajax.js
+ * @require plugins/FeatureManager.js
+ * @require plugins/FeatureEditor.js
+ * @require plugins/Navigation.js
+ * @require plugins/SnappingAgent.js
+ * @require OpenLayers/Format/WKT.js
+ * @require plugins/FeatureEditorValidation.js
  */
 
 var app;
+var WGS84 = new OpenLayers.Projection("EPSG:4326");
+var GoogleMercator = new OpenLayers.Projection("EPGS:900913");
+    
 Ext.onReady(function() {
+
     app = new gxp.Viewer({
     	proxy: "/geoserver/rest/proxy?url=",
     	defaultSourceType: "gxp_wmscsource",
@@ -54,7 +64,7 @@ Ext.onReady(function() {
                 tbar: [] // we will add buttons to "tree.bbar" later
             },
             outputTarget: "westpanel"
-        }, {
+        },{
             ptype: "gxp_addlayers",
             actionTarget: "tree.tbar"
         }, {
@@ -70,6 +80,66 @@ Ext.onReady(function() {
             ptype: "gxp_navigationhistory",
             actionTarget: "map.tbar"
         }, {
+            ptype: "gxp_featuremanager",
+            id: "feature_manager",
+            paging: false,
+            autoSetLayer: true
+        },{
+            ptype: "gxp_snappingagent",
+            id: "snapping-agent",
+            targets: [{
+                source: "local",
+                name: "testing:test_lines"
+            },{
+                source: "local",
+                name: "testing:test_polygons"
+            },{
+                source: "local",
+                name: "testing:hospitals_try"
+            }]
+        },{
+            ptype: "gxp_featureeditorvalidation",
+            featureManager: "feature_manager",
+            id: "feature_editor",
+            autoLoadFeature: true,
+            snappingAgent: "snapping-agent",
+            onsave: function(panel, feature){
+                var geom = feature.geometry.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326"));
+                        
+                        var wkt = geom.toString();
+                        
+                        //console.log(wkt);
+                       
+                        var jsonRequest = {
+                            geom : wkt,
+                            fid : feature.fid,
+                            typeName : app.selectedLayer.data.name,
+                            bounds : geom.getBounds().toString() 
+                        };
+                        
+                        var jsonFormat = new OpenLayers.Format.JSON();
+                        var requestData = jsonFormat.write(jsonRequest);
+                        var responseDataJson = null;
+                        
+                       // console.log(requestData);
+                        
+                        OpenLayers.Request.POST({
+                            url: "http://localhost:8081/validate",
+                            proxy: null,
+                            data: requestData,
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            success: function(response){
+                                responseDataJson = JSON.parse(response.responseText);
+                                if(responseDataJson.intersects != "true")
+                                {
+                                    console.log("it doesn't intersect!");
+                                }
+                            }
+                        });
+                    }
+            },{
             ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
             toggleGroup: "distanceBearing",
@@ -111,15 +181,26 @@ Ext.onReady(function() {
             projection: "EPSG:900913",
             center: [-10764594.758211, 4523072.3184791],
             zoom: 3,
+            maxExtent: [-20037508, -20037508, 20037508, 20037508],
+            restrictedExtent: [-20037508, -20037508, 20037508, 20037508],
+            numZoomLevels: 20,
             layers: [{
                 source: "osm",
                 name: "mapnik",
                 group: "background"
             }, {
                 source: "local",
-                name: "usa:states",
-                selected: true
-            }],
+                name: "usa:states"
+            }/*, {
+                source: "local",
+                name: "testing:hospitals_try"
+            },{
+                source: "local",
+                name: "testing:test_lines"
+            }, {
+                source: "local",
+                name: "testing:test_polygons"
+            }*/],
             items: [{
                 xtype: "gx_zoomslider",
                 vertical: true,
