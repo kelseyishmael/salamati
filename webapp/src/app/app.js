@@ -20,15 +20,17 @@
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
  * @require OpenLayers/Format/WKT.js
- * @require plugins/FeatureEditorValidation.js
  */
 
 var app;
-var addressOfWPS = "http://192.168.10.126:8081/";
+var addressOfWPS = "http://geoserver.rogue.lmnsolutions.com/";
 
 var WGS84 = new OpenLayers.Projection("EPSG:4326");
 var GoogleMercator = new OpenLayers.Projection("EPGS:900913");
-    
+
+var nameIndex;
+var snappingAgent;
+
 Ext.onReady(function() {
 
     app = new gxp.Viewer({
@@ -88,8 +90,8 @@ Ext.onReady(function() {
             autoSetLayer: true
         },{
             ptype: "gxp_snappingagent",
-            id: "snapping-agent",
-            targets: [{
+            id: "snapping_agent",
+            targets: [/*{
                 source: "local",
                 name: "testing:test_lines"
             },{
@@ -98,50 +100,14 @@ Ext.onReady(function() {
             },{
                 source: "local",
                 name: "testing:hospitals_try"
-            }]
+            }*/]
         },{
-            ptype: "gxp_featureeditorvalidation",
+            ptype: "gxp_featureeditor",
             featureManager: "feature_manager",
             id: "feature_editor",
             autoLoadFeature: true,
-            snappingAgent: "snapping-agent",
-            onsave: function(panel, feature){
-                var geom = feature.geometry.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326"));
-                        
-                        var wkt = geom.toString();
-                        
-                        //console.log(wkt);
-                       
-                        var jsonRequest = {
-                            geom : wkt,
-                            fid : feature.fid,
-                            typeName : app.selectedLayer.data.name,
-                            bounds : geom.getBounds().toString() 
-                        };
-                        
-                        var jsonFormat = new OpenLayers.Format.JSON();
-                        var requestData = jsonFormat.write(jsonRequest);
-                        var responseDataJson = null;
-                        
-                       // console.log(requestData);
-                        
-                        OpenLayers.Request.POST({
-                            url: addressOfWPS + "validate",
-                            proxy: null,
-                            data: requestData,
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            success: function(response){
-                                responseDataJson = JSON.parse(response.responseText);
-                                if(responseDataJson.intersects == true)
-                                {
-                                    console.log("it doesn't intersect!");
-                                }
-                            }
-                        });
-                    }
-            },{
+            snappingAgent: "snapping_agent"
+        },{
             ptype: "gxp_distancebearing",
             actionTarget: "map.tbar",
             toggleGroup: "distanceBearing",
@@ -190,7 +156,7 @@ Ext.onReady(function() {
                 source: "osm",
                 name: "mapnik",
                 group: "background"
-            }, {
+            }/*, {
                 source: "local",
                 name: "usa:states"
             }/*, {
@@ -208,6 +174,31 @@ Ext.onReady(function() {
                 vertical: true,
                 height: 100
             }]
+        },
+        
+        listeners: {
+            "ready": function(){
+            
+                nameIndex = [];
+                snappingAgent = app.tools.snapping_agent;
+                
+                app.mapPanel.map.events.register("addlayer", null, function(layer){
+                    var layerParams = layer.layer.params;
+                    
+                    if(layerParams && (nameIndex.indexOf(layerParams.LAYERS) == -1))
+                    {
+                        var target = {
+                            source:  "local",
+                            name: layerParams.LAYERS
+                        };
+                        
+                        var index = snappingAgent.targets.push(target);
+                        snappingAgent.addSnappingTarget(target);
+                        nameIndex.push(target.name);
+                        app.selectLayer(app.getLayerRecordFromMap(target));
+                    }
+                });
+            }
         }
     });
     	

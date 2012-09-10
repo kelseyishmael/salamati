@@ -9,6 +9,7 @@
 /**
  * @requires plugins/ClickableFeatures.js
  * @requires widgets/FeatureEditPopup.js
+ * @requires widgets/FeatureEditPopupValidate.js
  * @requires util.js
  * @requires OpenLayers/Control/DrawFeature.js
  * @requires OpenLayers/Handler/Point.js
@@ -42,7 +43,7 @@ gxp.plugins.FeatureEditorValidation = Ext.extend(gxp.plugins.FeatureEditor, {
     
     /** private: method[onsave]
      */
-    onsave: null,
+   // onsave: null,
     
     constructor: function(config) {
         gxp.plugins.FeatureEditorValidation.superclass.constructor.apply(this, arguments);
@@ -84,7 +85,7 @@ gxp.plugins.FeatureEditorValidation = Ext.extend(gxp.plugins.FeatureEditor, {
                         featureManager.showLayer(plugin.id, plugin.showSelectedOnly && "selected");
                     }
                     popup = plugin.addOutput({
-                        xtype: "gxp_featureeditpopup",
+                        xtype: "gxp_featureeditpopupvalidate",
                         collapsible: true,
                         feature: featureStore.getByFeature(feature),
                         vertexRenderIntent: "vertex",
@@ -185,7 +186,7 @@ gxp.plugins.FeatureEditorValidation = Ext.extend(gxp.plugins.FeatureEditor, {
                             "canceledit": function(popup, feature) {
                                 featureStore.commitChanges();
                             },
-                            "beforefeaturemodified": plugin.onsave,
+                           // "beforefeaturemodified": plugin.onsave,
                             scope: plugin
                         }
                     });
