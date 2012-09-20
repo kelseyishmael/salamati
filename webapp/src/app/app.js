@@ -20,6 +20,8 @@
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
  * @require OpenLayers/Format/WKT.js
+ * @require OpenLayers/Control/MousePosition.js
+ * @require OpenLayers/Control/ScaleLine.js
  */
 
 var app;
@@ -31,6 +33,29 @@ var GoogleMercator = new OpenLayers.Projection("EPGS:900913");
 var nameIndex;
 var snappingAgent;
 
+var win = new Ext.Window({
+    title: "Tools",
+    id: "toolstime",
+    cls: "toolstimeclass",
+    closeAction: "hide",
+    xtype: "window",
+    resizable: false,
+    layout: "fit",
+    animateTarget: "openwindowbutton",
+    items: [
+        {
+            xtype: "panel",
+            id: "toolWindow",
+            cls: "mytoolwindowclass",
+            layout: "hbox",
+            layoutConfig: {
+                align: 'center',
+                padding: '5'
+            }
+        }
+    ]
+});
+                
 Ext.onReady(function() {
 
     app = new gxp.Viewer({
@@ -38,7 +63,6 @@ Ext.onReady(function() {
     	defaultSourceType: "gxp_wmscsource",
         portalConfig: {
             layout: "border",
-            region: "center",
             
             // by configuring items here, we don't need to configure portalItems
             // and save a wrapping container
@@ -48,12 +72,14 @@ Ext.onReady(function() {
                 layout: "fit",
                 region: "center",
                 border: false,
-                items: ["mymap"]
+                items: ["mymap",
+                    win]
             }, {
-                id: "westpanel",
-                xtype: "container",
+                id: "eastpanel",
+                tooltip: 'Layers',
+                collapsible: true,
                 layout: "fit",
-                region: "west",
+                region: "east",
                 width: 200
             }],
             bbar: {id: "mybbar"}
@@ -67,7 +93,7 @@ Ext.onReady(function() {
                 border: true,
                 tbar: [] // we will add buttons to "tree.bbar" later
             },
-            outputTarget: "westpanel"
+            outputTarget: "eastpanel"
         },{
             ptype: "gxp_addlayers",
             actionTarget: "tree.tbar"
@@ -76,13 +102,13 @@ Ext.onReady(function() {
             actionTarget: ["tree.tbar", "tree.contextMenu"]
         }, {
             ptype: "gxp_zoomtoextent",
-            actionTarget: "map.tbar"
+            actionTarget: "toolWindow"
         }, {
             ptype: "gxp_zoom",
-            actionTarget: "map.tbar"
+            actionTarget: "toolWindow"
         }, {
             ptype: "gxp_navigationhistory",
-            actionTarget: "map.tbar"
+            actionTarget: "toolWindow"
         }, {
             ptype: "gxp_featuremanager",
             id: "feature_manager",
@@ -91,43 +117,37 @@ Ext.onReady(function() {
         },{
             ptype: "gxp_snappingagent",
             id: "snapping_agent",
-            targets: [/*{
-                source: "local",
-                name: "testing:test_lines"
-            },{
-                source: "local",
-                name: "testing:test_polygons"
-            },{
-                source: "local",
-                name: "testing:hospitals_try"
-            }*/]
+            targets: []
         },{
             ptype: "gxp_featureeditor",
             featureManager: "feature_manager",
             id: "feature_editor",
             autoLoadFeature: true,
-            snappingAgent: "snapping_agent"
+            snappingAgent: "snapping_agent",
+            iconClsEdit: "gxp-icon-getfeatureinfo",
+            editFeatureActionTip: "Get feature info",
+            actionTarget: "toolWindow"
         },{
             ptype: "gxp_distancebearing",
-            actionTarget: "map.tbar",
+            actionTarget: "toolWindow",
             toggleGroup: "distanceBearing",
             wpsType: "generic",
             infoActionTip: "Distance/Bearing of features from click location",
-            iconCls: "gxp-icon-getfeatureinfo"
+            iconCls: "gxp-icon-distance-bearing-generic"
         }, {
             ptype: "gxp_distancebearing",
-            actionTarget: "map.tbar",
+            actionTarget: "toolWindow",
             toggleGroup: "distanceBearing",
             wpsType: "medfordhospitals",
             infoActionTip: "Distance/Bearing of Hospitals from click location",
-            iconCls: "gxp-icon-stop"
+            iconCls: "gxp-icon-distance-bearing-hospitals"
         }, {
             ptype: "gxp_distancebearing",
-            actionTarget: "map.tbar",
+            actionTarget: "toolWindow",
             toggleGroup: "distanceBearing",
             wpsType: "medfordschools",
             infoActionTip: "Distance/Bearing of Schools from click location",
-            iconCls: "gxp-icon-addfeature"
+            iconCls: "gxp-icon-distance-bearing-schools"
         }],
         
         // layer sources
@@ -156,33 +176,48 @@ Ext.onReady(function() {
                 source: "osm",
                 name: "mapnik",
                 group: "background"
-            }/*, {
-                source: "local",
-                name: "usa:states"
-            }/*, {
-                source: "local",
-                name: "testing:hospitals_try"
-            },{
-                source: "local",
-                name: "testing:test_lines"
-            }, {
-                source: "local",
-                name: "testing:test_polygons"
-            }*/],
+            }],
             items: [{
                 xtype: "gx_zoomslider",
                 vertical: true,
                 height: 100
+            }],
+            tbar: [{
+                xtype: 'tbfill'
+            }, {
+                xtype: 'button',
+                id: 'openwindowbutton',
+                iconCls: 'gxp-icon-mapproperties',
+                handler: function() {
+                    if(win.isVisible())
+                        win.hide();
+                    else
+                        win.show();
+                }
             }]
         },
         
         listeners: {
             "ready": function(){
             
+                //Show the tools window
+                win.show();
+                var map = app.mapPanel.map;
+                
+                map.displayProjection = "EPSG:4326";
+                map.addControl(new OpenLayers.Control.ScaleLine());
+                map.addControl(new OpenLayers.Control.MousePosition({
+                    displayClass: 'mymouseposition'
+                }));
+                
+                /** 
+                 * Hack to make snapping more dynamic
+                 * Whenever a layer is added to the map, it gets added to the snapping targets
+                 */
                 nameIndex = [];
                 snappingAgent = app.tools.snapping_agent;
                 
-                app.mapPanel.map.events.register("addlayer", null, function(layer){
+                map.events.register("addlayer", null, function(layer){
                     var layerParams = layer.layer.params;
                     
                     if(layerParams && (nameIndex.indexOf(layerParams.LAYERS) == -1))

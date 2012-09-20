@@ -16,3 +16,86 @@ body {
     font-size: 9px;
     bottom: 2px;
 }
+
+.mymouseposition {
+    right: 20px;
+    bottom: 20px;
+}
+
+.toolstimeclass {
+
+}
+
+.mytoolwindowclass {
+    width: 675px !important;
+    height: 78px !important;
+}
+
+.x-btn .gxp-icon-zoomtoextent {
+   /* background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-addfeature {
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-getfeatureinfo {
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png); */
+    height: 60px !important;
+    width: 60px !important;
+}
+
+.x-btn .gxp-icon-zoom-previous {
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-zoom-next {
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-zoom-in {
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-zoom-out {
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png); */
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-distance-bearing-generic {
+    background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-distance-bearing-hospitals {
+    background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);
+    height: 60px !important;
+    width: 60px !important;
+
+}
+
+.x-btn .gxp-icon-distance-bearing-schools {
+    background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);
+    height: 60px !important;
+    width: 60px !important;
+
+}
