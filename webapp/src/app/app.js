@@ -33,19 +33,26 @@ var GoogleMercator = new OpenLayers.Projection("EPGS:900913");
 var nameIndex;
 var snappingAgent;
 
+var toolWindowSavedPosition = null;
+
+var toolContainer = new Ext.Container({
+    xtype: "container",
+    id: "mapcont",
+    hidden: true,
+    cls: "toolContainer"
+});
+
 var win = new Ext.Window({
     title: "Tools",
-    id: "toolstime",
-    cls: "toolstimeclass",
+    id: "toolsWindow",
     closeAction: "hide",
     xtype: "window",
     resizable: false,
     layout: "fit",
-    animateTarget: "openwindowbutton",
     items: [
         {
             xtype: "panel",
-            id: "toolWindow",
+            id: "toolsPanel",
             cls: "mytoolwindowclass",
             layout: "hbox",
             layoutConfig: {
@@ -53,7 +60,12 @@ var win = new Ext.Window({
                 padding: '5'
             }
         }
-    ]
+    ],
+    listeners: {
+        "beforehide": function(element){
+            toolContainer.show();
+        }
+    }
 });
                 
 Ext.onReady(function() {
@@ -73,10 +85,10 @@ Ext.onReady(function() {
                 region: "center",
                 border: false,
                 items: ["mymap",
-                    win]
+                    win, toolContainer]
             }, {
                 id: "eastpanel",
-                tooltip: 'Layers',
+                tooltip: 'Layers', //doesn't seem to work
                 collapsible: true,
                 layout: "fit",
                 region: "east",
@@ -102,13 +114,13 @@ Ext.onReady(function() {
             actionTarget: ["tree.tbar", "tree.contextMenu"]
         }, {
             ptype: "gxp_zoomtoextent",
-            actionTarget: "toolWindow"
+            actionTarget: "toolsPanel"
         }, {
             ptype: "gxp_zoom",
-            actionTarget: "toolWindow"
+            actionTarget: "toolsPanel"
         }, {
             ptype: "gxp_navigationhistory",
-            actionTarget: "toolWindow"
+            actionTarget: "toolsPanel"
         }, {
             ptype: "gxp_featuremanager",
             id: "feature_manager",
@@ -126,24 +138,24 @@ Ext.onReady(function() {
             snappingAgent: "snapping_agent",
             iconClsEdit: "gxp-icon-getfeatureinfo",
             editFeatureActionTip: "Get feature info",
-            actionTarget: "toolWindow"
+            actionTarget: "toolsPanel"
         },{
             ptype: "gxp_distancebearing",
-            actionTarget: "toolWindow",
+            actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "generic",
             infoActionTip: "Distance/Bearing of features from click location",
             iconCls: "gxp-icon-distance-bearing-generic"
         }, {
             ptype: "gxp_distancebearing",
-            actionTarget: "toolWindow",
+            actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "medfordhospitals",
             infoActionTip: "Distance/Bearing of Hospitals from click location",
             iconCls: "gxp-icon-distance-bearing-hospitals"
         }, {
             ptype: "gxp_distancebearing",
-            actionTarget: "toolWindow",
+            actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "medfordschools",
             infoActionTip: "Distance/Bearing of Schools from click location",
@@ -168,6 +180,7 @@ Ext.onReady(function() {
             title: "Map",
             projection: "EPSG:900913",
             center: [-10764594.758211, 4523072.3184791],
+            cls: "mymapclass",
             zoom: 3,
             maxExtent: [-20037508, -20037508, 20037508, 20037508],
             restrictedExtent: [-20037508, -20037508, 20037508, 20037508],
@@ -181,26 +194,23 @@ Ext.onReady(function() {
                 xtype: "gx_zoomslider",
                 vertical: true,
                 height: 100
-            }],
-            tbar: [{
-                xtype: 'tbfill'
-            }, {
-                xtype: 'button',
-                id: 'openwindowbutton',
-                iconCls: 'gxp-icon-mapproperties',
-                handler: function() {
-                    if(win.isVisible())
-                        win.hide();
-                    else
-                        win.show();
-                }
             }]
         },
         
         listeners: {
             "ready": function(){
-            
                 //Show the tools window
+                
+                win.animateTarget = toolContainer;
+                
+                Ext.get("mapcont").addListener('click', function(evtObj, element){
+                    win.show();
+                    toolContainer.hide();
+                });
+                
+                var toolconthtml = document.getElementById("mapcont");
+                toolconthtml.innerHTML = '<p class="css-vertical-text">Tools</p>';
+                
                 win.show();
                 var map = app.mapPanel.map;
                 

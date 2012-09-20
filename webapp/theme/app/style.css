@@ -22,13 +22,63 @@ body {
     bottom: 20px;
 }
 
-.toolstimeclass {
-
+.mymapclass{
+    position:absolute;
 }
 
 .mytoolwindowclass {
     width: 675px !important;
     height: 78px !important;
+}
+
+.toolContainer {
+    z-index: 1000;
+    position: relative;
+    top: 300px;
+    width: 30px;
+    height: 150px;
+    background-color: #D0D0D0;
+    -moz-border-radius-bottomright: 10px;
+    -moz-border-radius-topright: 10px;
+    border-bottom-right-radius: 10px;
+    border-top-right-radius: 10px;
+    opacity: 0.4;
+    filter: alpha(opacity=40);
+    cursor: hand;
+    cursor: pointer;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
+    transition: all 0.4s linear;
+	-webkit-transition: all 0.4s linear;
+	-moz-transition: all 0.4s linear;
+	-o-transition: all 0.4s linear;
+	-ms-transition: all 0.4s linear;
+}
+
+.toolContainer:hover {
+    box-shadow: 0 3px 20px #000;
+}
+
+p.css-vertical-text {
+	color:#333;
+	border:0px solid red;
+	writing-mode:tb-rl;
+	-webkit-transform:rotate(90deg);
+	-moz-transform:rotate(90deg);
+	-o-transform: rotate(90deg);
+	white-space:nowrap;
+	display:block;
+	bottom:0;
+	width:20px;
+	height:20px;
+    font-family: tahoma,arial,verdana,sans-serif;
+	font-size:24px;
+	font-weight:normal;
+	text-shadow: 0px 0px 1px #333;
+    position: relative;
+    left: 8px;
+    top: 20px;
 }
 
 .x-btn .gxp-icon-zoomtoextent {
