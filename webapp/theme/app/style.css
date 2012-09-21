@@ -27,7 +27,7 @@ body {
 }
 
 .mytoolwindowclass {
-    width: 675px !important;
+    width: 342px !important;
     height: 78px !important;
 }
 
@@ -49,11 +49,11 @@ body {
     border-top: 1px solid black;
     border-bottom: 1px solid black;
     border-right: 1px solid black;
-    transition: all 0.4s linear;
-	-webkit-transition: all 0.4s linear;
-	-moz-transition: all 0.4s linear;
-	-o-transition: all 0.4s linear;
-	-ms-transition: all 0.4s linear;
+    transition: all 0.2s linear;
+	-webkit-transition: all 0.2s linear;
+	-moz-transition: all 0.2s linear;
+	-o-transition: all 0.2s linear;
+	-ms-transition: all 0.2s linear;
 }
 
 .toolContainer:hover {
@@ -81,12 +81,12 @@ p.css-vertical-text {
     top: 20px;
 }
 
-.x-btn .gxp-icon-zoomtoextent {
-   /* background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+/*.x-btn .gxp-icon-zoomtoextent {
+   /* background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);/
     height: 60px !important;
     width: 60px !important;
 
-}
+}*/
 
 .x-btn .gxp-icon-addfeature {
     /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
@@ -101,33 +101,33 @@ p.css-vertical-text {
     width: 60px !important;
 }
 
-.x-btn .gxp-icon-zoom-previous {
-    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+/*.x-btn .gxp-icon-zoom-previous {
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);/
     height: 60px !important;
     width: 60px !important;
 
 }
 
 .x-btn .gxp-icon-zoom-next {
-    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);/
     height: 60px !important;
     width: 60px !important;
 
 }
 
 .x-btn .gxp-icon-zoom-in {
-    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);/
     height: 60px !important;
     width: 60px !important;
 
 }
 
 .x-btn .gxp-icon-zoom-out {
-    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png); */
+    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png); /
     height: 60px !important;
     width: 60px !important;
 
-}
+}*/
 
 .x-btn .gxp-icon-distance-bearing-generic {
     background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);

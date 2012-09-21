@@ -114,13 +114,13 @@ Ext.onReady(function() {
             actionTarget: ["tree.tbar", "tree.contextMenu"]
         }, {
             ptype: "gxp_zoomtoextent",
-            actionTarget: "toolsPanel"
+            actionTarget: "mymap.tbar"
         }, {
             ptype: "gxp_zoom",
-            actionTarget: "toolsPanel"
+            actionTarget: "mymap.tbar"
         }, {
             ptype: "gxp_navigationhistory",
-            actionTarget: "toolsPanel"
+            actionTarget: "mymap.tbar"
         }, {
             ptype: "gxp_featuremanager",
             id: "feature_manager",
@@ -194,6 +194,9 @@ Ext.onReady(function() {
                 xtype: "gx_zoomslider",
                 vertical: true,
                 height: 100
+            }],
+            tbar: [{
+                xtype: 'tbfill'
             }]
         },
         
