@@ -215,7 +215,8 @@ Ext.onReady(function() {
             }]
         },
         
-        listeners: {
+        listeners: {       	
+        	
             "ready": function(){
                 //Show the tools window
                 
@@ -237,6 +238,73 @@ Ext.onReady(function() {
                 map.addControl(new OpenLayers.Control.MousePosition({
                     displayClass: 'mymouseposition'
                 }));
+                
+
+                // look for cookie
+				if (document.cookie.length > 0) {
+					cookieStart = document.cookie.indexOf("mapInfo=");
+					
+					if (cookieStart != -1) {
+						cookieStart += "mapInfo".length + 1;
+						cookieEnd = document.cookie.indexOf(";", cookieStart);
+						
+						if (cookieEnd == -1) {
+							cookieEnd = document.cookie.length;
+						}
+						
+						cookietext = document.cookie.substring(cookieStart, cookieEnd);
+
+						values = cookietext.split("|");
+						lat = parseFloat(values[0]);
+						lon = parseFloat(values[1]);
+						zoom = parseInt(values[2]);
+						
+						console.log("---- lat: ", lat, ", lon: ", lon, ", zoom: ", zoom);
+						
+						map.setCenter(new OpenLayers.LonLat(lon, lat), zoom);
+					}
+				}                
+                
+				
+				var setMapInfoCookie = function(expiredays) {
+                    
+					mapcenter = new OpenLayers.LonLat(map.getCenter().lon, map.getCenter().lat);
+					var cookietext = "mapInfo=" + mapcenter.lat + "|" + mapcenter.lon + "|" + map.getZoom();
+					
+					if (typeof expiredays != 'undefined' && expiredays) {
+						var exdate = new Date();
+						exdate.setDate( exdate.getDate() + expiredays);
+						cookietext += ";expires=" + exdate.toGMTString();
+					}
+					
+					// write cookie
+					document.cookie = cookietext;
+				}
+  
+
+				// TODO: is this the best place to insert this?
+				map.events.on({
+					"moveend" : function(e) {
+						setMapInfoCookie();
+					},
+					"zoomend" : function(e) {
+						setMapInfoCookie();
+					},
+					"addlayer" : function(e) {
+						//TODO: add to cookies
+						console.log("map.events.addlayer: ", e);
+					},
+					"removelayer" : function(e) {
+						//TODO: add to cookies
+						console.log("map.events.removelayer: ", e);
+					},
+					"changelayer" : function(e) {
+						//TODO: add to cookies
+						console.log("map.events.changelayer: ", e);
+					},
+					scope : map
+				}); 
+
                 
                 /** 
                  * Hack to make snapping more dynamic
