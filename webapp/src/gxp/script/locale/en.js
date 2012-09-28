@@ -379,5 +379,5 @@ GeoExt.Lang.add("en", {
     "gxp.ScaleOverlay.prototype": { 
         zoomLevelText: "Zoom level"
     }
-
+    
 });

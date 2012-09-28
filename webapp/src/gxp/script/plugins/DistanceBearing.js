@@ -63,6 +63,21 @@ OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {
     }
 
 });
+
+var salamati = {
+	Text_Start: "Start",
+	Text_ChooseWPS: "Choose WPS",
+	Text_Ok: "OK",
+	Text_Cancel: "Cancel",
+	Text_Hospitals: "Hospitals",
+	Text_Schools: "Schools",
+	Text_DistanceLines: "Distance Lines",
+	Text_Distance: "Distance",
+	Text_Bearing: "Bearing",
+	Text_Latitude: "Latitude",
+	Text_Longitude: "Longitude",
+    Text_Radius: "Radius"
+}
             
 /** api: (define)
  *  module = gxp.plugins
@@ -223,12 +238,12 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         var prefix;
         
         if(type == "medfordhospitals")
-                prefix = "Hospitals ";
+                prefix = salamati.Text_Hospitals;
         else
-                prefix = "Schools ";
+                prefix = salamati.Text_Schools;
                 
 		//Create a new layer to store all the features.
-		var LineLayer = new OpenLayers.Layer.Vector(prefix + "Distance Lines", {
+		var LineLayer = new OpenLayers.Layer.Vector(prefix + " " + salamati.Text_DistanceLines, {
 			projection: new OpenLayers.Projection(map.getProjection()),
 			styleMap: new OpenLayers.StyleMap(OpenLayers.Util.applyDefaults( {
 					graphicName:"arrow",
@@ -278,7 +293,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 				
 		var startPoint = new OpenLayers.Feature.Vector(centerPoint);
 			startPoint.attributes = {
-                label: "Start",
+                label: salamati.Text_Start,
                 markerColor: "green",
                 fontColor: 'white',
                 align: "cm",
@@ -306,7 +321,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 			
 			var point = new OpenLayers.Feature.Vector(endPoint);
 			point.attributes = {
-                label: "Distance: " + (feature.distance / 1000.0).toFixed(3) + " km\nBearing: " + feature.bearing + "\u00B0",
+                label: salamati.Text_Distance + ": " + (feature.distance / 1000.0).toFixed(3) + " km\n" + salamati.Text_Bearing + ": " + feature.bearing + "\u00B0",
                 markerColor: "red",
                 fontColor: 'white',
                 align: "cm",
@@ -457,7 +472,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 id:             "wpsCombo",
                 mode:			"local",
                 lazyRender:		true,
-                fieldLabel:		"Choose WPS",
+                fieldLabel:		salamati.Text_ChooseWPS,
                 store:			wps,
                 autoSelect:		true, // BUG: "true to select the first result gathered by the data store (defaults to true)." - From docs - doesn't seem to work
                 triggerAction: "all",
@@ -474,7 +489,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         var plugin = this;
         
         var cancelButton = new Ext.Button({
-            text: 		"Cancel",
+            text: 		salamati.Text_Cancel,
             handler:	function(b, e) {
                 plugin.win.destroy();
                 plugin.popupVisible = false;
@@ -483,7 +498,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
             
                 
         var okButton = new Ext.Button({
-            text: 		"OK",
+            text: 		salamati.Text_OK,
             handler:	function(b, e) {
                 /**
                  * Post the request and expect success.
@@ -554,7 +569,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         
         if(this.wpsType == "generic"){
             this.win = new Ext.Window({
-                title:			"Distance/Bearing",
+                title:			salamati.Text_Distance + "/" + salamati.Text_Bearing,
                 closable:		true,
                 closeAction:	"destroy",
                 width:			300,
@@ -564,17 +579,17 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 items: [
                     combo,
                     new Ext.form.Field({
-                        fieldLabel:	"Longitude",
+                        fieldLabel:	salamati.Text_Longitude,
                         id: "lon",
                         value:		clickLocation.lon
                     }),
                     new Ext.form.Field({
-                        fieldLabel:	"Latitude",
+                        fieldLabel:	salamati.Text_Latitude,
                         id: "lat",
                         value:		clickLocation.lat
                     }),
                     new Ext.form.Field({
-                        fieldLabel:	"Radius (km)",	// TODO: Needs validation event handler to prevent empty radius being submitted
+                        fieldLabel:	salamati.Text_Radius + " (km)",	// TODO: Needs validation event handler to prevent empty radius being submitted
                         id: "radius",
                         value: 10
                     }),
@@ -585,12 +600,12 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
             var wpsName;
             
             if(this.wpsType == "medfordhospitals")
-                wpsName = "Medford Hospitals";
+                wpsName = "Medford " + salamati.Text_Hospitals;
             else
-                wpsName = "Medford Schools";
+                wpsName = "Medford " + salamati.Text_Schools;
                 
             this.win = new Ext.Window({
-                title:			"Distance/Bearing of " + wpsName,
+                title:			salamati.Text_Distance + "/" + salamati.Text_Bearing + " of " + wpsName,
                 closable:		true,
                 closeAction:	"destroy",
                 width:			300,
@@ -599,17 +614,17 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 bodyStyle:		"padding: 5px;",
                 items: [
                     new Ext.form.Field({
-                        fieldLabel:	"Longitude",
+                        fieldLabel:	salamati.Text_Longitude,
                         id: "lon",
                         value:		clickLocation.lon
                     }),
                     new Ext.form.Field({
-                        fieldLabel:	"Latitude",
+                        fieldLabel:	salamati.Text_Latitude,
                         id: "lat",
                         value:		clickLocation.lat
                     }),
                     new Ext.form.Field({
-                        fieldLabel:	"Radius (km)",	// TODO: Needs validation event handler to prevent empty radius being submitted
+                        fieldLabel:	salamati.Text_Radius + " (km)",	// TODO: Needs validation event handler to prevent empty radius being submitted
                         id: "radius",
                         value: 10
                     }),

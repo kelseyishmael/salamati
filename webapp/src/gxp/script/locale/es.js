@@ -382,5 +382,5 @@ GeoExt.Lang.add("es", {
     "gxp.ScaleOverlay.prototype": { 
         zoomLevelText: "Escala"
     }
-
+    
 });
