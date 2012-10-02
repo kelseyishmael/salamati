@@ -58,7 +58,7 @@ var win = null;
 Ext.onReady(function() {
 
 	var lang = localStorage.getItem("lang");
-	if(lang == "undefined") { lang = "en"; localStorage.setItem("lang", "en"); }
+	if(typeof lang != 'undefined') { lang = "en"; localStorage.setItem("lang", "en"); }
 	GeoExt.Lang.set(lang);
 
 	win = new Ext.Window({
