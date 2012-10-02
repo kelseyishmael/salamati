@@ -228,7 +228,7 @@ Ext.onReady(function() {
                 });
                 
                 var toolconthtml = document.getElementById("mapcont");
-                toolconthtml.innerHTML = '<p class="css-vertical-text">Tools</p>';
+                toolconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Tools + '</p>';
                 
                 win.show();
                 var map = app.mapPanel.map;
@@ -242,10 +242,10 @@ Ext.onReady(function() {
 
                 // look for cookie
 				if (document.cookie.length > 0) {
-					cookieStart = document.cookie.indexOf("mapInfo=");
+					cookieStart = document.cookie.indexOf("mapCenter=");
 					
 					if (cookieStart != -1) {
-						cookieStart += "mapInfo".length + 1;
+						cookieStart += "mapCenter".length + 1;
 						cookieEnd = document.cookie.indexOf(";", cookieStart);
 						
 						if (cookieEnd == -1) {
@@ -266,10 +266,10 @@ Ext.onReady(function() {
 				}                
                 
 				
-				var setMapInfoCookie = function(expiredays) {
+				var setMapCenterCookie = function(expiredays) {
                     
-					mapcenter = new OpenLayers.LonLat(map.getCenter().lon, map.getCenter().lat);
-					var cookietext = "mapInfo=" + mapcenter.lat + "|" + mapcenter.lon + "|" + map.getZoom();
+					mapCenter = new OpenLayers.LonLat(map.getCenter().lon, map.getCenter().lat);
+					var cookietext = "mapCenter=" + mapCenter.lat + "|" + mapCenter.lon + "|" + map.getZoom();
 					
 					if (typeof expiredays != 'undefined' && expiredays) {
 						var exdate = new Date();
@@ -282,24 +282,38 @@ Ext.onReady(function() {
 				}
   
 
+				//TODO: implement but we also need to cach the sources as by defaut it only tries to parse out local host geoserver
+				var setMapLayersCookie = function(expiredays) {
+				}
+				
+				// This is what the UI does to add the layer 
+//		        function addLayers() {
+//	            	var key = sourceComboBox.getValue(); //local
+//	            	var source = this.target.layerSources[key]; //
+//	            	var records = capGridPanel.getSelectionModel().getSelections();
+//	            	this.addLayers(records, source);
+//	        	}
+				
+				
+
 				// TODO: is this the best place to insert this?
 				map.events.on({
 					"moveend" : function(e) {
-						setMapInfoCookie();
+						setMapCenterCookie();
 					},
 					"zoomend" : function(e) {
-						setMapInfoCookie();
+						setMapCenterCookie();
 					},
 					"addlayer" : function(e) {
-						//TODO: add to cookies
+						setMapLayersCookie();
 						console.log("map.events.addlayer: ", e);
 					},
 					"removelayer" : function(e) {
-						//TODO: add to cookies
+						setMapLayersCookie();
 						console.log("map.events.removelayer: ", e);
 					},
 					"changelayer" : function(e) {
-						//TODO: add to cookies
+						setMapLayersCookie();
 						console.log("map.events.changelayer: ", e);
 					},
 					scope : map
@@ -313,7 +327,7 @@ Ext.onReady(function() {
                 nameIndex = [];
                 snappingAgent = app.tools.snapping_agent;
                 
-                map.events.register("addlayer", null, function(layer){
+                map.events.register("addlayer", null, function(layer){  	
                     var layerParams = layer.layer.params;
                     
                     if(layerParams && (nameIndex.indexOf(layerParams.LAYERS) == -1))
