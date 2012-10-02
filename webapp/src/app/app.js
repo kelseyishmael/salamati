@@ -54,12 +54,24 @@ var toolContainer = new Ext.Container({
 });
 
 var win = null;
-                
-Ext.onReady(function() {
 
-	var lang = localStorage.getItem("lang");
-	if(typeof lang != 'undefined') { lang = "en"; localStorage.setItem("lang", "en"); }
-	GeoExt.Lang.set(lang);
+Ext.onReady(function() {
+	
+    // load language setting from cookie if available
+	if (document.cookie.length > 0) {
+		cookieStart = document.cookie.indexOf("language=");
+		
+		if (cookieStart != -1) {
+			cookieStart += "language".length + 1;
+			cookieEnd = document.cookie.length;
+			var lang = document.cookie.substring(cookieStart, cookieEnd);
+			
+			if (lang) {
+				GeoExt.Lang.set(lang);
+			}
+			console.log("---- App.onReady language setting found: ", lang);
+		}
+	}
 
 	win = new Ext.Window({
     	title: salamati.Title_Tools,

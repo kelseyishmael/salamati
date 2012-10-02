@@ -25,8 +25,6 @@ var salamati = {
 	ActionTip_ShowSettings: "Show Settings"
 }
 
-var lang = "es";
-
 /** api: (extends)
  *  plugins/Tool.js
  */
@@ -73,9 +71,6 @@ gxp.plugins.Settings = Ext.extend(gxp.plugins.Tool, {
             };
         }
         Ext.applyIf(this.outputConfig, {title: this.menuText});
-        
-        this.lang = localStorage.getItem("lang");
-        console.log("App.lang: " + this.lang);
     },
 
     /** api: method[addActions]
@@ -107,18 +102,18 @@ gxp.plugins.Settings = Ext.extend(gxp.plugins.Tool, {
      *  :arg config: ``Object``
      */
     addOutput: function(config) {
-    
-    	console.log("App.lang: " + this.lang);
-    
-    	if(this.lang == "en") {
-    		localStorage.setItem("lang", "es");
-    		console.log("Spanish");
+    	
+    	if(GeoExt.Lang.locale == "en") {
+    		GeoExt.Lang.set("es");
+    	} else if(GeoExt.Lang.locale == "es") {
+    		GeoExt.Lang.set("en");
+    	} else {
+    		// if language is not set for any reason, assume English
+    		GeoExt.Lang.set("en");
     	}
-    	else if(this.lang == "es") {
-    		localStorage.setItem("lang", "en");
-    		console.log("English");
-    	}
-    	location.reload();
+		document.cookie = "language=" + GeoExt.Lang.locale;
+
+		location.reload();
     	
         return gxp.plugins.Settings.superclass.addOutput.call(this, Ext.apply({
             xtype: 'gx_legendpanel',
