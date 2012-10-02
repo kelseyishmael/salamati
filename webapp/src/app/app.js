@@ -59,11 +59,16 @@ Ext.onReady(function() {
 	
     // load language setting from cookie if available
 	if (document.cookie.length > 0) {
-		cookieStart = document.cookie.indexOf("language=");
+		var cookieStart = document.cookie.indexOf("language=");
 		
 		if (cookieStart != -1) {
 			cookieStart += "language".length + 1;
-			cookieEnd = document.cookie.length;
+			cookieEnd = document.cookie.indexOf(";", cookieStart);
+			
+			if (cookieEnd == -1) {
+				cookieEnd = document.cookie.length;
+			}
+
 			var lang = document.cookie.substring(cookieStart, cookieEnd);
 			
 			if (lang) {
@@ -92,12 +97,21 @@ Ext.onReady(function() {
             	}
         	}
     	],
-    	listeners: {
-        	"beforehide": function(element){
-            	toolContainer.show();
-        	}
-    	}
-	});
+		listeners : {
+			"beforehide" : function(element) {
+				toolContainer.show();
+			},
+			"hide" : function(element) {
+				document.cookie = "toolsWindowShow=false";
+			},
+			"show" : function(element) {
+				document.cookie = "toolsWindowShow=true";
+			},
+			"move" : function(element) {
+				document.cookie = "toolsWindowXY=" + element.x + "|" + element.y;
+			},
+		}
+	});	
 
     app = new gxp.Viewer({
     	proxy: "/geoserver/rest/proxy?url=",
@@ -247,7 +261,55 @@ Ext.onReady(function() {
                 var toolconthtml = document.getElementById("mapcont");
                 toolconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Tools + '</p>';
                 
-                win.show();
+            	
+                // load toolsWindowShow from cookie if available
+            	if (document.cookie.length > 0) {		
+            		var cookieStart = document.cookie.indexOf("toolsWindowShow=");
+            		
+            		if (cookieStart != -1) {
+            			cookieStart += "toolsWindowShow".length + 1;
+            			cookieEnd = document.cookie.indexOf(";", cookieStart);
+            			
+            			if (cookieEnd == -1) {
+            				cookieEnd = document.cookie.length;
+            			}
+            			var toolsWindowShow = document.cookie.substring(cookieStart, cookieEnd);
+            			
+            			if (toolsWindowShow == "false") {
+            				win.hide();
+            				toolContainer.show();
+            			} else {
+            				win.show();
+            			}
+            			console.log("---- App.onReady toolsWindowShow found: ", toolsWindowShow);
+            		}
+
+            		var cookieStart = document.cookie.indexOf("toolsWindowXY=");
+            		
+            		if (cookieStart != -1) {
+            			cookieStart += "toolsWindowXY".length + 1;
+            			cookieEnd = document.cookie.indexOf(";", cookieStart);
+            			
+            			if (cookieEnd == -1) {
+            				cookieEnd = document.cookie.length;
+            			}
+            			var toolsWindowXY = document.cookie.substring(cookieStart, cookieEnd);
+            			
+            			if (typeof toolsWindowXY != 'undefined' && toolsWindowXY) {
+    						values = toolsWindowXY.split("|");
+    						var x = parseFloat(values[0]);
+    						var y = parseFloat(values[1]);
+    						
+    						if (x && y) {
+    							win.setPosition(x, y);
+    						}
+            			} else {
+            				win.setPosition(60, 60);
+            			}
+            			console.log("---- App.onReady toolsWindowXY found: ", win.x, win.y);
+            		}
+            	}                
+                
                 var map = app.mapPanel.map;
                 
                 map.displayProjection = "EPSG:4326";
@@ -276,9 +338,11 @@ Ext.onReady(function() {
 						lon = parseFloat(values[1]);
 						zoom = parseInt(values[2]);
 						
-						console.log("---- lat: ", lat, ", lon: ", lon, ", zoom: ", zoom);
+						console.log("---- App.onReady mapCenter found lat: ", lat, ", lon: ", lon, ", zoom: ", zoom);
 						
-						map.setCenter(new OpenLayers.LonLat(lon, lat), zoom);
+						if (lat && lon && zoom) {
+							map.setCenter(new OpenLayers.LonLat(lon, lat), zoom);
+						}
 					}
 				}                
                 
