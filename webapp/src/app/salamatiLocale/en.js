@@ -11,7 +11,8 @@ GeoExt.Lang.add("en", {
         Title_Tools: "Tools",
         ActionTip_Default: "Distance/Bearing of features from click location",
 		ActionTip_Edit: "Get feature info",
-		ActionTip_Settings: "Settings"
+		ActionTip_Settings: "Settings",
+		ActionTip_ShowSettings: "Show Settings"
     },
     
     "gxp.plugins.DistanceBearing.prototype": {

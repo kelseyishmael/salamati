@@ -22,6 +22,7 @@
  * @require OpenLayers/Format/WKT.js
  * @require OpenLayers/Control/MousePosition.js
  * @require OpenLayers/Control/ScaleLine.js
+ * @require plugins/Settings.js
  *
  * @requires salamatiLocale/en.js
  * @requires salamatiLocale/es.js
@@ -31,8 +32,7 @@ var salamati = {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
 	ActionTip_Default: "Distance/Bearing of features from click location",
-	ActionTip_Edit: "Get feature info",
-	ActionTip_Settings: "Settings"
+	ActionTip_Edit: "Get feature info"
 }
 
 var app;
@@ -57,7 +57,9 @@ var win = null;
                 
 Ext.onReady(function() {
 
-	GeoExt.Lang.set("es");
+	var lang = localStorage.getItem("lang");
+	if(lang == "undefined") { lang = "en"; localStorage.setItem("lang", "en"); }
+	GeoExt.Lang.set(lang);
 
 	win = new Ext.Window({
     	title: salamati.Title_Tools,
@@ -127,6 +129,9 @@ Ext.onReady(function() {
         }, {
             ptype: "gxp_removelayer",
             actionTarget: ["tree.tbar", "tree.contextMenu"]
+        }, {
+            ptype: "gxp_Settings",
+            actionTarget: "tree.tbar"
         }, {
             ptype: "gxp_zoomtoextent",
             actionTarget: "mymap.tbar"

@@ -11,7 +11,8 @@ GeoExt.Lang.add("es", {
         Title_Tools: "Spanish Tools",
         ActionTip_Default: "Spanish Distance/Bearing of features from click location",
 		ActionTip_Edit: "Spanish Get feature info",
-		ActionTip_Settings: "Spanish Settings"
+		ActionTip_Settings: "Spanish Settings",
+		ActionTip_ShowSettings: "Spanish Show Settings"
     },
     
     "gxp.plugins.DistanceBearing.prototype": {
