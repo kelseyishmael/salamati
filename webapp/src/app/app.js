@@ -220,7 +220,8 @@ Ext.onReady(function() {
             }]
         },
         
-        listeners: {
+        listeners: {       	
+        	
             "ready": function(){
                 //Show the tools window
                 
@@ -232,7 +233,7 @@ Ext.onReady(function() {
                 });
                 
                 var toolconthtml = document.getElementById("mapcont");
-                toolconthtml.innerHTML = '<p class="css-vertical-text">Tools</p>';
+                toolconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Tools + '</p>';
                 
                 win.show();
                 var map = app.mapPanel.map;
@@ -243,6 +244,87 @@ Ext.onReady(function() {
                     displayClass: 'mymouseposition'
                 }));
                 
+
+                // look for cookie
+				if (document.cookie.length > 0) {
+					cookieStart = document.cookie.indexOf("mapCenter=");
+					
+					if (cookieStart != -1) {
+						cookieStart += "mapCenter".length + 1;
+						cookieEnd = document.cookie.indexOf(";", cookieStart);
+						
+						if (cookieEnd == -1) {
+							cookieEnd = document.cookie.length;
+						}
+						
+						cookietext = document.cookie.substring(cookieStart, cookieEnd);
+
+						values = cookietext.split("|");
+						lat = parseFloat(values[0]);
+						lon = parseFloat(values[1]);
+						zoom = parseInt(values[2]);
+						
+						console.log("---- lat: ", lat, ", lon: ", lon, ", zoom: ", zoom);
+						
+						map.setCenter(new OpenLayers.LonLat(lon, lat), zoom);
+					}
+				}                
+                
+				
+				var setMapCenterCookie = function(expiredays) {
+                    
+					mapCenter = new OpenLayers.LonLat(map.getCenter().lon, map.getCenter().lat);
+					var cookietext = "mapCenter=" + mapCenter.lat + "|" + mapCenter.lon + "|" + map.getZoom();
+					
+					if (typeof expiredays != 'undefined' && expiredays) {
+						var exdate = new Date();
+						exdate.setDate( exdate.getDate() + expiredays);
+						cookietext += ";expires=" + exdate.toGMTString();
+					}
+					
+					// write cookie
+					document.cookie = cookietext;
+				}
+  
+
+				//TODO: implement but we also need to cach the sources as by defaut it only tries to parse out local host geoserver
+				var setMapLayersCookie = function(expiredays) {
+				}
+				
+				// This is what the UI does to add the layer 
+//		        function addLayers() {
+//	            	var key = sourceComboBox.getValue(); //local
+//	            	var source = this.target.layerSources[key]; //
+//	            	var records = capGridPanel.getSelectionModel().getSelections();
+//	            	this.addLayers(records, source);
+//	        	}
+				
+				
+
+				// TODO: is this the best place to insert this?
+				map.events.on({
+					"moveend" : function(e) {
+						setMapCenterCookie();
+					},
+					"zoomend" : function(e) {
+						setMapCenterCookie();
+					},
+					"addlayer" : function(e) {
+						setMapLayersCookie();
+						console.log("map.events.addlayer: ", e);
+					},
+					"removelayer" : function(e) {
+						setMapLayersCookie();
+						console.log("map.events.removelayer: ", e);
+					},
+					"changelayer" : function(e) {
+						setMapLayersCookie();
+						console.log("map.events.changelayer: ", e);
+					},
+					scope : map
+				}); 
+
+                
                 /** 
                  * Hack to make snapping more dynamic
                  * Whenever a layer is added to the map, it gets added to the snapping targets
@@ -250,7 +332,7 @@ Ext.onReady(function() {
                 nameIndex = [];
                 snappingAgent = app.tools.snapping_agent;
                 
-                map.events.register("addlayer", null, function(layer){
+                map.events.register("addlayer", null, function(layer){  	
                     var layerParams = layer.layer.params;
                     
                     if(layerParams && (nameIndex.indexOf(layerParams.LAYERS) == -1))

@@ -7,28 +7,28 @@
 
 GeoExt.Lang.add("es", {
     "salamati": {
-    	Map: "Spanish Map",
-        Title_Tools: "Spanish Tools",
-        ActionTip_Default: "Spanish Distance/Bearing of features from click location",
-		ActionTip_Edit: "Spanish Get feature info",
-		ActionTip_Settings: "Spanish Settings",
+    	Map: "Mapa",
+        Title_Tools: "Instrumentos",
+        ActionTip_Default: "Distancia/Cojinete",
+		ActionTip_Edit: "Obtener informaci�n",
+		ActionTip_Settings: "Configuraci�n",
 		ActionTip_ShowSettings: "Spanish Show Settings"
     },
     
     "gxp.plugins.DistanceBearing.prototype": {
-    	infoActionTip: "Spanish Distance/Bearing of features from click location",
-    	popupTitle: "Spanish Distance/Bearing",
-    	Text_Start: "Spanish Start",
-    	Text_ChooseWPS: "Spanish Choose WPS",
-    	Text_Ok: "Spanish OK",
-    	Text_Cancel: "Spanish Cancel",
-    	Text_Hospitals: "Spanish Hospitals",
-    	Text_Schools: "Spanish Schools",
-    	Text_DistanceLines: "Spanish Distance Lines",
-    	Text_Distance: "Spanish Distance",
-    	Text_Bearing: "Spanish Bearing",
-    	Text_Latitude: "Spanish Latitude",
-    	Text_Longitude: "Spanish Longitude",
-    	Text_Radius: "Spanish Radius"
+    	infoActionTip: "Distancia/Cojinete",
+    	popupTitle: "Distancia/Cojinete",
+    	Text_Start: "Comienzo",
+    	Text_ChooseWPS: "Elegir WPS",
+    	Text_Ok: "Aceptar",  //meh, can't be right
+    	Text_Cancel: "Cancelar",
+    	Text_Hospitals: "Hospitales",
+    	Text_Schools: "Escuelas",
+    	Text_DistanceLines: "L�neas Distancia",
+    	Text_Distance: "Distancia",
+    	Text_Bearing: "Cojinete",
+    	Text_Latitude: "Latitud",
+    	Text_Longitude: "Longitud",
+    	Text_Radius: "Radio"
     }
 });
