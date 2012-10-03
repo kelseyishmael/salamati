@@ -500,7 +500,7 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
             
                 
         var okButton = new Ext.Button({
-            text: 		salamati.Text_OK,
+            text: 		salamati.Text_Ok,
             handler:	function(b, e) {
                 /**
                  * Post the request and expect success.
