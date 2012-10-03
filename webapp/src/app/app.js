@@ -58,6 +58,7 @@ var win = null;
 Ext.onReady(function() {
 	
     // load language setting from cookie if available
+	var lang = "en";
 	if (document.cookie.length > 0) {
 		var cookieStart = document.cookie.indexOf("language=");
 		
@@ -69,14 +70,16 @@ Ext.onReady(function() {
 				cookieEnd = document.cookie.length;
 			}
 
-			var lang = document.cookie.substring(cookieStart, cookieEnd);
+			var lang2 = document.cookie.substring(cookieStart, cookieEnd);
 			
-			if (lang) {
-				GeoExt.Lang.set(lang);
+			if (lang2) {
+				lang = lang2;
 			}
 			console.log("---- App.onReady language setting found: ", lang);
 		}
 	}
+	GeoExt.Lang.set(lang);
+
 
 	win = new Ext.Window({
     	title: salamati.Title_Tools,
@@ -263,6 +266,7 @@ Ext.onReady(function() {
                 
             	
                 // load toolsWindowShow from cookie if available
+                var toolsWindowShow = "true";
             	if (document.cookie.length > 0) {		
             		var cookieStart = document.cookie.indexOf("toolsWindowShow=");
             		
@@ -273,17 +277,26 @@ Ext.onReady(function() {
             			if (cookieEnd == -1) {
             				cookieEnd = document.cookie.length;
             			}
-            			var toolsWindowShow = document.cookie.substring(cookieStart, cookieEnd);
+            			var toolsWindowShow2 = document.cookie.substring(cookieStart, cookieEnd);
             			
-            			if (toolsWindowShow == "false") {
-            				win.hide();
-            				toolContainer.show();
-            			} else {
-            				win.show();
+            			if (toolsWindowShow2) {
+            				toolsWindowShow = toolsWindowShow2;
             			}
             			console.log("---- App.onReady toolsWindowShow found: ", toolsWindowShow);
             		}
-
+            	}
+    			
+    			if (toolsWindowShow === "false") {
+    				win.hide();
+    				toolContainer.show();
+    			} else {
+    				win.show();
+    			}            	
+            	
+    			// load toolsWindowXY from cookie if available
+    			var toolsWindowX = 60;
+    			var toolsWindowY = 60;
+            	if (document.cookie.length > 0) {		
             		var cookieStart = document.cookie.indexOf("toolsWindowXY=");
             		
             		if (cookieStart != -1) {
@@ -301,14 +314,16 @@ Ext.onReady(function() {
     						var y = parseFloat(values[1]);
     						
     						if (x && y) {
-    							win.setPosition(x, y);
+    							toolsWindowX = x;
+    							toolsWindowY = y;
     						}
-            			} else {
-            				win.setPosition(60, 60);
             			}
-            			console.log("---- App.onReady toolsWindowXY found: ", win.x, win.y);
+            			console.log("---- App.onReady toolsWindowXY found: ", toolsWindowX, toolsWindowY);
             		}
-            	}                
+            	}   
+            	
+				win.setPosition(toolsWindowX, toolsWindowY);
+            	
                 
                 var map = app.mapPanel.map;
                 
