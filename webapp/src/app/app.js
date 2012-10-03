@@ -194,21 +194,24 @@ Ext.onReady(function() {
             toggleGroup: "distanceBearing",
             wpsType: "generic",
             infoActionTip: salamati.ActionTip_Default,
-            iconCls: "gxp-icon-distance-bearing-generic"
+           // iconCls: "gxp-icon-distance-bearing-generic"
+            iconCls: "gxp-icon-getfeatureinfo"
         }, {
             ptype: "gxp_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "medfordhospitals",
             infoActionTip: salamati.ActionTip_Default,
-            iconCls: "gxp-icon-distance-bearing-hospitals"
+           // iconCls: "gxp-icon-distance-bearing-hospitals"
+            iconCls: "gxp-icon-getfeatureinfo"
         }, {
             ptype: "gxp_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "medfordschools",
             infoActionTip: salamati.ActionTip_Default,
-            iconCls: "gxp-icon-distance-bearing-schools"
+            //iconCls: "gxp-icon-distance-bearing-schools"
+            iconCls: "gxp-icon-getfeatureinfo"
         }],
         
         // layer sources
