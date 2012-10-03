@@ -12,10 +12,7 @@ GeoExt.Lang.add("es", {
         ActionTip_Default: "Distancia/Cojinete",
 		ActionTip_Edit: "Obtener informaci�n",
 		ActionTip_Settings: "Configuraci�n",
-		ActionTip_ShowSettings: "Spanish Show Settings"
-    },
-    
-    "gxp.plugins.DistanceBearing.prototype": {
+		ActionTip_ShowSettings: "Spanish Show Settings",
     	infoActionTip: "Distancia/Cojinete",
     	popupTitle: "Distancia/Cojinete",
     	Text_Start: "Comienzo",

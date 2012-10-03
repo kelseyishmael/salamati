@@ -65,6 +65,8 @@ OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {
 });
 
 var salamati = {
+	infoActionTip: "Distance/Bearing of features from click location",
+    popupTitle: "Distance/Bearing",
 	Text_Start: "Start",
 	Text_ChooseWPS: "Choose WPS",
 	Text_Ok: "OK",
@@ -115,13 +117,13 @@ gxp.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
      *  ``String``
      *  Text for feature info action tooltip (i18n).
      */
-    infoActionTip: "Distance/Bearing of features from click location",
+    infoActionTip: salamati.infoActionTip,
 
     /** api: config[popupTitle]
      *  ``String``
      *  Title for info popup (i18n).
      */
-    popupTitle: "Distance/Bearing",
+    popupTitle: salamati.popupTitle,
     
     /** api: config[format]
      *  ``String`` Either "html" or "grid". If set to "grid", GML will be
