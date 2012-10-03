@@ -109,7 +109,7 @@ Ext.onReady(function() {
 			},
 			"move" : function(element) {
 				document.cookie = "toolsWindowXY=" + element.x + "|" + element.y;
-			},
+			}
 		}
 	});	
 
