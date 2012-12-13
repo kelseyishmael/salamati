@@ -762,7 +762,13 @@ gxp.plugins.FeatureManager = Ext.extend(gxp.plugins.Tool, {
         var source = record.get("source");
         this.target.mapPanel.layers.each(function(candidate) {
             if (candidate.get("source") === source && candidate.get("name") === name) {
-                candidate.getLayer().redraw(true);
+                //candidate.getLayer().redraw(true);
+            	/* kzusy - must override caching */
+            	var layer = candidate.getLayer();
+                layer.mergeNewParams({
+					'ver' : Math.random() // override browser caching
+				});
+            	layer.redraw(true);
             }
         });
     },
