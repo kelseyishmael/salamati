@@ -764,6 +764,7 @@ gxp.plugins.FeatureManager = Ext.extend(gxp.plugins.Tool, {
             if (candidate.get("source") === source && candidate.get("name") === name) {
                 //candidate.getLayer().redraw(true);
             	/* kzusy - must override caching */
+            	alert("override caching");
             	var layer = candidate.getLayer();
                 layer.mergeNewParams({
 					'ver' : Math.random() // override browser caching
