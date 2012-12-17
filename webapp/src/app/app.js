@@ -27,7 +27,7 @@
  * @requires salamatiLocale/en.js
  * @requires salamatiLocale/es.js
  */
- 
+
 var salamati = {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
@@ -117,7 +117,7 @@ Ext.onReady(function() {
 	});	
 
     app = new gxp.Viewer({
-    	proxy: "/geoserver/rest/proxy?url=",
+    	//proxy: "/geoserver/rest/proxy?url=",
     	defaultSourceType: "gxp_wmscsource",
         portalConfig: {
             layout: "border",
