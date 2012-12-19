@@ -14,7 +14,6 @@
  * @require plugins/DistanceBearing.js
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
- * @require overrides/override-ext-ajax.js
  * @require plugins/FeatureManager.js
  * @require plugins/FeatureEditor.js
  * @require plugins/Navigation.js
@@ -28,9 +27,15 @@
  * @requires salamatiLocale/es.js
  */
 
+Ext.lib.Ajax.useDefaultXhrHeader = false;
+
+var nominatimUrl = 'http://192.168.10.168';
+
 var salamati = {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
+	Title_Search: "Default Search",
+	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info"
 }
@@ -38,24 +43,104 @@ var salamati = {
 var app;
 var addressOfWPS = "http://geoserver.rogue.lmnsolutions.com/";
 
-var WGS84 = new OpenLayers.Projection("EPSG:4326");
-var GoogleMercator = new OpenLayers.Projection("EPGS:900913");
+var WGS84;
+var GoogleMercator;
 
 var nameIndex;
 var snappingAgent;
 
 var toolWindowSavedPosition = null;
 
+//the tool dock
 var toolContainer = new Ext.Container({
     xtype: "container",
-    id: "mapcont",
+    id: "toolcont",
     hidden: true,
     cls: "toolContainer"
 });
 
+//the search dock
+var searchContainer = new Ext.Container({
+	xtype: "container",
+	id: "searchcont",
+	hidden: true,
+	cls: "toolContainer searchContainer"
+});
+
+var searchWindow = null;
+
 var win = null;
 
+var zoomToPlace = function(element){
+	var bounds = new OpenLayers.Bounds([
+	   element.attributes['bounds-left'].value,
+	   element.attributes['bounds-bottom'].value,
+	   element.attributes['bounds-right'].value,
+	   element.attributes['bounds-top'].value
+	]);
+	
+	bounds.transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
+	console.log("zoomtobounds: ", bounds);
+	app.mapPanel.map.zoomToExtent(bounds);
+};
+
+var submitSearch = function(params){
+	var urlParams = {
+		format: 'json',
+		q: params,
+		callback: ''
+	};
+	
+	var searchUrl = nominatimUrl + '/search?' + Ext.urlEncode(urlParams);
+	Ext.Ajax.request({
+		url: searchUrl,
+		success: function(result, request){
+			var results = Ext.util.JSON.decode(result.responseText);
+			if(results && results.length){
+				var resultsHTML = '<div class="searchResults">';
+				
+				for(var i = 0; i < results.length; i++){
+					console.log(results[i]);
+					resultsHTML += '<div class="searchResult">' + 
+						'<span class="searchResultPlaceName" ' +
+							'bounds-left="' + results[i].boundingbox[2] + '" ' +
+							'bounds-bottom="' + results[i].boundingbox[0] + '" ' +
+							'bounds-right="' + results[i].boundingbox[3] + '" ' +
+							'bounds-top="' + results[i].boundingbox[1] + '" ' +
+							'onclick="zoomToPlace(this)">' +
+							results[i].display_name + '</span>' +
+						'</div>';
+				}
+				
+				resultsHTML += '</div>';
+				
+				var searchPanel = Ext.get("searchPanel");
+				searchPanel.createChild(resultsHTML);
+			}
+		}
+	});
+};
+
+var searchField = new Ext.form.TextField({
+    xtype: "textfield",
+    id: "searchField",
+    cls: "searchFieldClass",
+    height: "40",
+    width: "400",
+    enableKeyEvents: true,
+    listeners: {
+   	 'keyup' : function(element, event){
+   		 if(event.button == 12){
+   			 submitSearch(element.getValue());
+   		 }
+   	 }
+    }
+});
+
 Ext.onReady(function() {
+	
+	WGS84 = new OpenLayers.Projection("EPSG:4326");
+	GoogleMercator = new OpenLayers.Projection("EPGS:900913");
 	
     // load language setting from cookie if available
 	var lang = "en";
@@ -116,6 +201,56 @@ Ext.onReady(function() {
 		}
 	});	
 
+	searchWindow = new Ext.Window({
+		title: salamati.Title_Search,
+		id: "searchWindow",
+		closeAction: "hide",
+		xtype: "window",
+		layout: "fit",
+		autoScroll: true,
+		items: [
+		  {
+			  xtype: "panel",
+			  id: "searchPanel",
+			  cls: "mysearchwindowclass",
+			  layout: "hbox",
+			  layoutConfig: {
+				  align: 'center',
+				  padding: '5'
+			  },
+			  items: [
+			     searchField,{
+			    	xtype: "button",
+			    	id: "searchSubmit",
+			    	cls: "searchSubmitClass",
+			    	iconCls: "searchSubmitBtn",
+			    	height: "40",
+			    	text: salamati.Search_Submit,
+			    	listeners: {
+			    		'click': function(element, event){
+			    			submitSearch(searchField.getValue());
+			    		}
+			    	}
+			     }
+			  ]
+		  }
+		],
+		listeners : {
+			"beforehide" : function(element) {
+				searchContainer.show();
+			},
+			"hide" : function(element) {
+				document.cookie = "searchWindowShow=false";
+			},
+			"show" : function(element) {
+				document.cookie = "searchWindowShow=true";
+			},
+			"move" : function(element) {
+				document.cookie = "searchWindowXY=" + element.x + "|" + element.y;
+			}
+		}
+	});
+	
     app = new gxp.Viewer({
     	//proxy: "/geoserver/rest/proxy?url=",
     	defaultSourceType: "gxp_wmscsource",
@@ -131,9 +266,10 @@ Ext.onReady(function() {
                 region: "center",
                 border: false,
                 items: ["mymap",
-                    win, toolContainer]
+                    win, toolContainer, searchWindow, searchContainer]
             }, {
                 id: "eastpanel",
+                xtype: "panel",
                 tooltip: 'Layers', //doesn't seem to work
                 collapsible: true,
                 layout: "fit",
@@ -258,18 +394,28 @@ Ext.onReady(function() {
                 //Show the tools window
                 
                 win.animateTarget = toolContainer;
+                searchWindow.animateTarget = searchContainer;
                 
-                Ext.get("mapcont").addListener('click', function(evtObj, element){
+                Ext.get("toolcont").addListener('click', function(evtObj, element){
                     win.show();
                     toolContainer.hide();
                 });
                 
-                var toolconthtml = document.getElementById("mapcont");
+                Ext.get("searchcont").addListener('click', function(evtObj, element){
+                    searchWindow.show();
+                    searchContainer.hide();
+                });
+                
+                var toolconthtml = document.getElementById("toolcont");
                 toolconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Tools + '</p>';
                 
-            	
+                var searchconthtml = document.getElementById("searchcont");
+                searchconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Search + '</p>';
+                
                 // load toolsWindowShow from cookie if available
                 var toolsWindowShow = "true";
+                var searchWindowShow = "true";
+                
             	if (document.cookie.length > 0) {		
             		var cookieStart = document.cookie.indexOf("toolsWindowShow=");
             		
@@ -296,6 +442,8 @@ Ext.onReady(function() {
     				win.show();
     			}            	
             	
+    			searchWindow.show();
+    			
     			// load toolsWindowXY from cookie if available
     			var toolsWindowX = 60;
     			var toolsWindowY = 60;
@@ -326,7 +474,6 @@ Ext.onReady(function() {
             	}   
             	
 				win.setPosition(toolsWindowX, toolsWindowY);
-            	
                 
                 var map = app.mapPanel.map;
                 

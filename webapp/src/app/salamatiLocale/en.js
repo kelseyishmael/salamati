@@ -9,6 +9,8 @@ GeoExt.Lang.add("en", {
     "salamati": {
     	Map: "Map",
         Title_Tools: "Tools",
+        Title_Search: "Search",
+        Search_Submit: "Go",
         ActionTip_Default: "Distance/Bearing of features from click location",
 		ActionTip_Edit: "Get feature info",
 		ActionTip_Settings: "Settings",
