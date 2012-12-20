@@ -79,17 +79,19 @@ var hideSpinner = function(conn, response, options){
 	console.log("hidespinner");
 };
 
-var zoomToPlace = function(element){
-	var bounds = new OpenLayers.Bounds([
-	   element.attributes['bounds-left'].value,
-	   element.attributes['bounds-bottom'].value,
-	   element.attributes['bounds-right'].value,
-	   element.attributes['bounds-top'].value
-	]);
+var zoomToPlace = function(lon, lat, left, bottom, right, top){
+	var bounds = new OpenLayers.Bounds([left, bottom, right, top]);
 	
 	bounds.transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
 	console.log("zoomtobounds: ", bounds);
 	app.mapPanel.map.zoomToExtent(bounds);
+	
+//	var lonlat = new OpenLayers.LonLat(lon, lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
+//	app.mapPanel.map.panTo(lonlat);
+	
+	while(app.mapPanel.map.getZoom() > 17){
+		app.mapPanel.map.zoomOut();
+	}
 };
 
 var submitSearch = function(params){
@@ -136,11 +138,11 @@ var submitSearch = function(params){
 					console.log(results[i]);
 					resultsHTML += '<div class="searchResult">' + 
 						'<span class="searchResultPlaceName" ' +
-							'bounds-left="' + results[i].boundingbox[2] + '" ' +
-							'bounds-bottom="' + results[i].boundingbox[0] + '" ' +
-							'bounds-right="' + results[i].boundingbox[3] + '" ' +
-							'bounds-top="' + results[i].boundingbox[1] + '" ' +
-							'onclick="zoomToPlace(this)">' +
+							'onclick="zoomToPlace(' + results[i].lon + ', ' +
+								results[i].lat + ', ' + results[i].boundingbox[2] +
+								', ' + results[i].boundingbox[0] + ', ' +
+								results[i].boundingbox[3] + ', ' +
+								results[i].boundingbox[1] + ')">' +
 							results[i].display_name + '</span>' +
 						'</div>';
 				}
