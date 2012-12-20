@@ -124,7 +124,7 @@ body {
 	font-size: 18px;
 }
 
-/*#searchSpinner {
+#searchSpinner {
 	position: absolute;
 	top: 50%;
 	left: 50%;
@@ -134,7 +134,7 @@ body {
 	text-indent: 250px;
 	white-space: nowrap;
 	overflow: hidden;	
-	-webkit-mask-image: url(../img/spinner.png);
+	-webkit-mask-image: url(img/spinner.png);
 	background-color: #000;
 	-webkit-animation-name: spinnerRotate;
 	-webkit-animation-duration: 2s;
@@ -149,7 +149,7 @@ body {
 	to {
 		-webkit-transform:rotate(360deg);
 	}
-}*/
+}
 
 .toolContainer {
     z-index: 1000;

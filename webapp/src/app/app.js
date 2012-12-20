@@ -110,10 +110,10 @@ var submitSearch = function(params){
 		
 	var searchUrl = nominatimUrl + slash + 'search?' + Ext.urlEncode(urlParams);
 	
-	//var spinnerHTML = '<p id="searchSpinner">Please wait while we search.</p>';
+	var spinnerHTML = '<p id="searchSpinner">Please wait while we search.</p>';
 	
-	//var searchPanel = Ext.get("searchPanel");
-	//searchPanel.createChild(spinnerHTML);
+	var searchPanel = Ext.get("searchPanel");
+	searchPanel.createChild(spinnerHTML);
 	
 	Ext.Ajax.request({
 		url: searchUrl,
@@ -126,8 +126,8 @@ var submitSearch = function(params){
 				oldResults[0].parentNode.removeChild(oldResults[0]);
 			}
 			
-			//var spinner = document.getElementById("searchSpinner");
-			//spinner.parentNode.removeChild(spinner);
+			var spinner = document.getElementById("searchSpinner");
+			spinner.parentNode.removeChild(spinner);
 			
 			if(results && results.length){
 				var resultsHTML = '<div class="searchResults">';
@@ -159,8 +159,8 @@ var submitSearch = function(params){
 				oldResults[0].parentNode.removeChild(oldResults[0]);
 			}
 			
-			//var spinner = document.getElementById("searchSpinner");
-			//spinner.parentNode.removeChild(spinner);
+			var spinner = document.getElementById("searchSpinner");
+			spinner.parentNode.removeChild(spinner);
 			
 			var errorHTML = '<div class="searchResults">' +
 								'<span class="searchResultsError">Error sending request</span>' +
