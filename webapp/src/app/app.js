@@ -136,15 +136,16 @@ var submitSearch = function(params){
 				
 				for(var i = 0; i < results.length; i++){
 					console.log(results[i]);
-					resultsHTML += '<div class="searchResult">' + 
-						'<span class="searchResultPlaceName" ' +
-							'onclick="zoomToPlace(' + results[i].lon + ', ' +
-								results[i].lat + ', ' + results[i].boundingbox[2] +
-								', ' + results[i].boundingbox[0] + ', ' +
-								results[i].boundingbox[3] + ', ' +
-								results[i].boundingbox[1] + ')">' +
-							results[i].display_name + '</span>' +
-						'</div>';
+					resultsHTML += '<div class="searchResult" ' + 
+										'onclick="zoomToPlace(' + results[i].lon + ', ' +
+										results[i].lat + ', ' + results[i].boundingbox[2] +
+										', ' + results[i].boundingbox[0] + ', ' +
+										results[i].boundingbox[3] + ', ' +
+										results[i].boundingbox[1] + ')">' +
+										'<span class="searchResultPlaceName">' +
+											
+											results[i].display_name + '</span>' +
+									'</div>';
 				}
 				
 				resultsHTML += '</div>';
