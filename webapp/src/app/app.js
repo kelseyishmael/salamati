@@ -71,6 +71,14 @@ var searchWindow = null;
 
 var win = null;
 
+var showSpinner = function(conn, options){
+	console.log("showspinner");
+};
+
+var hideSpinner = function(conn, response, options){
+	console.log("hidespinner");
+};
+
 var zoomToPlace = function(element){
 	var bounds = new OpenLayers.Bounds([
 	   element.attributes['bounds-left'].value,
@@ -91,11 +99,36 @@ var submitSearch = function(params){
 		callback: ''
 	};
 	
-	var searchUrl = nominatimUrl + '/search?' + Ext.urlEncode(urlParams);
+	nominatimUrl = nominatimURLField.getValue();
+	
+	var slash = '';
+	console.log('last char: ' + nominatimUrl.charAt(nominatimUrl.length - 1));
+	
+	if(nominatimUrl.charAt(nominatimUrl.length - 1) != '/'){
+		slash = '/';
+	}
+		
+	var searchUrl = nominatimUrl + slash + 'search?' + Ext.urlEncode(urlParams);
+	
+	//var spinnerHTML = '<p id="searchSpinner">Please wait while we search.</p>';
+	
+	//var searchPanel = Ext.get("searchPanel");
+	//searchPanel.createChild(spinnerHTML);
+	
 	Ext.Ajax.request({
 		url: searchUrl,
+		timeout: 15000,
 		success: function(result, request){
 			var results = Ext.util.JSON.decode(result.responseText);
+			var oldResults = document.getElementsByClassName('searchResults');
+			
+			if(oldResults.length){
+				oldResults[0].parentNode.removeChild(oldResults[0]);
+			}
+			
+			//var spinner = document.getElementById("searchSpinner");
+			//spinner.parentNode.removeChild(spinner);
+			
 			if(results && results.length){
 				var resultsHTML = '<div class="searchResults">';
 				
@@ -117,6 +150,26 @@ var submitSearch = function(params){
 				var searchPanel = Ext.get("searchPanel");
 				searchPanel.createChild(resultsHTML);
 			}
+		},
+		failure: function(result, request){
+			console.log("error", result);
+			var oldResults = document.getElementsByClassName('searchResults');
+			
+			if(oldResults.length){
+				oldResults[0].parentNode.removeChild(oldResults[0]);
+			}
+			
+			//var spinner = document.getElementById("searchSpinner");
+			//spinner.parentNode.removeChild(spinner);
+			
+			var errorHTML = '<div class="searchResults">' +
+								'<span class="searchResultsError">Error sending request</span>' +
+								'<span class="searchResultsError">Check that your url is valid</span>' +
+								'<span class="searchResultsError">ex. http://nominatim.openstreetmap.org</span>' +
+							'</div>';
+			
+			var searchPanel = Ext.get("searchPanel");
+			searchPanel.createChild(errorHTML);
 		}
 	});
 };
@@ -124,9 +177,10 @@ var submitSearch = function(params){
 var searchField = new Ext.form.TextField({
     xtype: "textfield",
     id: "searchField",
-    cls: "searchFieldClass",
+ //   cls: "searchFieldClass",
     height: "40",
     width: "400",
+    emptyText: "Search",
     enableKeyEvents: true,
     listeners: {
    	 'keyup' : function(element, event){
@@ -135,6 +189,28 @@ var searchField = new Ext.form.TextField({
    		 }
    	 }
     }
+});
+
+var nominatimURLField = new Ext.form.TextField({
+	xtype: "textfield",
+	id: "nominatimURL",
+	//cls: "nominatimURLClass",
+	height: "40",
+	width: "400",
+	emptyText: "Nominatim Url",
+	enableKeyEvents: true,
+	listeners: {
+		'keyup' : function(element, event){
+			if(event.button == 12){
+				submitSearch(searchField.getValue());
+			}
+		},
+		'focus' : function(element, event){
+			if(element.getValue() == ""){
+				element.setValue('http://');
+			}
+		}
+	}
 });
 
 Ext.onReady(function() {
@@ -213,25 +289,14 @@ Ext.onReady(function() {
 			  xtype: "panel",
 			  id: "searchPanel",
 			  cls: "mysearchwindowclass",
-			  layout: "hbox",
+			  layout: "form",
 			  layoutConfig: {
 				  align: 'center',
 				  padding: '5'
 			  },
 			  items: [
-			     searchField,{
-			    	xtype: "button",
-			    	id: "searchSubmit",
-			    	cls: "searchSubmitClass",
-			    	iconCls: "searchSubmitBtn",
-			    	height: "40",
-			    	text: salamati.Search_Submit,
-			    	listeners: {
-			    		'click': function(element, event){
-			    			submitSearch(searchField.getValue());
-			    		}
-			    	}
-			     }
+			     nominatimURLField, 
+			     searchField
 			  ]
 		  }
 		],
@@ -393,6 +458,10 @@ Ext.onReady(function() {
             "ready": function(){
                 //Show the tools window
                 
+            	/*Ext.Ajax.on('beforerequest', showSpinner, this);
+            	Ext.Ajax.on('requestcomplete', hideSpinner, this);
+            	Ext.Ajax.on('requestexception', hideSpinner, this);*/
+            	
                 win.animateTarget = toolContainer;
                 searchWindow.animateTarget = searchContainer;
                 

@@ -35,7 +35,7 @@ body {
 	width: 100%;
     height: 100%;
     min-width: 492px;
-    min-height: 78px;
+    min-height: 300px;
 }
 
 .searchContainer {
@@ -43,11 +43,21 @@ body {
 	margin-top: 20px;	
 }
 
-.searchFieldClass {
+/*.nominatimURLClass {
+	padding-left: 10px;
 	font-size: 24px;
 	border-radius: 10px;
-	-moz-border-radius: 10px;	
+	-moz-border-radius: 10px;
+	margin-top: 10px;
 }
+
+.searchFieldClass {
+	padding-left: 10px !important;
+	font-size: 24px;
+	border-radius: 10px;
+	-moz-border-radius: 10px;
+	margin-top: 10px;	
+}*/
 
 .searchSubmitClass {
 	margin-left: 15px;
@@ -64,15 +74,40 @@ body {
 	position:relative;
 	top: 60px !important;
 	left: 0px !important;
-	border: 1px solid black;
 }
 
 .searchResults {
 	position: relative;
 	top: -100%;
-	margin-top: 70px;	
+	margin-top: 120px;	
 	overflow: auto;
-	margin-left: 15px;
+	padding: 15px;
+}
+
+.searchResultsError {
+	display: block;
+	font-size: 18px;
+	color: red;	
+}
+
+#searchPanel .x-form-element {
+	padding: 0px !important;
+	margin-left: 10px;
+	width: auto !important;	
+}
+
+#searchPanel .x-form-item-label {
+	padding: 0px !important;
+	width: auto !important;	
+}
+
+#searchPanel input {
+	padding-left: 10px !important;
+	font-size: 24px;
+	border-radius: 10px;
+	-moz-border-radius: 10px;
+	margin-top: 10px;
+	padding-right: 10px !important;
 }
 
 .searchResult {
@@ -82,11 +117,39 @@ body {
 .searchResult:hover {
 	cursor: hand;
 	cursor: pointer;
+	background-color: yellow;
 }
 
 .searchResultPlaceName {
 	font-size: 18px;
 }
+
+/*#searchSpinner {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin: -100px 0 0 -100px;
+	height: 200px;
+	width: 200px;
+	text-indent: 250px;
+	white-space: nowrap;
+	overflow: hidden;	
+	-webkit-mask-image: url(../img/spinner.png);
+	background-color: #000;
+	-webkit-animation-name: spinnerRotate;
+	-webkit-animation-duration: 2s;
+	-webkit-animation-iteration-count: infinite;
+	-webkit-animation-timing-function: linear;
+}
+
+@-webkit-keyframes spinnerRotate {
+	from {
+		-webkit-transform:rotate(0deg);
+	}
+	to {
+		-webkit-transform:rotate(360deg);
+	}
+}*/
 
 .toolContainer {
     z-index: 1000;
