@@ -28,6 +28,6 @@ GeoExt.Lang.add("es", {
         Title_Tools: "Instrumentos",
         Title_Search: "Busca",
         ActionTip_Default: "Distancia/Cojinete",
-		ActionTip_Edit: "Obtener informaci�n"
+        ActionTip_Edit: "Obtener informaci�n"
     }
 });

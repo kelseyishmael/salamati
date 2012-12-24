@@ -28,6 +28,6 @@ GeoExt.Lang.add("en", {
         Title_Tools: "Tools",
         Title_Search: "Search",
         ActionTip_Default: "Distance/Bearing of features from click location",
-		ActionTip_Edit: "Get feature info"
+        ActionTip_Edit: "Get feature info"
     }
 });
