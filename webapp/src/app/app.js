@@ -35,6 +35,7 @@ var salamati = {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
 	Title_Search: "Default Search",
+	Title_Geogit_History: "Default Geogit History",
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info"
@@ -69,6 +70,16 @@ var searchContainer = new Ext.Container({
 
 var searchWindow = null;
 
+//the geogit history dock
+var geogitHistoryContainer = new Ext.Container({
+	xtype: "container",
+	id: "geogithistorycont",
+	hidden: true,
+	cls: "toolContainer geogitHistoryContainer"
+});
+
+var geogitHistoryWindow = null;
+
 var win = null;
 
 var showSpinner = function(conn, options){
@@ -77,6 +88,25 @@ var showSpinner = function(conn, options){
 
 var hideSpinner = function(conn, response, options){
 	console.log("hidespinner");
+};
+
+var addGeogitHistoryToWindow = function(){
+	var geogitHistoryPanel = Ext.get("geogitHistoryPanel");
+	
+	geogitHistoryPanel.createChild('<div id="geogitHistory" ng-controller="GitHistoryCtrl">' +
+										'<input class="geogitHistoryQuery" ng-model="query">' +
+										'<ul>' +
+											'<li class="geogit-commit-history" ng-repeat="commit in history | filter:query">' +
+												'<p>author: {{commit.author}}</p>' +
+												'<p>commit: {{commit.commit}}</p>' +
+												'<p>date: {{commit.date}}</p>' +
+												'<p>email: {{commit.email}}</p>' +
+												'<p>message: {{commit.message}}</p>' +
+											'</li>' +
+										'</ul>' +
+									'</div>');
+	
+	angular.bootstrap(document.getElementById('geogitHistory'));
 };
 
 var zoomToPlace = function(lon, lat, left, bottom, right, top){
@@ -280,6 +310,7 @@ Ext.onReady(function() {
 		}
 	});	
 
+	
 	searchWindow = new Ext.Window({
 		title: salamati.Title_Search,
 		id: "searchWindow",
@@ -319,6 +350,43 @@ Ext.onReady(function() {
 		}
 	});
 	
+	geogitHistoryWindow = new Ext.Window({
+		title: salamati.Title_Geogit_History,
+		id: "geogitHistoryWindow",
+		closeAction: "hide",
+		xtype: "window",
+		layout: "fit",
+		autoScroll: true,
+		items: [
+		  {
+			  xtype: "panel",
+			  id: "geogitHistoryPanel",
+			  cls: "geogitHistoryWindowClass",
+			  layout: "form",
+			  layoutConfig: {
+				  align: 'center',
+				  padding: '5'
+			  },
+			  items: [
+			  ]
+		  }
+		],
+		listeners : {
+			"beforehide" : function(element) {
+				geogitHistoryContainer.show();
+			},
+			"hide" : function(element) {
+				document.cookie = "geogitHistoryWindowShow=false";
+			},
+			"show" : function(element) {
+				document.cookie = "geogitHistoryWindowShow=true";
+			},
+			"move" : function(element) {
+				document.cookie = "geogitHistoryWindowXY=" + element.x + "|" + element.y;
+			}
+		}
+	});
+	
     app = new gxp.Viewer({
     	//proxy: "/geoserver/rest/proxy?url=",
     	defaultSourceType: "gxp_wmscsource",
@@ -334,7 +402,7 @@ Ext.onReady(function() {
                 region: "center",
                 border: false,
                 items: ["mymap",
-                    win, toolContainer, searchWindow, searchContainer]
+                    win, toolContainer, searchWindow, searchContainer, geogitHistoryWindow, geogitHistoryContainer]
             }, {
                 id: "eastpanel",
                 xtype: "panel",
@@ -467,6 +535,7 @@ Ext.onReady(function() {
             	
                 win.animateTarget = toolContainer;
                 searchWindow.animateTarget = searchContainer;
+                geogitHistoryWindow.animateTarget = geogitHistoryContainer;
                 
                 Ext.get("toolcont").addListener('click', function(evtObj, element){
                     win.show();
@@ -478,15 +547,24 @@ Ext.onReady(function() {
                     searchContainer.hide();
                 });
                 
+                Ext.get("geogithistorycont").addListener('click', function(evtObj, element){
+                	geogitHistoryWindow.show();
+                	geogitHistoryContainer.hide();
+                });
+                
                 var toolconthtml = document.getElementById("toolcont");
                 toolconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Tools + '</p>';
                 
                 var searchconthtml = document.getElementById("searchcont");
                 searchconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Search + '</p>';
                 
+                var geogitHistoryContHTML = document.getElementById("geogithistorycont");
+                geogitHistoryContHTML.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Geogit_History + '</p>';
+                
                 // load toolsWindowShow from cookie if available
                 var toolsWindowShow = "true";
                 var searchWindowShow = "true";
+                var geogitHistoryShow = "true";
                 
             	if (document.cookie.length > 0) {		
             		var cookieStart = document.cookie.indexOf("toolsWindowShow=");
@@ -515,6 +593,10 @@ Ext.onReady(function() {
     			}            	
             	
     			searchWindow.show();
+    			
+    			addGeogitHistoryToWindow();
+    			
+    			geogitHistoryWindow.show();
     			
     			// load toolsWindowXY from cookie if available
     			var toolsWindowX = 60;

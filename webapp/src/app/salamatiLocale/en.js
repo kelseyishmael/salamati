@@ -10,6 +10,7 @@ GeoExt.Lang.add("en", {
     	Map: "Map",
         Title_Tools: "Tools",
         Title_Search: "Search",
+        Title_Geogit_History: "History",
         Search_Submit: "Go",
         ActionTip_Default: "Distance/Bearing of features from click location",
 		ActionTip_Edit: "Get feature info",
