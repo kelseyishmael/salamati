@@ -4,6 +4,10 @@
  * @require widgets/Viewer.js
  * @require plugins/LayerTree.js
  * @require plugins/OLSource.js
+ * @require plugins/MapQuestSource.js
+ * @require plugins/MapBoxSource.js
+ * @require plugins/BingSource.js
+ * @require plugins/GoogleSource.js
  * @require plugins/OSMSource.js
  * @require plugins/WMSCSource.js
  * @require plugins/ZoomToExtent.js
@@ -27,6 +31,16 @@
  * @require salamati/locale/en.js
  * @require salamati/locale/es.js
  */
+
+(function() {
+    // backwards compatibility for reading saved maps
+    // these source plugins were renamed after 2.3.2
+    Ext.preg("gx_wmssource", gxp.plugins.WMSSource);
+    Ext.preg("gx_olsource", gxp.plugins.OLSource);
+    Ext.preg("gx_googlesource", gxp.plugins.GoogleSource);
+    Ext.preg("gx_bingsource", gxp.plugins.BingSource);
+    Ext.preg("gx_osmsource", gxp.plugins.OSMSource);
+})();
 
 Ext.lib.Ajax.useDefaultXhrHeader = false;
 
@@ -655,11 +669,13 @@ Ext.onReady(function() {
                             source:  "local",
                             name: layerParams.LAYERS
                         };
-                        
-                        var index = snappingAgent.targets.push(target);
-                        snappingAgent.addSnappingTarget(target);
-                        nameIndex.push(target.name);
-                        app.selectLayer(app.getLayerRecordFromMap(target));
+                        // this breaks in GeoNode, TODO fix
+                        if (snappingAgent) {
+                            var index = snappingAgent.targets.push(target);
+                            snappingAgent.addSnappingTarget(target);
+                            nameIndex.push(target.name);
+                            app.selectLayer(app.getLayerRecordFromMap(target));
+                        }
                     }
                 });
             }
