@@ -295,7 +295,8 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 xtype: 'tbfill'
             }]
         };
-        config.portalConfig = {
+        var items = config.portalConfig && config.portalConfig.items;
+        config.portalConfig = Ext.apply(config.portalConfig || {}, {
             layout: "border",
 
             // by configuring items here, we don't need to configure portalItems
@@ -318,7 +319,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 width: 200
             }],
             bbar: {id: "mybbar"}
-        };
+        });
+        if (items) {
+            config.portalConfig.items.push(items);
+        }
         config.tools = [{
             ptype: "gxp_layertree",
             outputConfig: {
