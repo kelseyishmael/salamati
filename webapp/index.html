@@ -30,6 +30,10 @@
         <script>
             Ext.BLANK_IMAGE_URL = "theme/app/img/blank.gif";
             OpenLayers.ImgPath = "externals/openlayers/img/";
+            var app;
+            Ext.onReady(function() {
+                app = new salamati.Viewer();
+            });
         </script>
     </head>
     <body></body>
