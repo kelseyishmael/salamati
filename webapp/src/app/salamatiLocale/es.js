@@ -10,7 +10,6 @@ GeoExt.Lang.add("es", {
     	Map: "Mapa",
         Title_Tools: "Instrumentos",
         Title_Search: "Busca",
-        Title_Geogit_History: "Historia",
         Search_Submit: "Ve",
         ActionTip_Default: "Distancia/Cojinete",
 		ActionTip_Edit: "Obtener informaci�n",
