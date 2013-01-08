@@ -11,7 +11,7 @@
  * @require plugins/Zoom.js
  * @require plugins/AddLayers.js
  * @require plugins/RemoveLayer.js
- * @require plugins/DistanceBearing.js
+ * @require salamati/plugins/DistanceBearing.js
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
  * @require plugins/FeatureManager.js
@@ -21,17 +21,19 @@
  * @require OpenLayers/Format/WKT.js
  * @require OpenLayers/Control/MousePosition.js
  * @require OpenLayers/Control/ScaleLine.js
- * @require plugins/Settings.js
- *
- * @requires salamatiLocale/en.js
- * @requires salamatiLocale/es.js
+ * @require salamati/plugins/Settings.js
+ * @require locale/en.js
+ * @require locale/es.js
+ * @require salamati/locale/en.js
+ * @require salamati/locale/es.js
  */
 
 Ext.lib.Ajax.useDefaultXhrHeader = false;
 
 var nominatimUrl = 'http://192.168.10.168';
 
-var salamati = {
+Ext.ns("salamati");
+salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
 	Title_Search: "Default Search",
@@ -39,7 +41,7 @@ var salamati = {
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info"
-}
+});
 
 var app;
 var addressOfWPS = "http://geoserver.rogue.lmnsolutions.com/";
@@ -276,7 +278,7 @@ Ext.onReady(function() {
 
 
 	win = new Ext.Window({
-    	title: salamati.Title_Tools,
+    	title: salamati.Viewer.prototype.Title_Tools,
     	id: "toolsWindow",
     	closeAction: "hide",
     	xtype: "window",
@@ -312,7 +314,7 @@ Ext.onReady(function() {
 
 	
 	searchWindow = new Ext.Window({
-		title: salamati.Title_Search,
+		title: salamati.Viewer.prototype.Title_Search,
 		id: "searchWindow",
 		closeAction: "hide",
 		xtype: "window",
@@ -387,7 +389,7 @@ Ext.onReady(function() {
 		}
 	});
 	
-    app = new gxp.Viewer({
+    app = new salamati.Viewer({
     	//proxy: "/geoserver/rest/proxy?url=",
     	defaultSourceType: "gxp_wmscsource",
         portalConfig: {
@@ -431,7 +433,7 @@ Ext.onReady(function() {
             ptype: "gxp_removelayer",
             actionTarget: ["tree.tbar", "tree.contextMenu"]
         }, {
-            ptype: "gxp_Settings",
+            ptype: "app_settings",
             actionTarget: "tree.tbar"
         }, {
             ptype: "gxp_zoomtoextent",
@@ -458,30 +460,30 @@ Ext.onReady(function() {
             autoLoadFeature: true,
             snappingAgent: "snapping_agent",
             iconClsEdit: "gxp-icon-getfeatureinfo",
-            editFeatureActionTip: salamati.ActionTip_Edit,
+            editFeatureActionTip: this.ActionTip_Edit,
             actionTarget: "toolsPanel"
         },{
-            ptype: "gxp_distancebearing",
+            ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "generic",
-            infoActionTip: salamati.ActionTip_Default,
+            infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-generic"
             iconCls: "gxp-icon-getfeatureinfo"
         }, {
-            ptype: "gxp_distancebearing",
+            ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "medfordhospitals",
-            infoActionTip: salamati.ActionTip_Default,
+            infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-hospitals"
             iconCls: "gxp-icon-getfeatureinfo"
         }, {
-            ptype: "gxp_distancebearing",
+            ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
             wpsType: "medfordschools",
-            infoActionTip: salamati.ActionTip_Default,
+            infoActionTip: this.ActionTip_Default,
             //iconCls: "gxp-icon-distance-bearing-schools"
             iconCls: "gxp-icon-getfeatureinfo"
         }],
@@ -501,7 +503,7 @@ Ext.onReady(function() {
         // map and layers
         map: {
             id: "mymap", // id needed to reference map in portalConfig above
-            title: salamati.Map,
+            title: this.Map,
             projection: "EPSG:900913",
             center: [-10764594.758211, 4523072.3184791],
             cls: "mymapclass",
@@ -553,10 +555,10 @@ Ext.onReady(function() {
                 });
                 
                 var toolconthtml = document.getElementById("toolcont");
-                toolconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Tools + '</p>';
+                toolconthtml.innerHTML = '<p class="css-vertical-text">' + this.Title_Tools + '</p>';
                 
                 var searchconthtml = document.getElementById("searchcont");
-                searchconthtml.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Search + '</p>';
+                searchconthtml.innerHTML = '<p class="css-vertical-text">' + this.Title_Search + '</p>';
                 
                 var geogitHistoryContHTML = document.getElementById("geogithistorycont");
                 geogitHistoryContHTML.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Geogit_History + '</p>';
