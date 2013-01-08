@@ -36,8 +36,8 @@ Ext.ns("salamati");
 salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
-	Title_Search: "Default Search",
 	Title_Geogit_History: "Default Geogit History",
+	Title_Search: "Default Search",
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info"
@@ -353,7 +353,7 @@ Ext.onReady(function() {
 	});
 	
 	geogitHistoryWindow = new Ext.Window({
-		title: salamati.Title_Geogit_History,
+		title: salamati.Viewer.prototype.Title_Geogit_History,
 		id: "geogitHistoryWindow",
 		closeAction: "hide",
 		xtype: "window",
@@ -561,7 +561,7 @@ Ext.onReady(function() {
                 searchconthtml.innerHTML = '<p class="css-vertical-text">' + this.Title_Search + '</p>';
                 
                 var geogitHistoryContHTML = document.getElementById("geogithistorycont");
-                geogitHistoryContHTML.innerHTML = '<p class="css-vertical-text">' + salamati.Title_Geogit_History + '</p>';
+                geogitHistoryContHTML.innerHTML = '<p class="css-vertical-text">' + this.Title_Geogit_History + '</p>';
                 
                 // load toolsWindowShow from cookie if available
                 var toolsWindowShow = "true";
