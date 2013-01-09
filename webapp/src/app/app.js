@@ -51,6 +51,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
 	Title_Search: "Default Search",
+	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info",
 
@@ -674,4 +675,5 @@ Ext.onReady(function() {
 			}
 		}
 	});
+
 });
