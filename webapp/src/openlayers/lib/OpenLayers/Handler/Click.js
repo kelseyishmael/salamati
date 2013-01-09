@@ -1,4 +1,4 @@
-/* Copyright (c) 2006-2012 by OpenLayers Contributors (see authors.txt for 
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for 
  * full list of contributors). Published under the 2-clause BSD license.
  * See license.txt in the OpenLayers distribution or repository for the
  * full text of the license. */
@@ -495,8 +495,8 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
             for (var i=0; i<len; i++) {
                 touch = evt.touches[i];
                 touches[i] = {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
+                    clientX: touch.olClientX,
+                    clientY: touch.olClientY
                 };
             }
         }

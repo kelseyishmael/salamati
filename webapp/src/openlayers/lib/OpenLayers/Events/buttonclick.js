@@ -1,4 +1,4 @@
-/* Copyright (c) 2006-2012 by OpenLayers Contributors (see authors.txt for 
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for 
  * full list of contributors). Published under the 2-clause BSD license.
  * See license.txt in the OpenLayers distribution or repository for the
  * full text of the license. */
@@ -121,6 +121,26 @@ OpenLayers.Events.buttonclick = OpenLayers.Class({
         } while(--depth > 0 && element);
         return button;
     },
+    
+    /**
+     * Method: ignore
+     * Check for event target elements that should be ignored by OpenLayers.
+     *
+     * Parameters:
+     * element - {DOMElement} The event target.
+     */
+    ignore: function(element) {
+        var depth = 3,
+            ignore = false;
+        do {
+            if (element.nodeName.toLowerCase() === 'a') {
+                ignore = true;
+                break;
+            }
+            element = element.parentNode;
+        } while (--depth > 0 && element);
+        return ignore;
+    },
 
     /**
      * Method: buttonClick
@@ -170,6 +190,7 @@ OpenLayers.Events.buttonclick = OpenLayers.Class({
                     propagate = false;
                 }
             } else {
+                propagate = !this.ignore(OpenLayers.Event.element(evt));
                 delete this.startEvt;
             }
         }

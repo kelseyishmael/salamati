@@ -1,4 +1,4 @@
-/* Copyright (c) 2006-2012 by OpenLayers Contributors (see authors.txt for 
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for 
  * full list of contributors). Published under the 2-clause BSD license.
  * See license.txt in the OpenLayers distribution or repository for the
  * full text of the license. */
@@ -261,8 +261,11 @@ OpenLayers.Control.Navigation = OpenLayers.Class(OpenLayers.Control, {
      * deltaZ - {Integer}
      */
     wheelChange: function(evt, deltaZ) {
+        if (!this.map.fractionalZoom) {
+            deltaZ =  Math.round(deltaZ);
+        }
         var currentZoom = this.map.getZoom();
-        var newZoom = this.map.getZoom() + Math.round(deltaZ);
+        var newZoom = this.map.getZoom() + deltaZ;
         newZoom = Math.max(newZoom, 0);
         newZoom = Math.min(newZoom, this.map.getNumZoomLevels());
         if (newZoom === currentZoom) {
