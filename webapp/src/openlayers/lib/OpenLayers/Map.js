@@ -1,4 +1,4 @@
-/* Copyright (c) 2006-2012 by OpenLayers Contributors (see authors.txt for 
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for 
  * full list of contributors). Published under the 2-clause BSD license.
  * See license.txt in the OpenLayers distribution or repository for the
  * full text of the license. */
@@ -75,7 +75,9 @@ OpenLayers.Map = OpenLayers.Class({
      *     The *layer* property will be a reference to the changed layer. The
      *     *property* property will be a key to the changed property (name,
      *     order, opacity, params, visibility or attribution).
-     * movestart - triggered after the start of a drag, pan, or zoom
+     * movestart - triggered after the start of a drag, pan, or zoom. The event
+     *     object may include a *zoomChanged* property that tells whether the
+     *     zoom has changed.
      * move - triggered after each drag, pan, or zoom
      * moveend - triggered after a drag, pan, or zoom completes
      * zoomend - triggered after a zoom completes
@@ -83,6 +85,7 @@ OpenLayers.Map = OpenLayers.Class({
      * mouseout - triggered after mouseout the map
      * mousemove - triggered after mousemove the map
      * changebaselayer - triggered after the base layer changes
+     * updatesize - triggered after the <updateSize> method was executed
      */
 
     /**
@@ -312,12 +315,12 @@ OpenLayers.Map = OpenLayers.Class({
      * APIProperty: maxExtent
      * {<OpenLayers.Bounds>|Array} If provided as an array, the array
      *     should consist of four values (left, bottom, right, top).
-     *     The maximum extent for the map.  Defaults to the
-     *     whole world in decimal degrees (-180, -90, 180, 90).  Specify a 
-     *     different extent in the map options if you are not using a geographic
-     *     projection and displaying the whole  world. To restrict user panning
-     *     and zooming of the map, use <restrictedExtent> instead.  The value 
-     *     for <maxExtent> will change calculations for tile URLs.
+     *     The maximum extent for the map.
+     *     Default depends on projection; if this is one of those defined in OpenLayers.Projection.defaults
+     *     (EPSG:4326 or web mercator), maxExtent will be set to the value defined there;
+     *     else, defaults to null.
+     *     To restrict user panning and zooming of the map, use <restrictedExtent> instead.
+     *     The value for <maxExtent> will change calculations for tile URLs.
      */
     maxExtent: null,
     
@@ -367,6 +370,15 @@ OpenLayers.Map = OpenLayers.Class({
      *     property at the time the control is added to the map. 
      */
     displayProjection: null,
+    
+    /**
+     * APIProperty: tileManager
+     * {<OpenLayers.TileManager>} If configured at construction time, the map
+     * will use the TileManager to queue image requests and to cache tile image
+     * elements. Note: make sure that OpenLayers/TileManager.js is included in
+     * your build profile.
+     */
+    tileManager: null,
 
     /**
      * APIProperty: fallThrough
@@ -375,6 +387,13 @@ OpenLayers.Map = OpenLayers.Class({
      *           Default is to fall through.
      */
     fallThrough: true,
+
+    /**
+     * APIProperty: autoUpdateSize
+     * {Boolean} Should OpenLayers automatically update the size of the map
+     * when the resize event is fired. Default is true.
+     */
+    autoUpdateSize: true,
     
     /**
      * Property: panTween
@@ -414,6 +433,12 @@ OpenLayers.Map = OpenLayers.Class({
      *     the popup from getting too close to the map border.
      */
     paddingForPopups : null,
+    
+    /**
+     * Property: layerContainerOriginPx
+     * {Object} Cached object representing the layer container origin (in pixels).
+     */
+    layerContainerOriginPx: null,
     
     /**
      * Property: minPx
@@ -563,13 +588,16 @@ OpenLayers.Map = OpenLayers.Class({
             this, this.viewPortDiv, null, this.fallThrough, 
             {includeXY: true}
         );
+        
+        if (this.tileManager) {
+            this.tileManager.addMap(this);
+        }
 
         // the layerContainerDiv is the one that holds all the layers
         id = this.id + "_OpenLayers_Container";
         this.layerContainerDiv = OpenLayers.Util.createDiv(id);
-        this.layerContainerDiv.style.width = '100px';
-        this.layerContainerDiv.style.height = '100px';
         this.layerContainerDiv.style.zIndex=this.Z_INDEX_BASE['Popup']-1;
+        this.layerContainerOriginPx = {x: 0, y: 0};
         
         this.viewPortDiv.appendChild(this.layerContainerDiv);
 
@@ -577,16 +605,11 @@ OpenLayers.Map = OpenLayers.Class({
         if(this.eventListeners instanceof Object) {
             this.events.on(this.eventListeners);
         }
- 
-        // Because Mozilla does not support the "resize" event for elements 
-        // other than "window", we need to put a hack here. 
-        if (parseFloat(navigator.appVersion.split("MSIE")[1]) < 9) {
-            // If IE < 9, register the resize on the div
-            this.events.register("resize", this, this.updateSize);
-        } else {
-            // Else updateSize on catching the window's resize
-            //  Note that this is ok, as updateSize() does nothing if the 
-            //  map's size has not actually changed.
+
+        if (this.autoUpdateSize === true) {
+            // updateSize on catching the window's resize
+            // Note that this is ok, as updateSize() does nothing if the 
+            // map's size has not actually changed.
             this.updateSizeDestroy = OpenLayers.Function.bind(this.updateSize, 
                 this);
             OpenLayers.Event.observe(window, 'resize',
@@ -662,6 +685,7 @@ OpenLayers.Map = OpenLayers.Class({
              * be properly set below.
              */
             delete this.center;
+            delete this.zoom;
             this.addLayers(options.layers);
             // set center (and optionally zoom)
             if (options.center && !this.getCenter()) {
@@ -745,9 +769,7 @@ OpenLayers.Map = OpenLayers.Class({
         if (this.updateSizeDestroy) {
             OpenLayers.Event.stopObserving(window, 'resize', 
                                            this.updateSizeDestroy);
-        } else {
-            this.events.unregister("resize", this, this.updateSize);
-        }    
+        }
         
         this.paddingForPopups = null;    
 
@@ -765,10 +787,15 @@ OpenLayers.Map = OpenLayers.Class({
             } 
             this.layers = null;
         }
-        if (this.viewPortDiv) {
-            this.div.removeChild(this.viewPortDiv);
+        if (this.viewPortDiv && this.viewPortDiv.parentNode) {
+            this.viewPortDiv.parentNode.removeChild(this.viewPortDiv);
         }
         this.viewPortDiv = null;
+        
+        if (this.tileManager) {
+            this.tileManager.removeMap(this);
+            this.tileManager = null;
+        }
 
         if(this.eventListeners) {
             this.events.un(this.eventListeners);
@@ -1489,6 +1516,7 @@ OpenLayers.Map = OpenLayers.Class({
     
             }
         }
+        this.events.triggerEvent("updatesize");
     },
     
     /**
@@ -1749,13 +1777,13 @@ OpenLayers.Map = OpenLayers.Class({
             this.center = null;
             if (dx) {
                 this.layerContainerDiv.style.left =
-                    parseInt(this.layerContainerDiv.style.left) - dx + "px";
+                    (this.layerContainerOriginPx.x -= dx) + "px";
                 this.minPx.x -= dx;
                 this.maxPx.x -= dx;
             }
             if (dy) {
                 this.layerContainerDiv.style.top =
-                    parseInt(this.layerContainerDiv.style.top) - dy + "px";
+                    (this.layerContainerOriginPx.y -= dy) + "px";
                 this.minPx.y -= dy;
                 this.maxPx.y -= dy;
             }
@@ -1783,17 +1811,41 @@ OpenLayers.Map = OpenLayers.Class({
      * <baseLayer>'s maxExtent.
      */
     adjustZoom: function(zoom) {
-        var resolution, resolutions = this.baseLayer.resolutions,
-            maxResolution = this.getMaxExtent().getWidth() / this.size.w;
-        if (this.getResolutionForZoom(zoom) > maxResolution) {
-            for (var i=zoom|0, ii=resolutions.length; i<ii; ++i) {
-                if (resolutions[i] <= maxResolution) {
-                    zoom = i;
-                    break;
-                }
+        if (this.baseLayer && this.baseLayer.wrapDateLine) {
+            var resolution, resolutions = this.baseLayer.resolutions,
+                maxResolution = this.getMaxExtent().getWidth() / this.size.w;
+            if (this.getResolutionForZoom(zoom) > maxResolution) {
+                if (this.fractionalZoom) {
+                    zoom = this.getZoomForResolution(maxResolution);
+                } else {
+                    for (var i=zoom|0, ii=resolutions.length; i<ii; ++i) {
+                        if (resolutions[i] <= maxResolution) {
+                            zoom = i;
+                            break;
+                        }
+                    }
+                } 
             }
         }
         return zoom;
+    },
+    
+    /**
+     * APIMethod: getMinZoom
+     * Returns the minimum zoom level for the current map view. If the base
+     * layer is configured with <wrapDateLine> set to true, this will be the
+     * first zoom level that shows no more than one world width in the current
+     * map viewport. Components that rely on this value (e.g. zoom sliders)
+     * should also listen to the map's "updatesize" event and call this method
+     * in the "updatesize" listener.
+     *
+     * Returns:
+     * {Number} Minimum zoom level that shows a map not wider than its
+     * <baseLayer>'s maxExtent. This is an Integer value, unless the map is
+     * configured with <fractionalZoom> set to true.
+     */
+    getMinZoom: function() {
+        return this.adjustZoom(0);
     },
 
     /**
@@ -1817,13 +1869,11 @@ OpenLayers.Map = OpenLayers.Class({
                 zoom = Math.round(zoom);
             }
         }
-        if (this.baseLayer.wrapDateLine) {
-            var requestedZoom = zoom;
-            zoom = this.adjustZoom(zoom);
-            if (zoom !== requestedZoom) {
-                // zoom was adjusted, so keep old lonlat to avoid panning
-                lonlat = this.getCenter();
-            }
+        var requestedZoom = zoom;
+        zoom = this.adjustZoom(zoom);
+        if (zoom !== requestedZoom) {
+            // zoom was adjusted, so keep old lonlat to avoid panning
+            lonlat = this.getCenter();
         }
         // dragging is false by default
         var dragging = options.dragging || this.dragging;
@@ -1878,7 +1928,9 @@ OpenLayers.Map = OpenLayers.Class({
 
         // if neither center nor zoom will change, no need to do anything
         if (zoomChanged || centerChanged || dragging) {
-            dragging || this.events.triggerEvent("movestart");
+            dragging || this.events.triggerEvent("movestart", {
+                zoomChanged: zoomChanged
+            });
 
             if (centerChanged) {
                 if (!zoomChanged && this.center) { 
@@ -1894,8 +1946,11 @@ OpenLayers.Map = OpenLayers.Class({
             // (re)set the layerContainerDiv's location
             if (zoomChanged || this.layerContainerOrigin == null) {
                 this.layerContainerOrigin = this.getCachedCenter();
-                this.layerContainerDiv.style.left = "0px";
-                this.layerContainerDiv.style.top  = "0px";
+                var style = this.layerContainerDiv.style;
+                style.left = "0px";
+                style.top  = "0px";
+                this.layerContainerOriginPx.x = 0;
+                this.layerContainerOriginPx.y = 0;
                 var maxExtent = this.getMaxExtent({restricted: true});
                 var maxExtentCenter = maxExtent.getCenterLonLat();
                 var lonDelta = this.center.lon - maxExtentCenter.lon;
@@ -1943,9 +1998,7 @@ OpenLayers.Map = OpenLayers.Class({
                         if (!inRange) {
                             layer.display(false);
                         }
-                        this.events.triggerEvent("changelayer", {
-                            layer: layer, property: "visibility"
-                        });
+
                     }
                     if (inRange && layer.visibility) {
                         layer.moveTo(bounds, zoomChanged, options.dragging);
@@ -1981,12 +2034,14 @@ OpenLayers.Map = OpenLayers.Class({
         var newPx = this.getViewPortPxFromLonLat(lonlat);
 
         if ((originPx != null) && (newPx != null)) {
-            var oldLeft = parseInt(this.layerContainerDiv.style.left);
-            var oldTop = parseInt(this.layerContainerDiv.style.top);
+            var oldLeft = this.layerContainerOriginPx.x;
+            var oldTop = this.layerContainerOriginPx.y;
             var newLeft = Math.round(originPx.x - newPx.x);
             var newTop = Math.round(originPx.y - newPx.y);
-            this.layerContainerDiv.style.left = newLeft + "px";
-            this.layerContainerDiv.style.top  = newTop + "px";
+            this.layerContainerDiv.style.left =
+                (this.layerContainerOriginPx.x = newLeft) + "px";
+            this.layerContainerDiv.style.top =
+                (this.layerContainerOriginPx.y = newTop) + "px";
             var dx = oldLeft - newLeft;
             var dy = oldTop - newTop;
             this.minPx.x -= dx;
@@ -2547,8 +2602,8 @@ OpenLayers.Map = OpenLayers.Class({
     getViewPortPxFromLayerPx:function(layerPx) {
         var viewPortPx = null;
         if (layerPx != null) {
-            var dX = parseInt(this.layerContainerDiv.style.left);
-            var dY = parseInt(this.layerContainerDiv.style.top);
+            var dX = this.layerContainerOriginPx.x;
+            var dY = this.layerContainerOriginPx.y;
             viewPortPx = layerPx.add(dX, dY);            
         }
         return viewPortPx;
@@ -2567,8 +2622,8 @@ OpenLayers.Map = OpenLayers.Class({
     getLayerPxFromViewPortPx:function(viewPortPx) {
         var layerPx = null;
         if (viewPortPx != null) {
-            var dX = -parseInt(this.layerContainerDiv.style.left);
-            var dY = -parseInt(this.layerContainerDiv.style.top);
+            var dX = -this.layerContainerOriginPx.x;
+            var dY = -this.layerContainerOriginPx.y;
             layerPx = viewPortPx.add(dX, dY);
             if (isNaN(layerPx.x) || isNaN(layerPx.y)) {
                 layerPx = null;

@@ -12,7 +12,9 @@ GeoExt.Lang.add("fr", {
         addLayerSourceErrorText: "Impossible d'obtenir les capacités WMS ({msg}).\nVeuillez vérifier l'URL et essayez à nouveau.",
         availableLayersText: "Couches disponibles",
         doneText: "Terminé",
-        uploadText: "Télécharger des données"
+        uploadText: "Télécharger des données",
+        addFeedActionMenuText: "Add feeds",
+        searchText: "Search for layers"
     },
     
     "gxp.plugins.BingSource.prototype": {
@@ -23,8 +25,13 @@ GeoExt.Lang.add("fr", {
     },    
 
     "gxp.plugins.FeatureEditor.prototype": {
+        splitButtonText: "Edit",
+        createFeatureActionText: "Create",
+        editFeatureActionText: "Modify",
         createFeatureActionTip: "Créer un nouvel objet",
-        editFeatureActionTip: "Modifier un objet existant"
+        editFeatureActionTip: "Modifier un objet existant",
+        commitTitle: "Commit message",
+        commitText: "Please enter a commit message for this edit:"
     },
     
     "gxp.plugins.FeatureGrid.prototype": {
@@ -34,7 +41,7 @@ GeoExt.Lang.add("fr", {
         zoomPageExtentTip: "Zoom sur la page",
         nextPageTip: "Page suivante",
         lastPageTip: "Dernière page",
-        totalMsg: "Total : {0} entrées"
+        totalMsg: "Features {1} to {2} of {0}"
     },
 
     "gxp.plugins.GoogleEarth.prototype": {
@@ -72,6 +79,7 @@ GeoExt.Lang.add("fr", {
     },
 
     "gxp.plugins.Measure.prototype": {
+        buttonText: "Mesure",
         lengthMenuText: "Longueur",
         areaMenuText: "Surface",
         lengthTooltip: "Mesure de longueur",
@@ -114,11 +122,12 @@ GeoExt.Lang.add("fr", {
 
     "gxp.plugins.OSMSource.prototype": {
         title: "Calques OpenStreetMap",
-        mapnikAttribution: "Données CC-By-SA par <a href='http://openstreetmap.org/'>OpenStreetMap</a>",
+        mapnikAttribution: "&copy; <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
         osmarenderAttribution: "Données CC-By-SA par <a href='http://openstreetmap.org/'>OpenStreetMap</a>"
     },
 
     "gxp.plugins.Print.prototype": {
+        buttonText:"Imprimer",
         menuText: "Imprimer la carte",
         tooltip: "Imprimer la carte",
         previewText: "Aperçu avant impression",
@@ -138,8 +147,7 @@ GeoExt.Lang.add("fr", {
         queryActionText: "Interrogation",
         queryMenuText: "Couche de requêtes",
         queryActionTip: "Interroger la couche sélectionnée",
-        queryByLocationText: "Interroger par lieu",
-        currentTextText: "Étendue actuelle",
+        queryByLocationText: "Query by current map extent",
         queryByAttributesText: "Requête par attributs"
     },
 
@@ -149,13 +157,16 @@ GeoExt.Lang.add("fr", {
     },
 
     "gxp.plugins.WMSGetFeatureInfo.prototype": {
+        buttonText:"Identify",
         infoActionTip: "Get Feature Info",
         popupTitle: "Info sur l'objet"
     },
 
     "gxp.plugins.Zoom.prototype": {
+        zoomMenuText: "Zoom Box",
         zoomInMenuText: "Zoom avant",
         zoomOutMenuText: "Zoom arrière",
+        zoomTooltip: "Zoom by dragging a box",
         zoomInTooltip: "Zoom avant",
         zoomOutTooltip: "Zoom arrière"
     },
@@ -273,8 +284,19 @@ GeoExt.Lang.add("fr", {
         transparentText: "Transparent",
         cacheText: "Cache",
         cacheFieldText: "Utiliser la version mise en cache",
+        stylesText: "Available styles",
         infoFormatText: "Info format",
-        infoFormatEmptyText: "Choisissez un format"
+        infoFormatEmptyText: "Choisissez un format",
+        displayOptionsText: "Display options",
+        queryText: "Limit with filters",
+        scaleText: "Limit by scale",
+        minScaleText: "Min scale",
+        maxScaleText: "Max scale",
+        switchToFilterBuilderText: "Switch back to filter builder",
+        cqlPrefixText: "or ",
+        cqlText: "use CQL filter instead",
+        singleTileText: "Single tile",
+        singleTileFieldText: "Use a single tile"
     },
 
     "gxp.EmbedMapDialog.prototype": {
@@ -296,13 +318,16 @@ GeoExt.Lang.add("fr", {
         fileLabel: "Données",
         fieldEmptyText: "Parcourir pour ...",
         uploadText: "Upload",
+        uploadFailedText: "Upload failed",
+        processingUploadText: "Processing upload...",
         waitMsgText: "Transfert de vos données ...",
         invalidFileExtensionText: "L'extension du fichier doit être : ",
         optionsText: "Options",
         workspaceLabel: "Espace de travail",
         workspaceEmptyText: "Espace de travail par défaut",
         dataStoreLabel: "Magasin de données",
-        dataStoreEmptyText: "Create new store"
+        dataStoreEmptyText: "Create new store",
+        defaultDataStoreEmptyText: "Magasin de données par défaut"
     },
 
     "gxp.NewSourceDialog.prototype": {

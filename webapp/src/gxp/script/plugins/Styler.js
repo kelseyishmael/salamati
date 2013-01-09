@@ -9,6 +9,7 @@
 /**
  * @requires plugins/Tool.js
  * @requires widgets/WMSStylesDialog.js
+ * @requires plugins/GeoServerStyleWriter.js
  */
 
 /** api: (define)
@@ -141,7 +142,7 @@ gxp.plugins.Styler = Ext.extend(gxp.plugins.Tool, {
      */
     handleLayerChange: function(record) {
         this.launchAction.disable();
-        if (record && record.get("styles")) {
+        if (record) {
             var source = this.target.getSource(record);
             if (source instanceof gxp.plugins.WMSSource) {
                 source.describeLayer(record, function(describeRec) {
@@ -239,20 +240,14 @@ gxp.plugins.Styler = Ext.extend(gxp.plugins.Tool, {
         Ext.applyIf(config, {style: "padding: 10px"});
         
         var output = gxp.plugins.Styler.superclass.addOutput.call(this, config);
-        if (output.ownerCt.ownerCt instanceof Ext.Window) {
-            output.dialogCls = Ext.Window;
-        } else {
-            output.dialogCls = Ext.Container;
-        }
-        output.showDlg = function(dlg) {
-            if (dlg instanceof Ext.Window) {
-                dlg.show();
-            } else {
+        if (!(output.ownerCt.ownerCt instanceof Ext.Window)) {
+            output.dialogCls = Ext.Panel;
+            output.showDlg = function(dlg) {
                 dlg.layout = "fit";
                 dlg.autoHeight = false;
                 output.ownerCt.add(dlg);
-            }
-        };
+            };
+        }
         output.stylesStore.on("load", function() {
             if (!this.outputTarget && output.ownerCt.ownerCt instanceof Ext.Window) {
                 output.ownerCt.ownerCt.center();
