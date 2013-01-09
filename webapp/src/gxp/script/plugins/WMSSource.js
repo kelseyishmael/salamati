@@ -94,6 +94,21 @@ Ext.namespace("gxp.plugins");
  *        group: "background"
  *    }
  *
+ * An optional 'getFeatureInfo' property can also be passed to
+ * customize the sort order, visibility, & labels for layer attributes.
+ * A sample 'getFeatureInfo' configuration would look like this:
+ *
+ *  .. code-block:: javascript
+ *
+ *    {
+ *        fields: ["twn_name","pop1990"]
+ *        propertyNames: {"pop1990": "1990 Population",  "twn_name": "Town"}
+ *    }
+ *
+ *  Within the 'getFeatureInfo' configuration, the 'fields' property determines sort
+ *  order & visibility (any attributes not included are not displayed) and
+ *  'propertyNames'  specifies the labels for the attributes.
+ *
  *  For initial programmatic layer configurations, to leverage lazy loading of
  *  the Capabilities document, it is recommended to configure layers with the
  *  fields listed in :obj:`requiredProperties`.
@@ -201,7 +216,7 @@ gxp.plugins.WMSSource = Ext.extend(gxp.plugins.LayerSource, {
      *  Reload the store when the authorization changes.
      */
     onAuthorizationChange: function() {
-        if (this.store && this.store.url.charAt(0) === "/") {
+        if (this.store && this.url.charAt(0) === "/") {
             this.store.reload();
         }
     },
@@ -409,7 +424,7 @@ gxp.plugins.WMSSource = Ext.extend(gxp.plugins.LayerSource, {
         config.srs = {};
         config.srs[srs] = true;
         
-        var bbox = config.bbox || this.target.map.maxExtent;
+        var bbox = config.bbox || this.target.map.maxExtent || OpenLayers.Projection.defaults[srs].maxExtent;
         config.bbox = {};
         config.bbox[srs] = {bbox: bbox};
         
@@ -453,7 +468,7 @@ gxp.plugins.WMSSource = Ext.extend(gxp.plugins.LayerSource, {
             original = this.store.getAt(index);
         } else if (Ext.isObject(config.capability)) {
             original = this.store.reader.readRecords({capability: {
-                request: {getmap: {href: this.url}},
+                request: {getmap: {href: this.trimUrl(this.url, this.baseParams)}},
                 layers: [config.capability]}
             }).records[0];
         } else if (this.layerConfigComplete(config)) {
@@ -531,6 +546,7 @@ gxp.plugins.WMSSource = Ext.extend(gxp.plugins.LayerSource, {
                 title: layer.name,
                 group: config.group,
                 infoFormat: config.infoFormat,
+                getFeatureInfo:  config.getFeatureInfo,
                 source: config.source,
                 properties: "gxp_wmslayerpanel",
                 fixed: config.fixed,
@@ -547,7 +563,8 @@ gxp.plugins.WMSSource = Ext.extend(gxp.plugins.LayerSource, {
                 {name: "fixed", type: "boolean"},
                 {name: "selected", type: "boolean"},
                 {name: "restUrl", type: "string"},
-                {name: "infoFormat", type: "string"}
+                {name: "infoFormat", type: "string"},
+                {name: "getFeatureInfo"}
             ];
             original.fields.each(function(field) {
                 fields.push(field);
@@ -558,7 +575,7 @@ gxp.plugins.WMSSource = Ext.extend(gxp.plugins.LayerSource, {
             record.json = config;
 
         } else {
-            if (window.console && this.store.getCount() > 0) {
+            if (window.console && this.store.getCount() > 0 && config.name !== undefined) {
                 console.warn("Could not create layer record for layer '" + config.name + "'. Check if the layer is found in the WMS GetCapabilities response.");
             }
         }
@@ -845,6 +862,7 @@ gxp.plugins.WMSSource = Ext.extend(gxp.plugins.LayerSource, {
         return Ext.apply(config, {
             format: params.FORMAT,
             styles: params.STYLES,
+            tiled: !options.singleTile,
             transparent: params.TRANSPARENT,
             cql_filter: params.CQL_FILTER,
             minscale: options.minScale,

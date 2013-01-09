@@ -52,7 +52,12 @@ Ext.override(Ext.Tip, {
         if(!this.rendered){
             this.render(Ext.getBody());
         }
-        this.showAt(this.el.getAlignToXY(el, pos || this.defaultAlign, [offsetX, offsetY]));
+        var position = this.el.getAlignToXY(el, pos || this.defaultAlign, [offsetX, offsetY]);
+        if (!this.isVisible()) {
+            this.showAt(position);
+        } else {
+            this.setPagePosition(position[0], position[1]);
+        }
     }   
 });
 
@@ -68,6 +73,14 @@ GeoExt.FeatureTip = Ext.extend(Ext.Tip, {
      *  ``OpenLayers.Feature.Vector``
      */
     location: null,
+
+    /** api: config[shouldBeVisible]
+     *  ``Function``
+     *  Optional function to run to determine if the FeatureTip
+     *  should be visible, this can e.g. be used to add another
+     *  dimension such as time.
+     */
+    shouldBeVisible: null,
 
     /** private: method[initComponent]
      *  Initializes the feature tip.
@@ -86,6 +99,10 @@ GeoExt.FeatureTip = Ext.extend(Ext.Tip, {
      *  Cleanup events before destroying the feature tip.
      */
     beforeDestroy: function() {
+        for (var key in this.youtubePlayers) {
+            this.youtubePlayers[key].destroy();
+            delete this.youtubePlayers[key]; 
+        }
         this.map.events.un({
             "move" : this.show,
             scope : this
@@ -116,8 +133,12 @@ GeoExt.FeatureTip = Ext.extend(Ext.Tip, {
      */
     show: function() {
         var position = this.getPosition();
-        if (position !== null) {
-            this.showAt(position);
+        if (position !== null && (this.shouldBeVisible === null || this.shouldBeVisible.call(this))) {
+            if (!this.isVisible()) {
+                this.showAt(position);
+            } else {
+                this.setPagePosition(position[0], position[1]);
+            }
         } else {
             this.hide();
         }
@@ -157,6 +178,26 @@ window.Timeline && window.SimileAjax && (function() {
  *      A panel for displaying a Similie Timeline.
  */
 gxp.TimelinePanel = Ext.extend(Ext.Panel, {
+
+    youtubePlayers: {},
+
+    /** api: config[showRangeSlider]
+     *  ``Boolean`` Should we show the range slider and its associated plus
+     *  and minus buttons? Defaults to true
+     */
+    showRangeSlider: true,
+
+    /** api: config[initialRangeSliderValue]
+     *  ``Integer`` Initial value to use for the range slider. Default value
+     *  is 25.
+     */
+    initialRangeSliderValue: 25,
+
+    /** api: config[scrollInterval]
+     *  ``Integer`` The Simile scroll event listener will only be handled
+     *  upon every scrollInterval milliseconds. Defaults to 500.
+     */
+    scrollInterval: 500,
 
     /** api: config[featureEditor]
      *  ``gxp.plugins.FeatureEditor``
@@ -299,55 +340,58 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
 
         this.eventSource = new Timeline.DefaultEventSource(0);
 
-        this.items = [{
-            region: "west",
-            xtype: "container",
-            layout: "vbox",
-            margins: "10 5",
-            width: 20,
-            items: [{
-                xtype: "panel",
-                margins: "3 1",
-                cls: "x-tool x-tool-minus",
-                listeners: {
-                    afterrender: function(c){ 
-                        c.getEl().on('click', function() {
-                            var value = this.rangeSlider.getValue();
-                            this.rangeSlider.setValue(0, value+10, true, true);
-                        }, this);
+        this.items = [];
+        if (this.showRangeSlider) {
+            this.items.push({
+                region: "west",
+                xtype: "container",
+                layout: "vbox",
+                margins: "10 5",
+                width: 20,
+                items: [{
+                    xtype: "panel",
+                    margins: "3 1",
+                    cls: "x-tool x-tool-minus",
+                    listeners: {
+                        afterrender: function(c){ 
+                            c.getEl().on('click', function() {
+                                var value = this.rangeSlider.getValue();
+                                this.rangeSlider.setValue(0, value+10, true, true);
+                            }, this);
+                        },
+                        scope: this
+                    }
+                }, {
+                    xtype: "slider",
+                    ref: "../rangeSlider",
+                    vertical: true,
+                    flex: 1,
+                    value: this.initialRangeSliderValue,
+                    minValue: 1,
+                    maxValue: 100,
+                    listeners: {
+                        "change": this.onChange,
+                        "changecomplete": this.onChangeComplete,
+                        scope: this
                     },
-                    scope: this
-                }
-           }, {
-                xtype: "slider",
-                ref: "../rangeSlider",
-                vertical: true,
-                flex: 1,
-                value: 25,
-                minValue: 1,
-                maxValue: 100,
-                listeners: {
-                    "change": this.onChange,
-                    "changecomplete": this.onChangeComplete,
-                    scope: this
-                },
-                plugins: [new gxp.slider.RangeSliderTip()]
-            }, {
-                xtype: "panel",
-                margins: "3 1",
-                cls: "x-tool x-tool-plus",
-                listeners: {
-                    afterrender: function(c){ 
-                        c.getEl().on('click', function() {
-                            var value = this.rangeSlider.getValue();
-                            this.rangeSlider.setValue(0, value-10, true, true);
-                        }, this);
-                    },
-                    scope: this
-                }
-            }]
-        }, this.timelineContainer
-        ];
+                    plugins: [new gxp.slider.RangeSliderTip()]
+                }, {
+                    xtype: "panel",
+                    margins: "3 1",
+                    cls: "x-tool x-tool-plus",
+                    listeners: {
+                        afterrender: function(c){ 
+                            c.getEl().on('click', function() {
+                                var value = this.rangeSlider.getValue();
+                                this.rangeSlider.setValue(0, value-10, true, true);
+                            }, this);
+                        },
+                        scope: this
+                    }
+                }]
+            });
+        } 
+        this.items.push(this.timelineContainer);
 
         // we are binding with viewer to get updates on new layers        
         if (this.initialConfig.viewer) {
@@ -457,6 +501,13 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
         Ext.apply(this.layerLookup[keyToMatch], {
             visible: checked
         });
+        // set visibility on the OL layer as well
+        // this was needed to actually get features to be retrieved by the 
+        // BBOX strategy, but leads to the points being visible in the map
+        // as a side effect, so we need to work with an invisible style.
+        if (this.layerLookup[keyToMatch].layer) {
+            this.layerLookup[keyToMatch].layer.setVisibility(checked);
+        }
         var filterMatcher = function(evt) {
             var key = evt.getProperty('key');
             if (key === keyToMatch) {
@@ -672,7 +723,7 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
         if (action !== Ext.data.Api.actions.destroy) {
             this.addFeatures(key, features);
         }
-        this.showAnnotations(this.playbackTool.playbackToolbar.control.currentTime);
+        this.showAnnotations();
     },
 
     /**
@@ -788,7 +839,7 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
         bandInfos[1].syncWith = 0;
         bandInfos[1].highlight = true;
 
-       bandInfos[0].decorators = [
+        bandInfos[0].decorators = [
             new Timeline.PointHighlightDecorator({
                 date: d,
                 theme: theme
@@ -802,7 +853,7 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
         // since the bands are linked we need to listen to one band only
         this._silent = true;
         this.timeline.getBand(0).addOnScrollListener(
-            this.setPlaybackCenter.createDelegate(this)
+            gxp.util.throttle(this.setPlaybackCenter.createDelegate(this), this.scrollInterval)
         );
         
     },
@@ -817,10 +868,10 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
         if (this._silent !== true && this.playbackTool && this.playbackTool.playbackToolbar.playing !== true) {
             this._ignoreTimeChange = true;
             this.playbackTool.setTime(time);
-            this.timeline.getBand(0)._decorators[0]._date = time;
+            this.timeline.getBand(0)._decorators[0]._date = this.playbackTool.playbackToolbar.control.currentTime;
             this.timeline.getBand(0)._decorators[0].paint();
             delete this._ignoreTimeChange;
-            this.showAnnotations(time);
+            this.showAnnotations();
         }
     },
     
@@ -1151,8 +1202,34 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
      *  Update the slider tip for the range slider.
      */
     updateRangeSlider: function(range) {
-        this.rangeSlider.startDate = range[0].dateFormat('Y-m-d');
-        this.rangeSlider.endDate = range[1].dateFormat('Y-m-d');
+        if (this.showRangeSlider) {
+            this.rangeSlider.startDate = range[0].dateFormat('Y-m-d');
+            this.rangeSlider.endDate = range[1].dateFormat('Y-m-d');
+        }
+    },
+
+    buildHTML: function(record) {
+        var content = record.get('content');
+        var start = content.indexOf('[youtube=');
+        if (start !== -1) {
+            var header = content.substr(0, start);
+            var end = content.indexOf(']', start);
+            var footer  = content.substr(end+1);
+            var url = content.substr(start+9, end-9);
+            var params = OpenLayers.Util.getParameters(url);
+            var width = params.w || 250;
+            var height = params.h || 250;
+            url = 'http://www.youtube.com/embed/' + params.v;
+            var fid = record.getFeature().fid;
+            var id = 'player_' + fid;
+            return header + '<br/>' + '<iframe id="' + id + 
+                '" type="text/html" width="' + width + '" height="' + 
+                height + '" ' + 'src="' + url + '?enablejsapi=1&origin=' + 
+                window.location.origin + '" frameborder="0"></iframe>' + 
+                '<br/>' + footer;
+        } else {
+            return content;
+        }
     },
 
     /** private: method[displayTooltip]
@@ -1166,28 +1243,77 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
             this.tooltips = {};
         }
         var fid = record.getFeature().fid;
+        var listeners = {
+            'show': function(cmp) {
+                if (this.youtubePlayers[fid]._ready && this.playbackTool.playbackToolbar.playing) {
+                    this.youtubePlayers[fid].playVideo();
+                }
+            },
+            'afterrender': function() {
+                if (!this.youtubePlayers[fid]) {
+                    var id = 'player_' + fid;
+                    var me = this;
+                    this.youtubePlayers[fid] = new YT.Player(id, {
+                        events: {
+                            'onReady': function(evt) {
+                                evt.target._ready = true;
+                                if (me.playbackTool.playbackToolbar.playing) {
+                                    evt.target.playVideo();
+                                }
+                            },
+                            'onStateChange': function(evt) {
+                                if (evt.data === YT.PlayerState.PLAYING) {
+                                    if (me.playbackTool.playbackToolbar.playing) {
+                                        me.playbackTool.playbackToolbar._weStopped = true;
+                                        me.playbackTool.playbackToolbar.control.stop();
+                                    }
+                                } else if (evt.data == YT.PlayerState.ENDED) {
+                                    if (me.playbackTool.playbackToolbar._weStopped) {
+                                        me.playbackTool.playbackToolbar.control.play();
+                                        delete me.playbackTool.playbackToolbar._weStopped;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            },
+            scope: this
+        };
         if (!this.tooltips[fid]) {
             if (!hasGeometry) {
                 this.tooltips[fid] = new Ext.Tip({
                     cls: 'gxp-annotations-tip',
-                    html: '<h4>' + record.get("title") + '</h4>' + record.get('content')
+                    maxWidth: 500,
+                    listeners: listeners,
+                    title: record.get("title"),
+                    html: this.buildHTML(record)
                 });
             } else {
                 this.tooltips[fid] = new GeoExt.FeatureTip({
                     map: this.viewer.mapPanel.map,
                     location: record.getFeature(),
+                    shouldBeVisible: function() {
+                        return (this._inTimeRange === true);
+                    },
                     cls: 'gxp-annotations-tip',
-                    html: '<h4>' + record.get("title") + '</h4>' + record.get('content')
+                    maxWidth: 500,
+                    title: record.get("title"),
+                    listeners: listeners,
+                    html: this.buildHTML(record)
                 });
             }
         }
         var tooltip = this.tooltips[fid];
+        tooltip._inTimeRange = true;
         if (!hasGeometry) {
             // http://www.sencha.com/forum/showthread.php?101593-OPEN-1054-Tooltip-anchoring-problem
             tooltip.showBy(this.viewer.mapPanel.body, record.get("appearance"), [10, 10]);
             tooltip.showBy(this.viewer.mapPanel.body, record.get("appearance"), [10, 10]);
         } else {
-            tooltip.show();
+            if (!tooltip.isVisible()) {
+                tooltip.show();
+            }
         }
     },
 
@@ -1199,16 +1325,17 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
     hideTooltip: function(record) {
         var fid = record.getFeature().fid;
         if (this.tooltips && this.tooltips[fid]) {
+            this.tooltips[fid]._inTimeRange = false;
             this.tooltips[fid].hide();
         }
     },
 
     /** private: method[showAnnotations]
-     *  :arg time: ``Date``
      *
      *  Show annotations in the map.
      */
-    showAnnotations: function(time) {
+    showAnnotations: function() {
+        var time = this.playbackTool.playbackToolbar.control.currentTime;
         if (!this.annotationsLayer) {
             this.annotationsLayer = new OpenLayers.Layer.Vector(null, {
                 displayInLayerSwitcher: false,
@@ -1243,8 +1370,8 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
                             this.hideTooltip(record);
                         }
                     } else {
-                        var diff = Math.abs(Math.abs(startTime)-Math.abs(compare));
-                        var percentage = diff/Math.abs(startTime)*100;
+                        var diff = (startTime-compare);
+                        var percentage = Math.abs((diff/startTime)*100);
                         // we need to take a margin for the feature to have a chance to show up
                         if (percentage <= 2.5) {
                             this.displayTooltip(record);
@@ -1302,7 +1429,7 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
                 }
             }
         }
-        this.showAnnotations(time);
+        this.showAnnotations();
     },
 
     /** private: method[calculateNewRange]
@@ -1316,7 +1443,7 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
     calculateNewRange: function(range, percentage) {
         if (this.playbackTool) {
             if (percentage === undefined) {
-                percentage = this.rangeSlider.getValue();
+                percentage = this.showRangeSlider ? this.rangeSlider.getValue() : this.initialRangeSliderValue;
             }
             var span = range[1] - range[0];
             var center = this.playbackTool.playbackToolbar.control.currentTime;
@@ -1500,6 +1627,11 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
             filter: filter,
             protocol: protocol,
             displayInLayerSwitcher: false,
+            style: {
+                pointRadius: 0,
+                strokeWidth: 0,
+                fillOpacity: 1
+            },
             visibility: false
         });
         layer.events.on({
@@ -1764,6 +1896,16 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
      *  Add some features to the timeline.
      */    
     addFeatures: function(key, features) {
+        var hasFeature = function(fid) {
+            var iterator = this.eventSource.getAllEventIterator();
+            while (iterator.hasNext()) {
+                var evt = iterator.next();
+                if (evt.getProperty('key') === key && evt.getProperty('fid') === fid) {
+                    return true;
+                }
+            }
+            return false;
+        };
         var isDuration = false;
         var titleAttr = this.layerLookup[key].titleAttr;
         var timeAttr = this.layerLookup[key].timeAttr;
@@ -1775,56 +1917,59 @@ gxp.TimelinePanel = Ext.extend(Ext.Panel, {
         var num = features.length;
         var events = [];
         var attributes, str;
-        for (var i=0; i<num; ++i) { 
-            attributes = features[i].attributes;
-            if (isDuration === false) {
-                events.push({
-                    start: OpenLayers.Date.parse(attributes[timeAttr]),
-                    title: attributes[titleAttr],
-                    durationEvent: false,
-                    key: key,
-                    icon: this.layerLookup[key].icon,
-                    fid: features[i].fid
-                });
-            } else if (Ext.isBoolean(attributes[filterAttr]) ? attributes[filterAttr] : (attributes[filterAttr] === "true")) {
-                var start = attributes[timeAttr];
-                var end = attributes[endTimeAttr];
-                // end is optional
-                var durationEvent = (start != end);
-                if (!Ext.isEmpty(start)) {
-                    start = parseFloat(start);
-                    if (Ext.isNumber(start)) {
-                        start = new Date(start*1000);
+        for (var i=0; i<num; ++i) {
+            // prevent duplicates
+            if (hasFeature.call(this, features[i].fid) === false) {
+                attributes = features[i].attributes;
+                if (isDuration === false) {
+                    events.push({
+                        start: OpenLayers.Date.parse(attributes[timeAttr]),
+                        title: attributes[titleAttr],
+                        durationEvent: false,
+                        key: key,
+                        icon: this.layerLookup[key].icon,
+                        fid: features[i].fid
+                    });
+                } else if (Ext.isBoolean(attributes[filterAttr]) ? attributes[filterAttr] : (attributes[filterAttr] === "true")) {
+                    var start = attributes[timeAttr];
+                    var end = attributes[endTimeAttr];
+                    // end is optional
+                    var durationEvent = (start != end);
+                    if (!Ext.isEmpty(start)) {
+                        start = parseFloat(start);
+                        if (Ext.isNumber(start)) {
+                            start = new Date(start*1000);
+                        } else {
+                            start = OpenLayers.Date.parse(start);
+                        }
+                    }
+                    if (!Ext.isEmpty(end)) {
+                        end = parseFloat(end);
+                        if (Ext.isNumber(end)) {
+                            end = new Date(end*1000);
+                        } else {
+                            end = OpenLayers.Date.parse(end);
+                        }
+                    }
+                    if (durationEvent === false) {
+                        end = undefined;
                     } else {
-                        start = OpenLayers.Date.parse(start);
+                        if (end == "" || end == null) {
+                            // Simile does not deal with unlimited ranges, so let's
+                            // take the range from the playback control
+                            end = this.playbackTool.playbackToolbar.control.range[1];
+                        }
                     }
+                    events.push({
+                        start: start,
+                        end: end,
+                        icon: this.layerLookup[key].icon,
+                        title: attributes[titleAttr],
+                        durationEvent: durationEvent,
+                        key: key,
+                        fid: features[i].fid
+                    });
                 }
-                if (!Ext.isEmpty(end)) {
-                    end = parseFloat(end);
-                    if (Ext.isNumber(end)) {
-                        end = new Date(end*1000);
-                    } else {
-                        end = OpenLayers.Date.parse(end);
-                    }
-                }
-                if (durationEvent === false) {
-                    end = undefined;
-                } else {
-                    if (end == "" || end == null) {
-                        // Simile does not deal with unlimited ranges, so let's
-                        // take the range from the playback control
-                        end = this.playbackTool.playbackToolbar.control.range[1];
-                    }
-                }
-                events.push({
-                    start: start,
-                    end: end,
-                    icon: this.layerLookup[key].icon,
-                    title: attributes[titleAttr],
-                    durationEvent: durationEvent,
-                    key: key,
-                    fid: features[i].fid
-                });
             }
         }       
         var feed = {

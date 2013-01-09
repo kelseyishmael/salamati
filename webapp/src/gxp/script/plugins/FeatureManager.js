@@ -54,8 +54,8 @@ gxp.plugins.FeatureManager = Ext.extend(gxp.plugins.Tool, {
 
     /** api: config[pagingType]
      * ``Integer`` Paging type to use, one of: 
-     * gxp.plugins.FeatureManager.QUADTREE_PAGING or
-     * gxp.plugins.FeatureManager.WFS_PAGING
+     * gxp.plugins.FeatureManager.QUADTREE_PAGING (0) or
+     * gxp.plugins.FeatureManager.WFS_PAGING (1)
      */
     pagingType: null,
     
@@ -143,6 +143,12 @@ gxp.plugins.FeatureManager = Ext.extend(gxp.plugins.Tool, {
      *  "invisible".
      */
     toolsShowingLayer: null,
+    
+    /** api: config[selectStyle]
+     *  ``Object`` Style properties that override the default style for
+     *  selected features.
+     */
+    selectStyle: null,
     
     /** private: property[style]
      *  ``Object`` with an "all" and a "selected" property, each holding an
@@ -379,7 +385,7 @@ gxp.plugins.FeatureManager = Ext.extend(gxp.plugins.Tool, {
             displayInLayerSwitcher: false,
             visibility: false,
             styleMap: new OpenLayers.StyleMap({
-                "select": OpenLayers.Util.extend({display: ""},
+                "select": Ext.applyIf(Ext.apply({display: ""}, this.selectStyle),
                     OpenLayers.Feature.Vector.style["select"]),
                 "vertex": this.style["all"]
             }, {extendDefault: false})    
@@ -762,13 +768,7 @@ gxp.plugins.FeatureManager = Ext.extend(gxp.plugins.Tool, {
         var source = record.get("source");
         this.target.mapPanel.layers.each(function(candidate) {
             if (candidate.get("source") === source && candidate.get("name") === name) {
-                //candidate.getLayer().redraw(true);
-            	/* kzusy - must override caching */
-            	var layer = candidate.getLayer();
-                layer.mergeNewParams({
-					'ver' : Math.random() // override browser caching
-				});
-            	layer.redraw(true);
+                candidate.getLayer().redraw(true);
             }
         });
     },
@@ -782,6 +782,7 @@ gxp.plugins.FeatureManager = Ext.extend(gxp.plugins.Tool, {
             this.featureStore.unbind();
             // end remove
             this.featureStore.destroy();
+            this.numberOfFeatures = null;
             this.featureStore = null;
             this.geometryType = null;
         }

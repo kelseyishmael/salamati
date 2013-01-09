@@ -1,3 +1,21 @@
+div.commit-msg {
+    font-size: 14px;
+    font-weight: bold;
+}
+span.commit-datetime {
+    color: #888;
+}
+li.commit {
+    font-size: 12px;
+    border-bottom: 1px solid #E2EAEE;
+}
+li.commit div {
+    padding: 2px;
+}
+.ext-chrome input[type="checkbox"] {
+    margin-top: 1px;
+}
+
 .gxp-layerproperties-label {
     line-height: 21px;
 }
@@ -263,6 +281,9 @@
 }
 
 /* gxp_zoom */
+.x-btn .gxp-icon-zoom, .x-tree-node .gxp-icon-zoom {
+    background-image: url(img/silk/magnifier.png);
+}
 .x-btn .gxp-icon-zoom-in, .x-tree-node .gxp-icon-zoom-in {
     background-image: url(img/silk/magnifier_zoom_in.png);
 }
