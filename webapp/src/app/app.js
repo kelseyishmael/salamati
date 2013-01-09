@@ -328,7 +328,11 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         if (items) {
             config.portalConfig.items.push(items);
         }
-        config.tools = [{
+        var tools = [];
+        if (config.tools) {
+            tools = tools.concat(config.tools);
+        }
+        tools.push({
             ptype: "gxp_layermanager",
             outputConfig: {
                 id: "tree",
@@ -406,7 +410,8 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             infoActionTip: this.ActionTip_Default,
             //iconCls: "gxp-icon-distance-bearing-schools"
             iconCls: "gxp-icon-getfeatureinfo"
-        }];
+        });
+        config.tools = tools;
         salamati.Viewer.superclass.constructor.apply(this, [config]);
     }
 });
