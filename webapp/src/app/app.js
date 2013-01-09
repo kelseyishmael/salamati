@@ -2,7 +2,7 @@
  * Add all your dependencies here.
  *
  * @require widgets/Viewer.js
- * @require plugins/LayerTree.js
+ * @require plugins/LayerManager.js
  * @require plugins/OLSource.js
  * @require plugins/MapQuestSource.js
  * @require plugins/MapBoxSource.js
@@ -22,6 +22,7 @@
  * @require plugins/FeatureEditor.js
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
+ * @require plugins/VersionedEditor.js
  * @require OpenLayers/Format/WKT.js
  * @require OpenLayers/Control/MousePosition.js
  * @require OpenLayers/Control/ScaleLine.js
@@ -54,6 +55,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info",
+    authorizedRoles: ["ROLE_ADMINISTRATOR"],
 
     constructor: function(config) {
         config = config || {};
@@ -325,7 +327,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             config.portalConfig.items.push(items);
         }
         config.tools = [{
-            ptype: "gxp_layertree",
+            ptype: "gxp_layermanager",
             outputConfig: {
                 id: "tree",
                 border: true,
@@ -367,7 +369,14 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             snappingAgent: "snapping_agent",
             iconClsEdit: "gxp-icon-getfeatureinfo",
             editFeatureActionTip: this.ActionTip_Edit,
-            actionTarget: "toolsPanel"
+            actionTarget: "toolsPanel",
+            outputConfig: {
+                editorPluginConfig: {
+                    ptype: "gxp_versionededitor",
+                    /* assume we will proxy the geogit web api */
+                    url: "/geogit"
+                }
+            }
         },{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
