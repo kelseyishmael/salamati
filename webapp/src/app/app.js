@@ -23,6 +23,7 @@
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
  * @require plugins/VersionedEditor.js
+ * @require plugins/Playback.js
  * @require OpenLayers/Format/WKT.js
  * @require OpenLayers/Control/MousePosition.js
  * @require OpenLayers/Control/ScaleLine.js
@@ -90,8 +91,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 var toolsWindowShow = "true";
                 var searchWindowShow = "true";
 
+                var cookieStart;
                 if (document.cookie.length > 0) {
-                    var cookieStart = document.cookie.indexOf("toolsWindowShow=");
+                    cookieStart = document.cookie.indexOf("toolsWindowShow=");
 
                     if (cookieStart != -1) {
                         cookieStart += "toolsWindowShow".length + 1;
@@ -122,7 +124,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 var toolsWindowX = 60;
                 var toolsWindowY = 60;
                 if (document.cookie.length > 0) {
-                    var cookieStart = document.cookie.indexOf("toolsWindowXY=");
+                    cookieStart = document.cookie.indexOf("toolsWindowXY=");
 
                     if (cookieStart != -1) {
                         cookieStart += "toolsWindowXY".length + 1;
@@ -174,7 +176,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                         values = cookietext.split("|");
                         lat = parseFloat(values[0]);
                         lon = parseFloat(values[1]);
-                        zoom = parseInt(values[2]);
+                        zoom = parseInt(values[2], 10);
 
                         console.log("---- App.onReady mapCenter found lat: ", lat, ", lon: ", lon, ", zoom: ", zoom);
 
@@ -198,10 +200,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 
                     // write cookie
                     document.cookie = cookietext;
-                }
+                };
                 //TODO: implement but we also need to cach the sources as by defaut it only tries to parse out local host geoserver
                 var setMapLayersCookie = function(expiredays) {
-                }
+                };
 
                 // This is what the UI does to add the layer 
 //              function addLayers() {
@@ -334,7 +336,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 tbar: [] // we will add buttons to "tree.bbar" later
             },
             outputTarget: "eastpanel"
-        },{
+        }, {
+            ptype: "gxp_playback",
+            outputTarget: "map.tbar"
+        }, {
             ptype: "gxp_addlayers",
             actionTarget: "tree.tbar"
         }, {
@@ -575,7 +580,7 @@ var nominatimURLField = new Ext.form.TextField({
 			}
 		},
 		'focus' : function(element, event){
-			if(element.getValue() == ""){
+			if(element.getValue() === ""){
 				element.setValue('http://');
 			}
 		}
