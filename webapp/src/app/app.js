@@ -56,10 +56,22 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info",
-    authorizedRoles: ["ROLE_ADMINISTRATOR"],
 
     constructor: function(config) {
         config = config || {};
+
+        // Starting with this.authorizedRoles being undefined, which means no
+        // authentication service is available
+        if (config.authStatus === 401) {
+            // user has not authenticated or is not authorized
+            this.authorizedRoles = [];
+        } else if (config.authStatus !== 404) {
+            // user has authenticated
+            this.authorizedRoles = ["ROLE_ADMINISTRATOR"];
+        }
+        // should not be persisted or accessed again
+        delete config.authStatus;
+
         config.listeners = {
             "ready": function(){
                 //Show the tools window
@@ -266,40 +278,52 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         };
 
         config.defaultSourceType = "gxp_wmscsource";
-        config.sources = Ext.apply(config.sources || {}, {
-            local: {
-                ptype: "gxp_wmscsource",
-                url: "/geoserver/wms",
-                version: "1.1.1"
-            },
-            osm: {
-                ptype: "gxp_osmsource"
-            }
-        });
-        config.map = {
-            id: "mymap", // id needed to reference map in portalConfig above
-            title: this.Map,
-            projection: "EPSG:900913",
-            center: [-10764594.758211, 4523072.3184791],
-            cls: "mymapclass",
-            zoom: 3,
-            maxExtent: [-20037508, -20037508, 20037508, 20037508],
-            restrictedExtent: [-20037508, -20037508, 20037508, 20037508],
-            numZoomLevels: 20,
-            layers: [{
-                source: "osm",
-                name: "mapnik",
-                group: "background"
-            }],
-            items: [{
+        if (!config.sources) {
+            config.sources = Ext.apply(config.sources || {}, {
+                local: {
+                    ptype: "gxp_wmscsource",
+                    url: "/geoserver/wms",
+                    version: "1.1.1"
+                },
+                osm: {
+                    ptype: "gxp_osmsource"
+                }
+            });
+        }
+        if (!config.map) {
+            config.map = {
+                id: "mymap", // id needed to reference map in portalConfig above
+                title: this.Map,
+                projection: "EPSG:900913",
+                center: [-10764594.758211, 4523072.3184791],
+                cls: "mymapclass",
+                zoom: 3,
+                maxExtent: [-20037508, -20037508, 20037508, 20037508],
+                restrictedExtent: [-20037508, -20037508, 20037508, 20037508],
+                numZoomLevels: 20,
+                layers: [{
+                    source: "osm",
+                    name: "mapnik",
+                    group: "background"
+                }],
+                items: [{
+                    xtype: "gx_zoomslider",
+                    vertical: true,
+                    height: 100
+                }],
+                tbar: [{
+                    xtype: 'tbfill'
+                }]
+            };
+        } else {
+            config.map.id = "mymap";
+            config.map.items = config.map.items || [];
+            config.map.items.push({
                 xtype: "gx_zoomslider",
                 vertical: true,
                 height: 100
-            }],
-            tbar: [{
-                xtype: 'tbfill'
-            }]
-        };
+            });
+        }
         var items = config.portalConfig && config.portalConfig.items;
         config.portalConfig = Ext.apply(config.portalConfig || {}, {
             layout: "border",
