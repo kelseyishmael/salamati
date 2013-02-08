@@ -32,6 +32,7 @@
  * @require locale/es.js
  * @require salamati/locale/en.js
  * @require salamati/locale/es.js
+ * @require salamati/plugins/SalamatiTools.js
  */
 
 (function() {
@@ -80,30 +81,14 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 Ext.Ajax.on('requestcomplete', hideSpinner, this);
                 Ext.Ajax.on('requestexception', hideSpinner, this);*/
 
-                win.animateTarget = toolContainer;
-                searchWindow.animateTarget = searchContainer;
-
-                Ext.get("toolcont").addListener('click', function(evtObj, element){
-                    win.show();
-                    toolContainer.hide();
-                });
-
-                Ext.get("searchcont").addListener('click', function(evtObj, element){
-                    searchWindow.show();
-                    searchContainer.hide();
-                });
-
-                var toolconthtml = document.getElementById("toolcont");
-                toolconthtml.innerHTML = '<p class="css-vertical-text">' + this.Title_Tools + '</p>';
-
-                var searchconthtml = document.getElementById("searchcont");
-                searchconthtml.innerHTML = '<p class="css-vertical-text">' + this.Title_Search + '</p>';
+            	win.animateTarget = app.tools.salamati_tools.actions[0].items[0];
+                searchWindow.animateTarget = app.tools.salamati_tools.actions[1].items[0];
 
                 // load toolsWindowShow from cookie if available
                 var toolsWindowShow = "true";
-                var searchWindowShow = "true";
-
                 var cookieStart;
+                var toolsWindowShow2;
+                
                 if (document.cookie.length > 0) {
                     cookieStart = document.cookie.indexOf("toolsWindowShow=");
 
@@ -114,7 +99,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                         if (cookieEnd == -1) {
                             cookieEnd = document.cookie.length;
                         }
-                        var toolsWindowShow2 = document.cookie.substring(cookieStart, cookieEnd);
+                        toolsWindowShow2 = document.cookie.substring(cookieStart, cookieEnd);
 
                         if (toolsWindowShow2) {
                             toolsWindowShow = toolsWindowShow2;
@@ -125,12 +110,39 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 
                 if (toolsWindowShow === "false") {
                     win.hide();
-                    toolContainer.show();
+                    //toolContainer.show();
                 } else {
                     win.show();
                 }
 
-                searchWindow.show();
+                var searchWindowShow = "true";
+                var searchWindow2;
+                
+                if (document.cookie.length > 0) {
+                    cookieStart = document.cookie.indexOf("searchWindowShow=");
+
+                    if (cookieStart != -1) {
+                        cookieStart += "searchWindowShow".length + 1;
+                        cookieEnd = document.cookie.indexOf(";", cookieStart);
+
+                        if (cookieEnd == -1) {
+                            cookieEnd = document.cookie.length;
+                        }
+                        searchWindowShow2 = document.cookie.substring(cookieStart, cookieEnd);
+
+                        if (searchWindowShow2) {
+                            searchWindowShow = searchWindowShow2;
+                        }
+                        console.log("---- App.onReady searchWindowShow found: ", searchWindowShow);
+                    }
+                }
+                
+                if (searchWindowShow === "false"){
+                	searchWindow.hide();
+                	//searchContainer.show();
+                } else {
+                	searchWindow.show();
+                }
 
                 // load toolsWindowXY from cookie if available
                 var toolsWindowX = 60;
@@ -163,6 +175,39 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 
                 win.setPosition(toolsWindowX, toolsWindowY);
 
+             // load toolsWindowXY from cookie if available
+                var searchWindowX = 60;
+                var searchWindowY = 60;
+                var searchWindowXY;
+                
+                if (document.cookie.length > 0) {
+                    cookieStart = document.cookie.indexOf("searchWindowXY=");
+
+                    if (cookieStart != -1) {
+                        cookieStart += "searchWindowXY".length + 1;
+                        cookieEnd = document.cookie.indexOf(";", cookieStart);
+
+                        if (cookieEnd == -1) {
+                            cookieEnd = document.cookie.length;
+                        }
+                        searchWindowXY = document.cookie.substring(cookieStart, cookieEnd);
+
+                        if (typeof searchWindowXY != 'undefined' && searchWindowXY) {
+                            values = searchWindowXY.split("|");
+                            var x = parseFloat(values[0]);
+                            var y = parseFloat(values[1]);
+
+                            if (x && y) {
+                                searchWindowX = x;
+                                searchWindowY = y;
+                            }
+                        }
+                        console.log("---- App.onReady searchWindowXY found: ", searchWindowX, searchWindowY);
+                    }
+                }
+
+                searchWindow.setPosition(searchWindowX, searchWindowY);
+                
                 var map = app.mapPanel.map;
                 map.displayProjection = "EPSG:4326";
                 map.addControl(new OpenLayers.Control.ScaleLine());
@@ -337,7 +382,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 region: "center",
                 border: false,
                 items: ["mymap",
-                    win, toolContainer, searchWindow, searchContainer]
+                    win, searchWindow]
             }, {
                 id: "eastpanel",
                 xtype: "panel",
@@ -367,6 +412,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }, {
             ptype: "gxp_playback",
             outputTarget: "map.tbar"
+        }, {
+        	ptype: "salamati_tools",
+        	outputTarget: "map.tbar",
+        	id: "salamati_tools"
         }, {
             ptype: "gxp_addlayers",
             actionTarget: "tree.tbar"
@@ -400,7 +449,8 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             id: "feature_editor",
             autoLoadFeature: true,
             snappingAgent: "snapping_agent",
-            iconClsEdit: "gxp-icon-getfeatureinfo",
+            iconClsAdd: "salamati-icon-addfeature",
+            iconClsEdit: "salamati-icon-getfeatureinfo",
             editFeatureActionTip: this.ActionTip_Edit,
             actionTarget: "toolsPanel",
             outputConfig: {
@@ -417,7 +467,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             wpsType: "generic",
             infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-generic"
-            iconCls: "gxp-icon-getfeatureinfo"
+            iconCls: "gxp-icon-distance-bearing"
         }, {
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
@@ -425,7 +475,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             wpsType: "medfordhospitals",
             infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-hospitals"
-            iconCls: "gxp-icon-getfeatureinfo"
+            iconCls: "gxp-icon-dbhospitals"
         }, {
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
@@ -433,7 +483,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             wpsType: "medfordschools",
             infoActionTip: this.ActionTip_Default,
             //iconCls: "gxp-icon-distance-bearing-schools"
-            iconCls: "gxp-icon-getfeatureinfo"
+            iconCls: "gxp-icon-dbschools"
         });
         config.tools = tools;
         salamati.Viewer.superclass.constructor.apply(this, [config]);
@@ -498,7 +548,7 @@ var submitSearch = function(params){
 	var urlParams = {
 		format: 'json',
 		q: params,
-		callback: ''
+		callback: 'JSON_CALLBACK'
 	};
 	
 	nominatimUrl = nominatimURLField.getValue();
@@ -510,18 +560,17 @@ var submitSearch = function(params){
 		slash = '/';
 	}
 		
-	var searchUrl = nominatimUrl + slash + 'search?' + Ext.urlEncode(urlParams);
+	var searchUrl = nominatimUrl + slash + 'search.php';
 	
 	var spinnerHTML = '<p id="searchSpinner">Please wait while we search.</p>';
 	
 	var searchPanel = Ext.get("searchPanel");
 	searchPanel.createChild(spinnerHTML);
 	
-	Ext.Ajax.request({
+	$.ajax({
 		url: searchUrl,
-		timeout: 15000,
-		success: function(result, request){
-			var results = Ext.util.JSON.decode(result.responseText);
+		data: urlParams,
+		success: function(results){
 			var oldResults = document.getElementsByClassName('searchResults');
 			
 			if(oldResults.length){
@@ -530,7 +579,7 @@ var submitSearch = function(params){
 			
 			var spinner = document.getElementById("searchSpinner");
 			spinner.parentNode.removeChild(spinner);
-			
+			console.log('results', results);
 			if(results && results.length){
 				var resultsHTML = '<div class="searchResults">';
 				
@@ -554,8 +603,8 @@ var submitSearch = function(params){
 				searchPanel.createChild(resultsHTML);
 			}
 		},
-		failure: function(result, request){
-			console.log("error", result);
+		error: function(error){
+			console.log("error", error);
 			var oldResults = document.getElementsByClassName('searchResults');
 			
 			if(oldResults.length){
@@ -666,7 +715,7 @@ Ext.onReady(function() {
     	],
 		listeners : {
 			"beforehide" : function(element) {
-				toolContainer.show();
+				//toolContainer.show();
 			},
 			"hide" : function(element) {
 				document.cookie = "toolsWindowShow=false";
@@ -705,7 +754,7 @@ Ext.onReady(function() {
 		],
 		listeners : {
 			"beforehide" : function(element) {
-				searchContainer.show();
+				//searchContainer.show();
 			},
 			"hide" : function(element) {
 				document.cookie = "searchWindowShow=false";

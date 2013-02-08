@@ -208,15 +208,44 @@ p.css-vertical-text {
 
 }*/
 
-.x-btn .gxp-icon-addfeature {
-    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png);*/
+.x-btn .salamati-icon-addfeature {
+    background-image: url(img/187-pencil@2x.png);
     height: 60px !important;
     width: 60px !important;
-
 }
 
-.x-btn .gxp-icon-getfeatureinfo {
-    /*background-image: url(http://localhost:9080/src/gxp/theme/img/silk/map_editzusy.png); */
+.x-btn .salamati-icon-getfeatureinfo {
+    background-image: url(img/06-magnify@2x.png);
+    height: 60px !important;
+    width: 60px !important;
+}
+
+.x-btn .gxp-icon-dbhospitals {
+    background-image: url(img/10-medical@2x.png);
+    height: 60px !important;
+    width: 60px !important;
+}
+
+.x-btn .salamati-icon-tools, .x-tree-node .salamati-icon-tools {
+    background-image: url(img/158-wrench-2-16px.png);
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.x-btn .salamati-icon-search, .x-tree-node .salamati-icon-search {
+    background-image: url(img/72-pin-16px.png);
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.x-btn .gxp-icon-dbschools {
+    background-image: url(img/53-house@2x.png);
+    height: 60px !important;
+    width: 60px !important;
+}
+
+.x-btn .gxp-icon-distance-bearing {
+    background-image: url(img/71-compass@2x.png);
     height: 60px !important;
     width: 60px !important;
 }
