@@ -37,23 +37,11 @@ salamati.plugins.Tools = Ext.extend(gxp.plugins.Tool, {
      */
     toolWindowMenuText: "More Tools",
 
-    /** api: config[searchWindowMenuText]
-     *  ``String``
-     *  Text for nominatim search menu item (i18n).
-     */
-    searchWindowMenuText: "Search",
-
     /** api: config[zoomInTooltip]
      *  ``String``
      *  Text for zoom in action tooltip (i18n).
      */
     toolWindowTooltip: "More Tools",
-
-    /** api: config[zoomOutTooltip]
-     *  ``String``
-     *  Text for zoom out action tooltip (i18n).
-     */
-    searchWindowTooltip: "Search",
     
     /** api: config[toggleGroup]
      *  ``String`` Toggle group for this plugin's Zoom action.
@@ -86,18 +74,6 @@ salamati.plugins.Tools = Ext.extend(gxp.plugins.Tool, {
                 	win.show();
                 }else{
                 	win.hide();
-                }
-            },
-            scope: this
-        }, {
-            menuText: this.searchWindowMenuText,
-            iconCls: "salamati-icon-search",
-            tooltip: this.searchWindowTooltip,
-            handler: function() {
-                if(searchWindow.hidden){
-                	searchWindow.show();
-                }else{
-                	searchWindow.hide();
                 }
             },
             scope: this

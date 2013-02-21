@@ -24,6 +24,7 @@
  * @require plugins/SnappingAgent.js
  * @require plugins/VersionedEditor.js
  * @require plugins/Playback.js
+ * @require plugins/Measure.js
  * @require OpenLayers/Format/WKT.js
  * @require OpenLayers/Control/MousePosition.js
  * @require OpenLayers/Control/ScaleLine.js
@@ -57,7 +58,27 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info",
-
+	NominatimStore: new Ext.data.Store({
+		storeId: 'searchStore',
+		reader: new Ext.data.JsonReader({
+			fields: [
+			   {
+				   name: 'display_name',
+				   mapping: 'display_name'
+			   },{
+				   name: 'boundingBox',
+				   mapping: 'boundingbox'
+			   },{
+				   name: 'lon',
+				   mapping: 'lon'
+			   },{
+				   name: 'lat',
+				   mapping: 'lat'
+			   }
+			]
+		})
+	}),
+	
     constructor: function(config) {
         config = config || {};
 
@@ -82,7 +103,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 Ext.Ajax.on('requestexception', hideSpinner, this);*/
 
             	win.animateTarget = app.tools.salamati_tools.actions[0].items[0];
-                searchWindow.animateTarget = app.tools.salamati_tools.actions[1].items[0];
 
                 // load toolsWindowShow from cookie if available
                 var toolsWindowShow = "true";
@@ -115,35 +135,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     win.show();
                 }
 
-                var searchWindowShow = "true";
-                var searchWindow2;
-                
-                if (document.cookie.length > 0) {
-                    cookieStart = document.cookie.indexOf("searchWindowShow=");
-
-                    if (cookieStart != -1) {
-                        cookieStart += "searchWindowShow".length + 1;
-                        cookieEnd = document.cookie.indexOf(";", cookieStart);
-
-                        if (cookieEnd == -1) {
-                            cookieEnd = document.cookie.length;
-                        }
-                        searchWindowShow2 = document.cookie.substring(cookieStart, cookieEnd);
-
-                        if (searchWindowShow2) {
-                            searchWindowShow = searchWindowShow2;
-                        }
-                        console.log("---- App.onReady searchWindowShow found: ", searchWindowShow);
-                    }
-                }
-                
-                if (searchWindowShow === "false"){
-                	searchWindow.hide();
-                	//searchContainer.show();
-                } else {
-                	searchWindow.show();
-                }
-
                 // load toolsWindowXY from cookie if available
                 var toolsWindowX = 60;
                 var toolsWindowY = 60;
@@ -174,39 +165,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 }
 
                 win.setPosition(toolsWindowX, toolsWindowY);
-
-             // load toolsWindowXY from cookie if available
-                var searchWindowX = 60;
-                var searchWindowY = 60;
-                var searchWindowXY;
-                
-                if (document.cookie.length > 0) {
-                    cookieStart = document.cookie.indexOf("searchWindowXY=");
-
-                    if (cookieStart != -1) {
-                        cookieStart += "searchWindowXY".length + 1;
-                        cookieEnd = document.cookie.indexOf(";", cookieStart);
-
-                        if (cookieEnd == -1) {
-                            cookieEnd = document.cookie.length;
-                        }
-                        searchWindowXY = document.cookie.substring(cookieStart, cookieEnd);
-
-                        if (typeof searchWindowXY != 'undefined' && searchWindowXY) {
-                            values = searchWindowXY.split("|");
-                            var x = parseFloat(values[0]);
-                            var y = parseFloat(values[1]);
-
-                            if (x && y) {
-                                searchWindowX = x;
-                                searchWindowY = y;
-                            }
-                        }
-                        console.log("---- App.onReady searchWindowXY found: ", searchWindowX, searchWindowY);
-                    }
-                }
-
-                searchWindow.setPosition(searchWindowX, searchWindowY);
                 
                 var map = app.mapPanel.map;
                 map.displayProjection = "EPSG:4326";
@@ -382,15 +340,57 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 region: "center",
                 border: false,
                 items: ["mymap",
-                    win, searchWindow]
+                    win]
             }, {
-                id: "eastpanel",
-                xtype: "panel",
-                tooltip: 'Layers', //doesn't seem to work
-                collapsible: true,
-                layout: "fit",
-                region: "east",
-                width: 200
+            	id: "eastpanel",
+            	layout: "accordion",
+            	region: "east",
+            	collapsible: true,
+            	width: 200,
+            	items: [{
+            		title: 'Search',
+            		id: "searchtab",
+            		collapsed: true,
+            		items: [{
+            			xtype: "textfield",
+            		    id: "searchField",
+            		    cls: "searchFieldClass",
+            		    emptyText: "Search",
+            		    enableKeyEvents: true,
+            		    listeners: {
+            		   	 'keyup' : function(element, event){
+            		   		 if(event.button == 12){
+            		   			 submitSearch(element.getValue());
+            		   		 }
+            		   	 }
+            		    }
+            		}, {
+            		    xtype: "grid",
+                		store: this.NominatimStore,
+                		cls: "nominatimGridClass",
+                		hideHeaders: true,
+                		border: false,
+                		columns: [{
+                			id: 'place',
+                			//header: 'Address',
+                			width: 200,
+                			//sortable: true,
+                			dataIndex: 'display_name'
+                		}],
+                		listeners: {
+                			'cellclick': function(grid, rowIndex, columnIndex, e){
+                				var record = grid.getStore().getAt(rowIndex);
+                				console.log("data", record.data);
+                				
+                				zoomToPlace(record.data.lon, record.data.lat, record.data.boundingBox[2], 
+                						record.data.boundingBox[0], record.data.boundingBox[3], record.data.boundingBox[1]);
+                			}
+                		}
+            		}]
+            	}, {
+            		title: 'Layers',
+            		id: "layerpanel"
+            	}]
             }],
             bbar: {id: "mybbar"}
         });
@@ -405,10 +405,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             ptype: "gxp_layermanager",
             outputConfig: {
                 id: "tree",
-                border: true,
+                border: false,
                 tbar: [] // we will add buttons to "tree.bbar" later
             },
-            outputTarget: "eastpanel"
+            outputTarget: "layerpanel"
         }, {
             ptype: "gxp_playback",
             outputTarget: "map.tbar"
@@ -425,6 +425,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }, {
             ptype: "app_settings",
             actionTarget: "tree.tbar"
+        }, {
+        	ptype: "gxp_measure",
+        	actionTarget: "map.tbar"
         }, {
             ptype: "gxp_zoomtoextent",
             actionTarget: "mymap.tbar"
@@ -457,7 +460,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 editorPluginConfig: {
                     ptype: "gxp_versionededitor",
                     /* assume we will proxy the geogit web api */
-                    url: "/geogit"
+                    url: "/geoserver/geogit/lmn_demo:TD1repo"
                 }
             }
         },{
@@ -509,16 +512,6 @@ var toolContainer = new Ext.Container({
     cls: "toolContainer"
 });
 
-//the search dock
-var searchContainer = new Ext.Container({
-	xtype: "container",
-	id: "searchcont",
-	hidden: true,
-	cls: "toolContainer searchContainer"
-});
-
-var searchWindow = null;
-
 var win = null;
 
 var showSpinner = function(conn, options){
@@ -551,7 +544,8 @@ var submitSearch = function(params){
 		callback: 'JSON_CALLBACK'
 	};
 	
-	nominatimUrl = nominatimURLField.getValue();
+	//nominatimUrl = nominatimURLField.getValue();
+	nominatimUrl = '';
 	
 	var slash = '';
 	console.log('last char: ' + nominatimUrl.charAt(nominatimUrl.length - 1));
@@ -562,25 +556,26 @@ var submitSearch = function(params){
 		
 	var searchUrl = nominatimUrl + slash + 'search.php';
 	
-	var spinnerHTML = '<p id="searchSpinner">Please wait while we search.</p>';
+	/*var spinnerHTML = '<p id="searchSpinner">Please wait while we search.</p>';
 	
 	var searchPanel = Ext.get("searchPanel");
-	searchPanel.createChild(spinnerHTML);
+	searchPanel.createChild(spinnerHTML);*/
 	
 	$.ajax({
 		url: searchUrl,
 		data: urlParams,
 		success: function(results){
-			var oldResults = document.getElementsByClassName('searchResults');
+			/*var oldResults = document.getElementsByClassName('searchResults');
 			
 			if(oldResults.length){
 				oldResults[0].parentNode.removeChild(oldResults[0]);
 			}
 			
 			var spinner = document.getElementById("searchSpinner");
-			spinner.parentNode.removeChild(spinner);
+			spinner.parentNode.removeChild(spinner);*/
 			console.log('results', results);
-			if(results && results.length){
+			app.NominatimStore.loadData(results, false);
+			/*if(results && results.length){
 				var resultsHTML = '<div class="searchResults">';
 				
 				for(var i = 0; i < results.length; i++){
@@ -601,11 +596,11 @@ var submitSearch = function(params){
 				
 				var searchPanel = Ext.get("searchPanel");
 				searchPanel.createChild(resultsHTML);
-			}
+			}*/
 		},
 		error: function(error){
 			console.log("error", error);
-			var oldResults = document.getElementsByClassName('searchResults');
+			/*var oldResults = document.getElementsByClassName('searchResults');
 			
 			if(oldResults.length){
 				oldResults[0].parentNode.removeChild(oldResults[0]);
@@ -621,7 +616,7 @@ var submitSearch = function(params){
 							'</div>';
 			
 			var searchPanel = Ext.get("searchPanel");
-			searchPanel.createChild(errorHTML);
+			searchPanel.createChild(errorHTML);*/
 		}
 	});
 };
@@ -631,7 +626,7 @@ var searchField = new Ext.form.TextField({
     id: "searchField",
  //   cls: "searchFieldClass",
     height: "40",
-    width: "400",
+    width: "93%",
     emptyText: "Search",
     enableKeyEvents: true,
     listeners: {
@@ -643,12 +638,12 @@ var searchField = new Ext.form.TextField({
     }
 });
 
-var nominatimURLField = new Ext.form.TextField({
+/*var nominatimURLField = new Ext.form.TextField({
 	xtype: "textfield",
 	id: "nominatimURL",
 	//cls: "nominatimURLClass",
 	height: "40",
-	width: "400",
+	width: "90%",
 	emptyText: "Nominatim Url",
 	enableKeyEvents: true,
 	listeners: {
@@ -663,7 +658,7 @@ var nominatimURLField = new Ext.form.TextField({
 			}
 		}
 	}
-});
+});*/
 
 Ext.onReady(function() {
 	
@@ -727,45 +722,5 @@ Ext.onReady(function() {
 				document.cookie = "toolsWindowXY=" + element.x + "|" + element.y;
 			}
 		}
-	});	
-
-	searchWindow = new Ext.Window({
-		title: salamati.Viewer.prototype.Title_Search,
-		id: "searchWindow",
-		closeAction: "hide",
-		xtype: "window",
-		layout: "fit",
-		autoScroll: true,
-		items: [
-		  {
-			  xtype: "panel",
-			  id: "searchPanel",
-			  cls: "mysearchwindowclass",
-			  layout: "form",
-			  layoutConfig: {
-				  align: 'center',
-				  padding: '5'
-			  },
-			  items: [
-			     nominatimURLField, 
-			     searchField
-			  ]
-		  }
-		],
-		listeners : {
-			"beforehide" : function(element) {
-				//searchContainer.show();
-			},
-			"hide" : function(element) {
-				document.cookie = "searchWindowShow=false";
-			},
-			"show" : function(element) {
-				document.cookie = "searchWindowShow=true";
-			},
-			"move" : function(element) {
-				document.cookie = "searchWindowXY=" + element.x + "|" + element.y;
-			}
-		}
 	});
-
 });
