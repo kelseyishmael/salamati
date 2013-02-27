@@ -27,7 +27,8 @@ body {
 }
 
 .mytoolwindowclass {
-    width: 342px !important;
+   /* width: 342px !important;*/
+   	width: 210px !important;
     height: 78px !important;
 }
 
@@ -70,6 +71,10 @@ body {
 	white-space: normal;
 	height: auto;
 	padding: 10px;
+}
+
+.nominatimGridClass .x-grid3-scroller {
+	overflow: hidden;	
 }
 
 .nominatimGridClass {
@@ -256,7 +261,7 @@ p.css-vertical-text {
     width: 16px !important;
 }
 
-.x-btn .gxp-icon-dbschools {
+.x-btn .gxp-icon-dbhazzards {
     background-image: url(img/53-house@2x.png);
     height: 60px !important;
     width: 60px !important;

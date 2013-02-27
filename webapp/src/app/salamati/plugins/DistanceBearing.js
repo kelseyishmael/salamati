@@ -18,7 +18,7 @@
  * @requires OpenLayers/Request.js
  */
 
-//var addressOfWPS = "http://192.168.10.126:8081/";
+//var baseUrl = "http://192.168.10.126:8081/";
 
 OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {                
     defaultHandlerOptions: {
@@ -94,13 +94,15 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
      */
     infoActionTip: "Distance/Bearing of features from click location",
 
+    baseUrl: "",
+
     // start i18n
     Text_Start: "Start",
     Text_ChooseWPS: "Choose WPS",
     Text_Ok: "OK",
     Text_Cancel: "Cancel",
     Text_Hospitals: "Hospitals",
-    Text_Schools: "Schools",
+    Text_Hazzards: "Hazzards",
     Text_DistanceLines: "Distance Lines",
     Text_Distance: "Distance",
     Text_Bearing: "Bearing",
@@ -229,10 +231,10 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
 		
         var prefix;
         
-        if(type == "medfordhospitals")
+        if(type == "pointhospitals")
                 prefix = this.Text_Hospitals;
         else
-                prefix = this.Text_Schools;
+                prefix = this.Text_Hazzards;
                 
 		//Create a new layer to store all the features.
 		var LineLayer = new OpenLayers.Layer.Vector(prefix + " " + this.Text_DistanceLines, {
@@ -448,10 +450,31 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
     displayPopup: function(evt) {
         var wps;
         var combo;
+        var mapLayers;
         
         if(this.wpsType == "generic"){
-            wps = [["medfordschools", "Medford Schools"], 
-            ["medfordhospitals", "Medford Hospitals"]];
+        	
+        	mapLayers = [];
+        	wps = [];
+        	
+        	var activeLayers = app.mapPanel.map.layers;
+        	var j = 0;
+        	for(var i = 0; i < activeLayers.length; i++){
+        		if(activeLayers[i] instanceof OpenLayers.Layer.WMS){
+        			if(activeLayers[i].url.indexOf("geoserver") > -1){
+	        			mapLayers.push({
+	        				url: activeLayers[i].url,
+	        				name: activeLayers[i].name,
+	        				params: activeLayers[i].params
+	        			});
+	        			
+	        			wps.push([j++, activeLayers[i].name]);
+        			}
+        		}
+        	}
+        	
+           // wps = [["pointhazzards", "Point Hazzards"], 
+           // ["pointhospitals", "Point Hospitals"]];
         
             /*queryableLayers.each(function(x){
                 var layer = x.getLayer();
@@ -459,6 +482,7 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
             });*/
             
             // Create the combo box, attached to the states data store
+        	console.log("wps store: ", wps);
             combo = new Ext.form.ComboBox({
                 editable:		false,
                 id:             "wpsCombo",
@@ -470,6 +494,7 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 triggerAction: "all",
                 lastQuery: "" 
             });
+            console.log("combo", combo);
         }
         
         //Project the mouse XY coordinates to WGS84 LatLon
@@ -495,7 +520,6 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 /**
                  * Post the request and expect success.
                  */
-                
                 var jsonFormat = new OpenLayers.Format.JSON();
                        
                 var lon = Ext.getCmp("lon").getValue();
@@ -510,23 +534,37 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                        return;
                 
                 radius = radius * 1000;
-                
                 var selectedWPS;
                 
                 if(plugin.wpsType == "generic"){
                     selectedWPS = combo.getValue();
-                
-                    if(selectedWPS == "")
+                    if(selectedWPS === ""){
                         return;
-                }else
+                    }
+                }else{
                     selectedWPS = plugin.wpsType;
-                    
-                var requestData = jsonFormat.write({ x: lon, y: lat, radius: radius });
+                }
+                
+                if(mapLayers[selectedWPS].params["SRS"] != "EPSG:4326"){
+                	alert("\tThe layer must be projected in WGS84.\n\tPlease choose another layer");
+                	return;
+                }
+                
+                var requestData = jsonFormat.write({ 
+                	x: lon,
+                	y: lat,
+                	radius: radius,
+                	typeName: mapLayers[selectedWPS].params["LAYERS"],
+                	url: mapLayers[selectedWPS].url
+                });
+                
+                console.log(requestData);
+                
                 var responseDataJson = null;
                 
               //  Ext.getCmp("mymap").addClass("loading");
                 OpenLayers.Request.POST({
-                    url: addressOfWPS + selectedWPS,
+                    url: plugin.baseUrl + "distanceandbearing",
                     proxy: null,
                     data: requestData,
                     headers: {
@@ -540,7 +578,7 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                         //----------------------------
                         //Once you have your json, pass it to addJsonFeatures
                         var lonlat = new OpenLayers.LonLat(lon, lat);
-                        plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson, selectedWPS); //responseData);
+                        plugin.addJsonFeatures(plugin.target.mapPanel.map, lonlat, responseDataJson, mapLayers[selectedWPS].name); //responseData);
                        // Ext.getCmp("mymap").removeClass("loading");                
                     }
                 });
@@ -564,8 +602,8 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                 title:			this.Text_Distance + "/" + this.Text_Bearing,
                 closable:		true,
                 closeAction:	"destroy",
-                width:			300,
-                height:			180,
+                width:			"365px",
+                height:			"251px",
                 layout:			"form",
                 bodyStyle:		"padding: 5px;",
                 items: [
@@ -591,10 +629,10 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
         }else{
             var wpsName;
             
-            if(this.wpsType == "medfordhospitals")
-                wpsName = "Medford " + this.Text_Hospitals;
+            if(this.wpsType == "pointhospitals")
+                wpsName = "Point " + this.Text_Hospitals;
             else
-                wpsName = "Medford " + this.Text_Schools;
+                wpsName = "Point " + this.Text_Hazzards;
                 
             this.win = new Ext.Window({
                 title:			this.Text_Distance + "/" + this.Text_Bearing + " of " + wpsName,

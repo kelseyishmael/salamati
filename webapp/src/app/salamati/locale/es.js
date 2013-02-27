@@ -11,7 +11,7 @@ GeoExt.Lang.add("es", {
         Text_Ok: "Aceptar",  //meh, can't be right
         Text_Cancel: "Cancelar",
         Text_Hospitals: "Hospitales",
-        Text_Schools: "Escuelas",
+        Text_Hazzards: "Riesgos",
         Text_DistanceLines: "L�neas Distancia",
         Text_Distance: "Distancia",
         Text_Bearing: "Cojinete",

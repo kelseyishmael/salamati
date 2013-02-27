@@ -403,6 +403,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }
         tools.push({
             ptype: "gxp_layermanager",
+            id: "layermanager",
             outputConfig: {
                 id: "tree",
                 border: false,
@@ -467,15 +468,17 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
+            baseUrl: "http://192.168.10.125/",
             wpsType: "generic",
             infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-generic"
             iconCls: "gxp-icon-distance-bearing"
-        }, {
+        }/*, {
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
-            wpsType: "medfordhospitals",
+            wpsType: "pointhospitals",
+            baseUrl: "http://192.168.10.125/",
             infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-hospitals"
             iconCls: "gxp-icon-dbhospitals"
@@ -483,18 +486,19 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
-            wpsType: "medfordschools",
+            wpsType: "pointhazzards",
+            baseUrl: "http://192.168.10.125/",
             infoActionTip: this.ActionTip_Default,
             //iconCls: "gxp-icon-distance-bearing-schools"
-            iconCls: "gxp-icon-dbschools"
-        });
+            iconCls: "gxp-icon-dbhazzards"
+        }*/);
         config.tools = tools;
         salamati.Viewer.superclass.constructor.apply(this, [config]);
     }
 });
 
 var app;
-var addressOfWPS = "http://geoserver.rogue.lmnsolutions.com/";
+//var baseUrl = "http://192.168.10.125/";
 
 var WGS84;
 var GoogleMercator;
