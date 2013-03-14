@@ -71,63 +71,145 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         }, editorConfig);
         this.attributeEditor = Ext.ComponentMgr.create(config);
         this.add(this.attributeEditor);
-        var dataView = this.createDataView();
-        this.add({
-            xtype: 'panel',
-            border: false,
-            plain: true,
-            layout: 'fit', 
-            autoScroll: true, 
-            items: [dataView], 
-            title: this.historyTitle
-        });
+        
+        var plugin = this;
+        var addPanel = function(dataView){
+        	plugin.add({
+                xtype: 'panel',
+                border: false,
+                plain: true,
+                layout: 'fit', 
+                autoScroll: true, 
+                items: [dataView], 
+                title: plugin.historyTitle
+            });
+        };
+        
+        this.createDataView(addPanel);
     },
+    
+    isGeoGitLayer: function(url, featureType, isGeoGit, isNotGeoGit, error){
+		OpenLayers.Request.GET({
+			url: url + 'rest/layers/' + featureType + '.json',
+			success: function(results){
+				var jsonFormatter = new OpenLayers.Format.JSON();
+				var layerinfo = jsonFormatter.read(results.responseText);
+				var resourceUrl = layerinfo.layer.resource.href;
+				
+				var colonIndex = featureType.indexOf(':');
+				var workspace = featureType.substring(0, colonIndex);
+				
+				var datastoreStartIndex = resourceUrl.indexOf(workspace + '/datastores');
+                datastoreStartIndex = datastoreStartIndex + workspace.length + 12;
+                
+                var datastoreEnd = resourceUrl.substr(datastoreStartIndex);
+                var datastoreEndIndex = datastoreEnd.indexOf('/');
+				var datastore = datastoreEnd.substring(0, datastoreEndIndex);
+				
+				OpenLayers.Request.GET({
+					url: url + 'rest/workspaces/' + workspace + '/datastores/' + datastore + '.json',
+					success: function(results){
+						var storeInfo = jsonFormatter.read(results.responseText);
+						
+						if(storeInfo){
+							if(storeInfo.dataStore && storeInfo.dataStore.type){
+								if(isGeoGit && (storeInfo.dataStore.type === "GeoGIT")){
+									isGeoGit(workspace, storeInfo.dataStore);
+								}else{
+									if(isNotGeoGit){
+										isNotGeoGit(storeInfo.dataStore);
+									}
+								}
+							}else{
+								error();
+							}
+						}else{
+							error();
+						}
+					},
+					failure: error
+				});
+			},
+			failure: error
+		});
+	},
 
     /** private: method[createDataView]
      */
-    createDataView: function() {
+    createDataView: function(addPanel) {
         var typeName = this.schema.reader.raw.featureTypes[0].typeName;
-        var path = typeName.split(":").pop() + "/" + this.feature.fid;
-        if (this.url.charAt(this.url.length-1) !== '/') {
-            this.url = this.url + "/";
-        }
-        var command = 'log';
-        var url = this.url + command;
-        url = Ext.urlAppend(url, 'path=' + path + '&output_format=json');
-        var store = new Ext.data.JsonStore({
-            url: url,
-            root: 'response.commit',
-            fields: ['message', 'author', 'email', 'commit', {
-                name: 'date', type: 'date', convert: function(value) {
-                    return new Date(value);
-                }
-            }],
-            autoLoad: true
-        });
-        var me = this;
-        var tpl = new Ext.XTemplate(this.historyTpl, {
-            formatDate: function(value) {
-                var now = new Date(), result = '';
-                if (value > now.add(Date.DAY, -1)) {
-                    var hours = Math.round((now-value)/(1000*60*60));
-                    result += hours + ' ';
-                    result += (result > 1) ? me.hours : me.hour;
-                    result += ' ' + me.ago;
-                    return result;
-                } else if (value > now.add(Date.MONTH, -1)) {
-                    var days = Math.round((now-value)/(1000*60*60*24));
-                    result += days + ' ';
-                    result += (result > 1) ? me.days : me.day;
-                    result += ' ' + me.ago;
-                    return result;
-                }
+        var plugin = this;
+        
+        var isGeoGit = function(workspace, dataStore){
+        	var path = typeName.split(":").pop() + "/" + plugin.feature.fid;
+            if (plugin.url.charAt(plugin.url.length-1) !== '/') {
+                plugin.url = plugin.url + "/";
             }
-        });
-        return new Ext.DataView({
-            store: store,
-            tpl: tpl,
-            autoHeight:true
-        });
+            var command = 'log';
+            var url = plugin.url + 'geogit/' + workspace + ':' + dataStore.name + '/' + command;
+            url = Ext.urlAppend(url, 'path=' + path + '&output_format=json');
+            
+            var store = new Ext.data.Store({
+            	url: url,
+        		reader: new Ext.data.JsonReader({
+        			root: 'response.commit',
+        			fields: [
+        			   {
+        				   name: 'message',
+        				   mapping: 'message'
+        			   },{
+        				   name: 'commit',
+        				   mapping: 'id'
+        			   },{
+        				   name: 'author',
+        				   mapping: 'author.name'
+        			   },{
+        				   name: 'email',
+        				   mapping: 'author.email'
+        			   }, {
+        				   name: 'date',
+        				   mapping: 'author.timestamp'
+        			   }
+        			]
+        		}),
+        		autoLoad: true
+        	});
+            
+            var me = plugin;
+            var tpl = new Ext.XTemplate(plugin.historyTpl, {
+                formatDate: function(value) {
+                    var now = new Date(), result = '';
+                    if (value > now.add(Date.DAY, -1)) {
+                        var hours = Math.round((now-value)/(1000*60*60));
+                        result += hours + ' ';
+                        result += (result > 1) ? me.hours : me.hour;
+                        result += ' ' + me.ago;
+                        return result;
+                    } else if (value > now.add(Date.MONTH, -1)) {
+                        var days = Math.round((now-value)/(1000*60*60*24));
+                        result += days + ' ';
+                        result += (result > 1) ? me.days : me.day;
+                        result += ' ' + me.ago;
+                        return result;
+                    }
+                }
+            });
+            
+            addPanel(new Ext.DataView({
+                store: store,
+                tpl: tpl,
+                autoHeight:true,
+                listeners: {
+                	beforerender: function(dataview){
+                		console.log("dataview", dataview);
+                	//	dataview.store.load();
+                	}
+                }
+            }));
+        };
+        
+        var featureType = this.schema.baseParams['TYPENAME'];
+        this.isGeoGitLayer(this.url, featureType, isGeoGit, null, null);
     },
 
     /** private: method[init]

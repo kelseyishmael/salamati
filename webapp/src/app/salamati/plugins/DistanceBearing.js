@@ -545,10 +545,10 @@ salamati.plugins.DistanceBearing = Ext.extend(gxp.plugins.Tool, {
                     selectedWPS = plugin.wpsType;
                 }
                 
-                if(mapLayers[selectedWPS].params["SRS"] != "EPSG:4326"){
+               /* if(mapLayers[selectedWPS].params["SRS"] != "EPSG:4326"){
                 	alert("\tThe layer must be projected in WGS84.\n\tPlease choose another layer");
                 	return;
-                }
+                }*/
                 
                 var requestData = jsonFormat.write({ 
                 	x: lon,

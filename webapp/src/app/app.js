@@ -46,10 +46,6 @@
     Ext.preg("gx_osmsource", gxp.plugins.OSMSource);
 })();
 
-Ext.lib.Ajax.useDefaultXhrHeader = false;
-
-var nominatimUrl = 'http://192.168.10.168';
-
 Ext.ns("salamati");
 salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Map: "Default Map",
@@ -461,7 +457,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 editorPluginConfig: {
                     ptype: "gxp_versionededitor",
                     /* assume we will proxy the geogit web api */
-                    url: "/geoserver/geogit/lmn_demo:TD1repo"
+                    url: "/geoserver/"
                 }
             }
         },{
@@ -548,7 +544,6 @@ var submitSearch = function(params){
 		callback: 'JSON_CALLBACK'
 	};
 	
-	//nominatimUrl = nominatimURLField.getValue();
 	nominatimUrl = '';
 	
 	var slash = '';
@@ -642,28 +637,6 @@ var searchField = new Ext.form.TextField({
     }
 });
 
-/*var nominatimURLField = new Ext.form.TextField({
-	xtype: "textfield",
-	id: "nominatimURL",
-	//cls: "nominatimURLClass",
-	height: "40",
-	width: "90%",
-	emptyText: "Nominatim Url",
-	enableKeyEvents: true,
-	listeners: {
-		'keyup' : function(element, event){
-			if(event.button == 12){
-				submitSearch(searchField.getValue());
-			}
-		},
-		'focus' : function(element, event){
-			if(element.getValue() === ""){
-				element.setValue('http://');
-			}
-		}
-	}
-});*/
-
 Ext.onReady(function() {
 	
 	WGS84 = new OpenLayers.Projection("EPSG:4326");
@@ -691,8 +664,7 @@ Ext.onReady(function() {
 		}
 	}
 	GeoExt.Lang.set(lang);
-
-
+	
 	win = new Ext.Window({
     	title: salamati.Viewer.prototype.Title_Tools,
     	id: "toolsWindow",
