@@ -18,6 +18,7 @@
  * @require salamati/plugins/DistanceBearing.js
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
+ * @require widgets/EmbedMapDialog.js
  * @require plugins/FeatureManager.js
  * @require plugins/FeatureEditor.js
  * @require plugins/Navigation.js
@@ -25,6 +26,7 @@
  * @require plugins/VersionedEditor.js
  * @require plugins/Playback.js
  * @require plugins/Measure.js
+ * @require plugins/FeedGetFeatureInfo.js
  * @require OpenLayers/Format/WKT.js
  * @require OpenLayers/Control/MousePosition.js
  * @require OpenLayers/Control/ScaleLine.js
@@ -77,7 +79,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 	
     constructor: function(config) {
         config = config || {};
-
         // Starting with this.authorizedRoles being undefined, which means no
         // authentication service is available
         if (config.authStatus === 401) {
@@ -323,8 +324,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 height: 100
             });
         }
-        var items = config.portalConfig && config.portalConfig.items;
-        config.portalConfig = Ext.apply(config.portalConfig || {}, {
+        this.portalConfig = Ext.apply(config.portalConfig || {}, {
             layout: "border",
 
             // by configuring items here, we don't need to configure portalItems
@@ -390,14 +390,18 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             }],
             bbar: {id: "mybbar"}
         });
-        if (items) {
-            config.portalConfig.items.push(items);
+        if (config.portalItems) {
+            this.portalConfig.items = this.portalConfig.items.concat(config.portalItems);
         }
         var tools = [];
         if (config.tools) {
             tools = tools.concat(config.tools);
         }
         tools.push({
+            ptype: 'gn_xhrtrouble'
+        }, {
+            ptype: 'gn_save'
+        }, {
             ptype: "gxp_layermanager",
             id: "layermanager",
             outputConfig: {
@@ -406,6 +410,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 tbar: [] // we will add buttons to "tree.bbar" later
             },
             outputTarget: "layerpanel"
+        }, {
+            ptype: "gn_layerinfo",
+            actionTarget: ["tree.contextMenu"]
         }, {
             ptype: "gxp_playback",
             outputTarget: "map.tbar"
@@ -469,6 +476,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-generic"
             iconCls: "gxp-icon-distance-bearing"
+        }, {
+            actions: ['->']
+        }, {
+            ptype: 'gn_savehyperlink'
         }/*, {
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
@@ -700,3 +711,6 @@ Ext.onReady(function() {
 		}
 	});
 });
+
+// mixin
+Ext.override(salamati.Viewer, GeoNode.ComposerMixin);
