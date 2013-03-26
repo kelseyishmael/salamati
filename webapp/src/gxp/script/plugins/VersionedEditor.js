@@ -138,6 +138,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
      */
     createDataView: function(addPanel) {
         var typeName = this.schema.reader.raw.featureTypes[0].typeName;
+        
+        var geoserverIndex = this.schema.url.indexOf('geoserver');
+        this.url = this.schema.url.substring(0, geoserverIndex + 9) + '/';
+
         var plugin = this;
         
         var isGeoGit = function(workspace, dataStore){

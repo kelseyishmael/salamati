@@ -20,6 +20,7 @@
  * @require widgets/NewSourceDialog.js
  * @require plugins/FeatureManager.js
  * @require plugins/FeatureEditor.js
+ * @require plugins/FeatureGrid.js
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
  * @require plugins/VersionedEditor.js
@@ -34,6 +35,7 @@
  * @require salamati/locale/en.js
  * @require salamati/locale/es.js
  * @require salamati/plugins/SalamatiTools.js
+ * @require plugins/GeoGitHistory.js
  */
 
 (function() {
@@ -92,8 +94,13 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 
         config.listeners = {
             "ready": function(){
-                //Show the tools window
 
+            	// Hide the southPanel - needed it to display at first
+            	// in order to size the columns correctly
+            	var southPanel = Ext.getCmp('southPanel');
+            	southPanel.hide();
+            	app.portal.doLayout();
+            	
                 /*Ext.Ajax.on('beforerequest', showSpinner, this);
                 Ext.Ajax.on('requestcomplete', hideSpinner, this);
                 Ext.Ajax.on('requestexception', hideSpinner, this);*/
@@ -387,6 +394,14 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             		title: 'Layers',
             		id: "layerpanel"
             	}]
+            },{
+            	id: "southPanel",
+            	xtype: "panel",
+            	layout: "fit",
+            	region: "south",
+            	collapsible: true,
+            	border: "false",
+            	height: 200
             }],
             bbar: {id: "mybbar"}
         });
@@ -460,6 +475,11 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     url: "/geoserver/"
                 }
             }
+        },{
+        	ptype: "gxp_geogithistory",
+        	id: "geogithistory",
+        	featureManager: "feature_manager",
+        	outputTarget: "southPanel"
         },{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
