@@ -7,7 +7,7 @@
  */
 
 /**
- * 
+ * @requires plugins/GeoGitUtil.js
  */
 
 /** api: (define)
@@ -43,12 +43,18 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     parentContainer: null,
     
+    featureManager: null,
+    
+    geogitUtil: null,
+    
     /** api: method[addOutput]
      */
     addOutput: function(config) {
     	this.parentContainer = Ext.getCmp(this.outputTarget);
     	
         var featureManager = this.target.tools[this.featureManager];
+        var geogitUtil = this.target.tools[this.geogitUtil];
+        
         var map = this.target.mapPanel.map;
         var url = "http://192.168.10.175/geoserver/geogit/lmn_demo:DemoRepo/log?path=osm_point_hospitals&output_format=JSON";
         this.store = new Ext.data.Store({
@@ -136,57 +142,31 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         		var typeName = schema.reader.raw.featureTypes[0].typeName;
         		var workspace = schema.reader.raw.targetPrefix;
         		
-        		if(layerRecord){
-            		var source = plugin.target.getSource(layerRecord);
-                	
-            		if(source && source.schemaCache){
-            			var schemaCache = source.schemaCache;
-            			var key = workspace + ':' + typeName;
-            			
-            			if(schemaCache[key]){
-            				var geoserverIndex = schema.url.indexOf('geoserver');
-            				var geoserverUrl = schema.url.substring(0, geoserverIndex + 10);
-            				
-            				var updateStore = function(dataStore){
-            					plugin.parentContainer.show();
-            					plugin.parentContainer.expand();
-        						plugin.target.portal.doLayout();
-            					
-        		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/log?path=' + typeName + '&output_format=JSON';
-        		        		plugin.store.url = plugin.url;
-        		        		plugin.store.proxy.conn.url = plugin.url;
-        		        		plugin.store.proxy.url = plugin.url;
-        		        		plugin.store.load();
-            				};
-            				
-            				if(schemaCache[key].isGeogit === undefined){
-            					var isGeoGit = function(workspace, typeName, dataStore){
-            						schemaCache[key].isGeogit = true;
-            						schemaCache[key].geogitStore = dataStore.name;
-            						updateStore(dataStore.name);
-            					};
-            					
-            					var isNotGeoGit = function(){
-            						schemaCache[key].isGeogit = false;
-            						
-            						plugin.parentContainer.hide();
-            						plugin.target.portal.doLayout();
-            					};
-            					
-            					var error = function(){
-            						console.log("error retrieving info");
-            					};
-            					
-            					//check to see if the layer is a geogit layer
-            					plugin.fetchIsGeoGitLayer(geoserverUrl, workspace, typeName, isGeoGit, isNotGeoGit, error);
-            				}else if(schemaCache[key].isGeogit){
-            					updateStore(schemaCache[key].geogitStore);
-            				}else{
-            					plugin.parentContainer.hide();
-        						plugin.target.portal.doLayout();
-            				}
-            			}
-            		}
+        		if(layerRecord && layerRecord.data && layerRecord.data.layer){
+        			var key = workspace + ':' + typeName;
+        			
+    				var geoserverIndex = schema.url.indexOf('geoserver');
+    				var geoserverUrl = schema.url.substring(0, geoserverIndex + 10);
+    				
+    				//isGeogit
+    				var callback = function(dataStore){
+    					if(dataStore !== false){ // isGeoGit
+    						plugin.parentContainer.show();
+        					plugin.parentContainer.expand();
+    						plugin.target.portal.doLayout();
+        					
+    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/log?path=' + typeName + '&output_format=JSON';
+    		        		plugin.store.url = plugin.url;
+    		        		plugin.store.proxy.conn.url = plugin.url;
+    		        		plugin.store.proxy.url = plugin.url;
+    		        		plugin.store.load();
+    					}else{ // isNotGeoGit
+    						plugin.parentContainer.hide();
+    						plugin.target.portal.doLayout();
+    					}
+    				};
+    				
+    				geogitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
             	}
         	}
         };

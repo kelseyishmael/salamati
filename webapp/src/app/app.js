@@ -23,6 +23,7 @@
  * @require plugins/FeatureGrid.js
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
+ * @require plugins/GeoGitUtil.js
  * @require plugins/VersionedEditor.js
  * @require plugins/Playback.js
  * @require plugins/Measure.js
@@ -450,6 +451,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             ptype: "gxp_navigationhistory",
             actionTarget: "mymap.tbar"
         }, {
+        	ptype: "gxp_geogitutil",
+        	id: "geogit_util"
+        }, {
             ptype: "gxp_featuremanager",
             id: "feature_manager",
             paging: false,
@@ -479,6 +483,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         	ptype: "gxp_geogithistory",
         	id: "geogithistory",
         	featureManager: "feature_manager",
+        	geogitUtil: "geogit_util",
         	outputTarget: "southPanel"
         },{
             ptype: "app_distancebearing",
