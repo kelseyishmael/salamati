@@ -51,6 +51,12 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     attributeEditor: null,
     
     historyTab: null,
+    
+    geogitUtil: null,
+    
+    featureManager: null,
+    
+    target: null,
 
     /** api: ptype = gxp_versionededitor */
     ptype: "gxp_versionededitor",
@@ -90,52 +96,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         
         this.createDataView(addPanel);
     },
-    
-    isGeoGitLayer: function(url, featureType, isGeoGit, isNotGeoGit, error){
-		OpenLayers.Request.GET({
-			url: url + 'rest/layers/' + featureType + '.json',
-			success: function(results){
-				var jsonFormatter = new OpenLayers.Format.JSON();
-				var layerinfo = jsonFormatter.read(results.responseText);
-				var resourceUrl = layerinfo.layer.resource.href;
-				
-				var colonIndex = featureType.indexOf(':');
-				var workspace = featureType.substring(0, colonIndex);
-				
-				var datastoreStartIndex = resourceUrl.indexOf(workspace + '/datastores');
-                datastoreStartIndex = datastoreStartIndex + workspace.length + 12;
-                
-                var datastoreEnd = resourceUrl.substr(datastoreStartIndex);
-                var datastoreEndIndex = datastoreEnd.indexOf('/');
-				var datastore = datastoreEnd.substring(0, datastoreEndIndex);	
-				OpenLayers.Request.GET({
-
-					url: url + 'rest/workspaces/' + workspace + '/datastores/' + datastore + '.json',
-					success: function(results){
-						var storeInfo = jsonFormatter.read(results.responseText);
-						
-						if(storeInfo){
-							if(storeInfo.dataStore && storeInfo.dataStore.type){
-								if(isGeoGit && (storeInfo.dataStore.type === "GeoGIT")){
-									isGeoGit(workspace, storeInfo.dataStore);
-								}else{
-									if(isNotGeoGit){
-										isNotGeoGit(storeInfo.dataStore);
-									}
-								}
-							}else{
-								error();
-							}
-						}else{
-							error();
-						}
-					},
-					failure: error
-				});
-			},
-			failure: error
-		});
-	},
 
     /** private: method[createDataView]
      */
@@ -149,16 +109,19 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
 
         var plugin = this;
         
-        var isGeoGit = function(workspace, dataStore){
-        	if(plugin.feature == null) {
+        var workspace = this.schema.reader.raw.targetPrefix;
+        
+        var isGeoGit = function(dataStore){
+        	if(plugin.feature == null || dataStore === false) {
         		return;
         	}
+        	
         	var path = typeName.split(":").pop() + "/" + plugin.feature.fid;
             if (plugin.url.charAt(plugin.url.length-1) !== '/') {
                 plugin.url = plugin.url + "/";
             }
             var command = 'log';
-            var url = plugin.url + 'geogit/' + workspace + ':' + dataStore.name + '/' + command;
+            var url = plugin.url + 'geogit/' + workspace + ':' + dataStore + '/' + command;
             url = Ext.urlAppend(url, 'path=' + path + '&output_format=json');
             
             var store = new Ext.data.Store({
@@ -219,11 +182,15 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 }
             }));
         };
-        
+        var featureType = null;
         if(this.schema) {
-        var featureType = this.schema.baseParams['TYPENAME'];
+        	featureType = this.schema.baseParams['TYPENAME'];
         }
-        this.isGeoGitLayer(this.url, featureType, isGeoGit, null, null);
+
+        var geogitUtil = this.target.tools[this.geogitUtil];
+        var featureManager = this.target.tools[this.featureManager];
+        console.log("layer", featureManager.layerRecord.data.layer);
+        geogitUtil.isGeoGitLayer(featureManager.layerRecord.data.layer, isGeoGit);
     },
 
     /** private: method[init]

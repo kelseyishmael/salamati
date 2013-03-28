@@ -351,11 +351,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             	region: "east",
             	collapsible: true,
             	width: 200,
-            	/*plugins: [{
-            		ptype: "gxp_versionededitor",
-                    url: "/geoserver/",
-                    flex: 0.33
-            	}],*/
             	items: [{
             		title: 'Search',
             		id: "searchtab",
@@ -487,7 +482,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 editorPluginConfig: {
                     ptype: "gxp_versionededitor",
                     /* assume we will proxy the geogit web api*/ 
-                    url: "/geoserver/"
+                    url: "/geoserver/",
+                    geogitUtil: "geogit_util",
+                    featureManager: "feature_manager",
+                    target: this
                 }
             },
             outputTarget: "attributespanel"
