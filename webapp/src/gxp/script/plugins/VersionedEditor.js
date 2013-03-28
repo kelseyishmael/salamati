@@ -49,6 +49,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
      *  ``gxp.plugins.FeatureEditorGrid`` or ``gxp.plugins.FeatureEditorForm``
      */
     attributeEditor: null,
+    
+    historyTab: null,
 
     /** api: ptype = gxp_versionededitor */
     ptype: "gxp_versionededitor",
@@ -74,7 +76,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         
         var plugin = this;
         var addPanel = function(dataView){
-        	plugin.add({
+        	plugin.historyTab = Ext.ComponentMgr.create({
                 xtype: 'panel',
                 border: false,
                 plain: true,
@@ -83,6 +85,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 items: [dataView], 
                 title: plugin.historyTitle
             });
+        	plugin.add(plugin.historyTab);
         };
         
         this.createDataView(addPanel);
@@ -104,9 +107,9 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 
                 var datastoreEnd = resourceUrl.substr(datastoreStartIndex);
                 var datastoreEndIndex = datastoreEnd.indexOf('/');
-				var datastore = datastoreEnd.substring(0, datastoreEndIndex);
-				
+				var datastore = datastoreEnd.substring(0, datastoreEndIndex);	
 				OpenLayers.Request.GET({
+
 					url: url + 'rest/workspaces/' + workspace + '/datastores/' + datastore + '.json',
 					success: function(results){
 						var storeInfo = jsonFormatter.read(results.responseText);
@@ -137,7 +140,9 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     /** private: method[createDataView]
      */
     createDataView: function(addPanel) {
+    	if(this.schema) {
         var typeName = this.schema.reader.raw.featureTypes[0].typeName;
+    	}
         
         var geoserverIndex = this.schema.url.indexOf('geoserver');
         this.url = this.schema.url.substring(0, geoserverIndex + 9) + '/';
@@ -145,6 +150,9 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         var plugin = this;
         
         var isGeoGit = function(workspace, dataStore){
+        	if(plugin.feature == null) {
+        		return;
+        	}
         	var path = typeName.split(":").pop() + "/" + plugin.feature.fid;
             if (plugin.url.charAt(plugin.url.length-1) !== '/') {
                 plugin.url = plugin.url + "/";
@@ -212,7 +220,9 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             }));
         };
         
+        if(this.schema) {
         var featureType = this.schema.baseParams['TYPENAME'];
+        }
         this.isGeoGitLayer(this.url, featureType, isGeoGit, null, null);
     },
 
@@ -229,6 +239,38 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         target.un('beforeadd', OpenLayers.Function.False, this);
         target.add(this);
         target.doLayout();
+    },
+    
+    reset: function(newPanel) {
+    	this.attributeEditor.reset(newPanel);
+    	if(newPanel.feature == null) {
+    		this.remove(this.historyTab);
+    		this.historyTab = null;
+    	}
+        this.feature = newPanel.feature;
+        this.schema = newPanel.schema;
+        this.fields = newPanel.fields;
+        this.excludeFields = newPanel.excludeFields;
+
+        var plugin = this;
+        var addPanel = function(dataView){
+        	var historyTab = Ext.ComponentMgr.create({
+                xtype: 'panel',
+                border: false,
+                plain: true,
+                layout: 'fit', 
+                autoScroll: true, 
+                items: [dataView], 
+                title: plugin.historyTitle
+            });
+        	if(plugin.historyTab != null) {
+        		plugin.remove(plugin.historyTab);
+        	}
+        	plugin.historyTab = historyTab;
+        	plugin.add(plugin.historyTab);
+        };
+        
+        this.createDataView(addPanel);
     }
 
 });

@@ -19,8 +19,8 @@
  * @require RowExpander.js
  * @require widgets/NewSourceDialog.js
  * @require plugins/FeatureManager.js
- * @require plugins/FeatureEditor.js
  * @require plugins/FeatureGrid.js
+ * @require plugins/FeatureEditor_2.js
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
  * @require plugins/GeoGitUtil.js
@@ -347,14 +347,19 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     win]
             }, {
             	id: "eastpanel",
-            	layout: "accordion",
+            	layout: "vbox",
             	region: "east",
             	collapsible: true,
             	width: 200,
+            	/*plugins: [{
+            		ptype: "gxp_versionededitor",
+                    url: "/geoserver/",
+                    flex: 0.33
+            	}],*/
             	items: [{
             		title: 'Search',
             		id: "searchtab",
-            		collapsed: true,
+            		flex: 0.33,
             		items: [{
             			xtype: "textfield",
             		    id: "searchField",
@@ -393,7 +398,13 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             		}]
             	}, {
             		title: 'Layers',
-            		id: "layerpanel"
+            		id: "layerpanel",
+            		width: 200,
+            		flex: 0.34
+            	}, {
+            		id: "attributespanel",
+            		width: 200,
+            		flex: 0.33
             	}]
             },{
             	id: "southPanel",
@@ -463,7 +474,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             id: "snapping_agent",
             targets: []
         },{
-            ptype: "gxp_featureeditor",
+            ptype: "gxp_featureeditor_2",
             featureManager: "feature_manager",
             id: "feature_editor",
             autoLoadFeature: true,
@@ -475,10 +486,11 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             outputConfig: {
                 editorPluginConfig: {
                     ptype: "gxp_versionededitor",
-                    /* assume we will proxy the geogit web api */
+                    /* assume we will proxy the geogit web api*/ 
                     url: "/geoserver/"
                 }
-            }
+            },
+            outputTarget: "attributespanel"
         },{
         	ptype: "gxp_geogithistory",
         	id: "geogithistory",
