@@ -12,6 +12,26 @@ li.commit {
 li.commit div {
     padding: 2px;
 }
+
+li.diff {
+    font-size: 14px;
+    border-bottom: 2px solid #666666;
+    padding: 5px;
+}
+div.attr-name {
+	font-weight: bold;
+}
+div.attr-value {
+	font-style: italic;
+}
+div.info {
+	font-weight: bold;
+	font-size: 14px;
+	border-bottom: 2px solid #000000;
+    padding: 5px;
+    background-color: #CCCCCC;
+}
+
 .ext-chrome input[type="checkbox"] {
     margin-top: 1px;
 }

@@ -82,11 +82,22 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 			// Check to see if the layer has already been checked
 			if(layer.isGeogit === undefined){
 				var isGeoGit = function(dataStore){
-					layer.isGeogit = true;
-					layer.geogitStore = dataStore.name;
-					if(callback !== undefined){
-						callback(dataStore.name);
-					}
+					var plugin = this;
+					OpenLayers.Request.GET({
+						url: geoserverUrl + 'rest/workspaces/' + parsedFeatureType.workspace + '/datastores/' +
+							 dataStore.name + '/featuretypes/' + parsedFeatureType.typeName + '.json',
+						success: function(results){
+							var jsonFormatter = new OpenLayers.Format.JSON();
+							var featureTypeInfo = jsonFormatter.read(results.responseText);
+							layer.isGeogit = true;
+							layer.geogitStore = dataStore.name;
+							layer.nativeName = featureTypeInfo.featureType.nativeName;
+							if(callback !== undefined){
+								callback(layer);
+							}
+						},
+						failure: plugin.errorFetching
+					});
 				};
 				
 				var isNotGeoGit = function(){
@@ -102,7 +113,7 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 			}else if(layer.isGeogit){
 				// It is a geogit layer so execute the callback, passing in the name of the store
 				if(callback !== undefined){
-					callback(layer.geogitStore);
+					callback(layer);
 				}
 			}else{  
 				// It is not a geogit layer so execute the callback, passing in false

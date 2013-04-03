@@ -24,7 +24,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
      *  ``String`` Template to use for displaying the commit history.
      *  If not set, a default template will be provided.
      */
-    historyTpl: '<ol><tpl for="."><li class="commit"><div class="commit-msg">{message}</div><div>{author} <span class="commit-datetime">authored {date:this.formatDate}</span></div></li></tpl>',
+
+    historyTpl: '<ol><div class="info">{[this.formatDate()]}</div><tpl for="."><tpl if="this.checkForGeometry(name)"><li class="diff"><div class="attr-name">The geometry of this feature was {change}.</div></li></tpl><tpl if="this.checkForGeometry(name) == false"><li class="diff"><div class="attr-name">Attribute {name} was {change}.</div><tpl if="change == &quot;MODIFIED&quot;"><div class="attr-value">It changed from {old} to {new}.</div></tpl><tpl if="change == &quot;ADDED&quot;"><div class="attr-value">The value is now {new}.</div></tpl><tpl if="change == &quot;REMOVED&quot;"><div class="attr-value">The value was {old}.</div></tpl></li></tpl></tpl>',
 
     /* i18n */
     attributesTitle: "Attributes",
@@ -57,6 +58,30 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     featureManager: null,
     
     target: null,
+    
+    commits: null,
+    
+    workspace: null,
+    
+    path: null,
+    
+    dataStore: null,
+    
+    store: null,
+    
+    nullObjectId: "0000000000000000000000000000000000000000",
+    
+    nextCommitText: "Next",
+    
+    nextCommitTooltip: "See what changed in the next commit",
+    
+    prevCommitText: "Prev",
+    
+    prevCommitTooltip: "See what changed in the previous commit",
+    
+    buttons: null,
+    
+    commitIndex: 0,
 
     /** api: ptype = gxp_versionededitor */
     ptype: "gxp_versionededitor",
@@ -81,6 +106,25 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         this.add(this.attributeEditor);
         
         var plugin = this;
+        
+        var nextCommitButton = new Ext.Button({
+            text: this.nextCommitText,
+            tooltip: this.nextCommitTooltip,
+            handler: this.nextCommit,
+            width: "99",
+            scope: this
+        });
+        
+        var prevCommitButton = new Ext.Button({
+            text: this.prevCommitText,
+            tooltip: this.prevCommitTooltip,
+            handler: this.previousCommit,
+            width: "99",
+            scope: this
+        });
+        
+        this.buttons = [prevCommitButton, nextCommitButton];
+        
         var addPanel = function(dataView){
         	plugin.historyTab = Ext.ComponentMgr.create({
                 xtype: 'panel',
@@ -89,7 +133,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 layout: 'fit', 
                 autoScroll: true, 
                 items: [dataView], 
-                title: plugin.historyTitle
+                title: plugin.historyTitle,
+                tbar: [plugin.buttons]
             });
         	plugin.add(plugin.historyTab);
         };
@@ -109,20 +154,20 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
 
         var plugin = this;
         
-        var workspace = this.schema.reader.raw.targetPrefix;
-        
-        var isGeoGit = function(dataStore){
-        	if(plugin.feature == null || dataStore === false) {
+        this.workspace = this.schema.reader.raw.targetPrefix;
+        var isGeoGit = function(layer){
+        	plugin.dataStore = layer.geogitStore;
+        	if(plugin.feature == null || layer === false) {
         		return;
         	}
-        	
-        	var path = typeName.split(":").pop() + "/" + plugin.feature.fid;
+        	plugin.path = layer.nativeName.split(":").pop() + "/" + 
+        			   plugin.feature.fid.replace(typeName.split(":").pop(), layer.nativeName.split(":").pop());
             if (plugin.url.charAt(plugin.url.length-1) !== '/') {
                 plugin.url = plugin.url + "/";
             }
             var command = 'log';
-            var url = plugin.url + 'geogit/' + workspace + ':' + dataStore + '/' + command;
-            url = Ext.urlAppend(url, 'path=' + path + '&output_format=json');
+            var url = plugin.url + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/' + command;
+            url = Ext.urlAppend(url, 'path=' + plugin.path + '&output_format=json');
             
             var store = new Ext.data.Store({
             	url: url,
@@ -147,40 +192,21 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         			   }
         			]
         		}),
+        		listeners: {
+        			"load": function() {
+        				plugin.commits = store.data.items;  
+        				console.log("store", store);
+        				console.log("commits", plugin.commits);
+        				if(plugin.commits.length > 1) {
+        					plugin.createDiffStore(plugin.commits[0].id, plugin.commits[1].id, addPanel);
+        				} else {
+        					plugin.createDiffStore(plugin.commits[0].id, plugin.nullObjectId, addPanel);
+        				}
+        				
+        			}
+        		}, 
         		autoLoad: true
         	});
-            
-            var me = plugin;
-            var tpl = new Ext.XTemplate(plugin.historyTpl, {
-                formatDate: function(value) {
-                    var now = new Date(), result = '';
-                    if (value > now.add(Date.DAY, -1)) {
-                        var hours = Math.round((now-value)/(1000*60*60));
-                        result += hours + ' ';
-                        result += (result > 1) ? me.hours : me.hour;
-                        result += ' ' + me.ago;
-                        return result;
-                    } else if (value > now.add(Date.MONTH, -1)) {
-                        var days = Math.round((now-value)/(1000*60*60*24));
-                        result += days + ' ';
-                        result += (result > 1) ? me.days : me.day;
-                        result += ' ' + me.ago;
-                        return result;
-                    }
-                }
-            });
-            
-            addPanel(new Ext.DataView({
-                store: store,
-                tpl: tpl,
-                autoHeight:true,
-                listeners: {
-                	beforerender: function(dataview){
-                		console.log("dataview", dataview);
-                	//	dataview.store.load();
-                	}
-                }
-            }));
         };
         var featureType = null;
         if(this.schema) {
@@ -189,10 +215,144 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
 
         var geogitUtil = this.target.tools[this.geogitUtil];
         var featureManager = this.target.tools[this.featureManager];
-        console.log("layer", featureManager.layerRecord.data.layer);
         geogitUtil.isGeoGitLayer(featureManager.layerRecord.data.layer, isGeoGit);
     },
 
+    createDiffStore: function(newCommitId, oldCommitId, addPanel) {
+        var url = this.url + 'geogit/' + this.workspace + ':' + this.dataStore + '/featurediff';
+        url = Ext.urlAppend(url, 'path=' + this.path + '&oldCommitId='+ oldCommitId + '&newCommitId=' + newCommitId + '&output_format=json');
+        var me = this;
+        this.store = new Ext.data.Store({
+        	url: url,
+    		reader: new Ext.data.JsonReader({
+    			root: 'response.diff',
+    			fields: [
+          			   {
+          				   name: 'name',
+          				   mapping: 'attributename'
+          			   },{
+          				   name: 'change',
+          				   mapping: 'changetype'
+          			   },{
+          				   name: 'new',
+          				   mapping: 'newvalue'
+          			   },{
+          				   name: 'old',
+          				   mapping: 'oldvalue'
+          			   }
+          			],
+          		idProperty: 'attributename'
+    			}),
+        		listeners: {
+        			"load": function() { 
+        				console.log("loaded_store", me.store);
+        				console.log("commitIndex", me.commitIndex);
+        				console.log("buttons", me.buttons);
+        				if(me.commitIndex === 0) {
+        					if(me.buttons[1].disabled != true) {
+        						me.buttons[1].disable();
+        					}
+        					
+        					if(me.commitIndex === me.commits.length-1) {
+        						me.buttons[0].disable();
+        					} else if(me.buttons[0].disabled === true) {
+        						me.buttons[0].enable();
+        					}
+        				} else if(me.commitIndex === me.commits.length-1) {
+        					if(me.buttons[0].disabled != true) {
+        						me.buttons[0].disable();
+        					}
+        					if(me.buttons[1].disabled === true) {
+        						me.buttons[1].enable();
+        					}
+        				} else {
+        					if(me.buttons[0].disabled === true) {
+        						me.buttons[0].enable();
+        					}else if(me.buttons[1].disabled === true) {
+        						me.buttons[1].enable();
+        					}
+        				}
+        			}
+        		},
+    			autoLoad: true
+    		});
+        console.log("store", me.store);
+        console.log("this", this);
+        
+        var tpl = new Ext.XTemplate(me.historyTpl, {
+            formatDate: function() {
+            	var value = me.commits[me.commitIndex].data.date;           	
+                var now = new Date(), result = '';
+                result += me.commits[me.commitIndex].data.author + " made this commit ";
+                if (value > now.add(Date.DAY, -1)) {
+                    var hours = Math.round((now-value)/(1000*60*60));
+                    result += hours + ' ';
+                    result += (hours > 1) ? me.hours : me.hour;
+                    result += ' ' + me.ago + '.';
+                    return result;
+                } else if (value > now.add(Date.MONTH, -1)) {
+                    var days = Math.round((now-value)/(1000*60*60*24));
+                    result += days + ' ';
+                    result += (days > 1) ? me.days : me.day;
+                    result += ' ' + me.ago + '.';
+                    return result;
+                }
+            },
+            checkForGeometry: function(type) {
+            	var geomRegex = /gml:((Multi)?(Point|Line|Polygon|Curve|Surface|Geometry)).*/;
+            	var properties = me.target.tools[me.featureManager].schema.reader.raw.featureTypes[0].properties;
+            	var name;
+            	for(var index=0; index < properties.length; index++) {
+            		var match = geomRegex.exec(properties[index].type);
+            		if(match) {
+            			name = properties[index].name;
+            			break;
+            		}
+            	}
+            	if(type === name) {
+            		return true;
+            	}
+            	return false;
+            }
+        });
+        
+        addPanel(new Ext.DataView({
+            store: this.store,
+            tpl: tpl,
+            autoHeight:true,
+            listeners: {
+            	beforerender: function(dataview){
+            		console.log("dataview", dataview);
+            	//	dataview.store.load();
+            	}
+            }
+        }));
+    },
+    
+    previousCommit: function() {
+    	if(this.commitIndex < this.commits.length-1) {
+    		this.commitIndex += 1;
+    		var oldCommitId = this.commits.length-1 > this.commitIndex ? this.commits[this.commitIndex+1].id : this.nullObjectId;
+    		this.updateDiffPanel(this.commits[this.commitIndex].id, oldCommitId);
+    	}
+    },
+    
+    nextCommit: function() {
+    	if(this.commitIndex > 0) {
+    		this.commitIndex -= 1;
+    		this.updateDiffPanel(this.commits[this.commitIndex].id, this.commits[this.commitIndex+1].id);
+    	}
+    },
+    
+    updateDiffPanel: function(newCommitId, oldCommitId) {
+    	var url = this.url + 'geogit/' + this.workspace + ':' + this.dataStore + '/featurediff';
+        url = Ext.urlAppend(url, 'path=' + this.path + '&oldCommitId='+ oldCommitId + '&newCommitId=' + newCommitId + '&output_format=json');
+        this.store.url = url;
+        this.store.proxy.setUrl(url, true);
+        this.store.load();
+        console.log("store", this.store);    	
+    },
+    
     /** private: method[init]
      *
      *  :arg target: ``gxp.FeatureEditPopup`` The feature edit popup 
@@ -219,6 +379,26 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         this.fields = newPanel.fields;
         this.excludeFields = newPanel.excludeFields;
 
+        this.commitIndex = 0;
+               
+        var nextCommitButton = new Ext.Button({
+            text: this.nextCommitText,
+            tooltip: this.nextCommitTooltip,
+            handler: this.nextCommit,
+            width: "99",
+            scope: this
+        });
+        
+        var prevCommitButton = new Ext.Button({
+            text: this.prevCommitText,
+            tooltip: this.prevCommitTooltip,
+            handler: this.previousCommit,
+            width: "99",
+            scope: this
+        });
+        
+        this.buttons = [prevCommitButton, nextCommitButton];
+        
         var plugin = this;
         var addPanel = function(dataView){
         	var historyTab = Ext.ComponentMgr.create({
@@ -228,7 +408,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 layout: 'fit', 
                 autoScroll: true, 
                 items: [dataView], 
-                title: plugin.historyTitle
+                title: plugin.historyTitle,
+                tbar: [plugin.buttons]
             });
         	if(plugin.historyTab != null) {
         		plugin.remove(plugin.historyTab);

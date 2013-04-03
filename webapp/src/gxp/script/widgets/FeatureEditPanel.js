@@ -220,8 +220,8 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
             this.location = feature;
         }
         
-        if(!this.title) {
-            this.title = "Attributes & History";
+        if(!this.title && feature.fid) {
+        	this.title = feature.fid;
         }
         
         this.editButton = new Ext.Button({

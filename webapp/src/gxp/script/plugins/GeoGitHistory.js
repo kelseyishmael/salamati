@@ -149,13 +149,13 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     				var geoserverUrl = schema.url.substring(0, geoserverIndex + 10);
     				
     				//isGeogit
-    				var callback = function(dataStore){
-    					if(dataStore !== false){ // isGeoGit
+    				var callback = function(layer){
+    					if(layer !== false){ // isGeoGit
     						plugin.parentContainer.show();
         					plugin.parentContainer.expand();
     						plugin.target.portal.doLayout();
         					
-    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/log?path=' + typeName + '&output_format=JSON';
+    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.geogitStore + '/log?path=' + layer.nativeName + '&output_format=JSON';
     		        		plugin.store.url = plugin.url;
     		        		plugin.store.proxy.conn.url = plugin.url;
     		        		plugin.store.proxy.url = plugin.url;
