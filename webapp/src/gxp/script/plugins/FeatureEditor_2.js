@@ -594,7 +594,6 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
                                 scope: this
                             }
                         });
-                        console.log("popup", popup);
                         this.popup = popup;
                         this.popup.show();
                     }

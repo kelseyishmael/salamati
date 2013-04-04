@@ -25,7 +25,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
      *  If not set, a default template will be provided.
      */
 
-    historyTpl: '<ol><div class="info">{[this.formatDate()]}</div><tpl for="."><tpl if="this.checkForGeometry(name)"><li class="diff"><div class="attr-name">The geometry of this feature was {change}.</div></li></tpl><tpl if="this.checkForGeometry(name) == false"><li class="diff"><div class="attr-name">Attribute {name} was {change}.</div><tpl if="change == &quot;MODIFIED&quot;"><div class="attr-value">It changed from {old} to {new}.</div></tpl><tpl if="change == &quot;ADDED&quot;"><div class="attr-value">The value is now {new}.</div></tpl><tpl if="change == &quot;REMOVED&quot;"><div class="attr-value">The value was {old}.</div></tpl></li></tpl></tpl>',
+    historyTpl: '<ol><div class="info">{[this.formatDate()]}</div><tpl for="."><tpl if="this.checkForGeometry(name, xindex)"><li class="diff"><div class="attr-name">Geometry was {change}.</div></li></tpl><tpl if="this.checkForGeometry(name, -1) == false"><li class="diff"><div class="attr-name">{name} was {change}.</div><tpl if="change == &quot;MODIFIED&quot;"><div class="attr-value">Was {oldvalue}, now {newvalue}.</div></tpl><tpl if="change == &quot;ADDED&quot;"><div class="attr-value">Now {newvalue}.</div></tpl><tpl if="change == &quot;REMOVED&quot;"><div class="attr-value">Was {oldvalue}.</div></tpl></li></tpl></tpl>',
 
     /* i18n */
     attributesTitle: "Attributes",
@@ -82,6 +82,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     buttons: null,
     
     commitIndex: 0,
+    
+    diffLayer: null,
 
     /** api: ptype = gxp_versionededitor */
     ptype: "gxp_versionededitor",
@@ -195,8 +197,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         		listeners: {
         			"load": function() {
         				plugin.commits = store.data.items;  
-        				console.log("store", store);
-        				console.log("commits", plugin.commits);
         				if(plugin.commits.length > 1) {
         					plugin.createDiffStore(plugin.commits[0].id, plugin.commits[1].id, addPanel);
         				} else {
@@ -234,10 +234,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
           				   name: 'change',
           				   mapping: 'changetype'
           			   },{
-          				   name: 'new',
+          				   name: 'newvalue',
           				   mapping: 'newvalue'
           			   },{
-          				   name: 'old',
+          				   name: 'oldvalue',
           				   mapping: 'oldvalue'
           			   }
           			],
@@ -245,9 +245,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     			}),
         		listeners: {
         			"load": function() { 
-        				console.log("loaded_store", me.store);
-        				console.log("commitIndex", me.commitIndex);
-        				console.log("buttons", me.buttons);
         				if(me.commitIndex === 0) {
         					if(me.buttons[1].disabled != true) {
         						me.buttons[1].disable();
@@ -276,14 +273,12 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         		},
     			autoLoad: true
     		});
-        console.log("store", me.store);
-        console.log("this", this);
         
         var tpl = new Ext.XTemplate(me.historyTpl, {
             formatDate: function() {
             	var value = me.commits[me.commitIndex].data.date;           	
                 var now = new Date(), result = '';
-                result += me.commits[me.commitIndex].data.author + " made this commit ";
+                result += me.commits[me.commitIndex].data.author + ", authored ";
                 if (value > now.add(Date.DAY, -1)) {
                     var hours = Math.round((now-value)/(1000*60*60));
                     result += hours + ' ';
@@ -298,10 +293,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                     return result;
                 }
             },
-            checkForGeometry: function(type) {
+            checkForGeometry: function(type, xindex) {
             	var geomRegex = /gml:((Multi)?(Point|Line|Polygon|Curve|Surface|Geometry)).*/;
             	var properties = me.target.tools[me.featureManager].schema.reader.raw.featureTypes[0].properties;
-            	var name;
+            	var name = null;
             	for(var index=0; index < properties.length; index++) {
             		var match = geomRegex.exec(properties[index].type);
             		if(match) {
@@ -310,6 +305,44 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             		}
             	}
             	if(type === name) {
+            		if(xindex === -1) {
+            			return true;
+            		}
+            		console.log("target", me.target);
+            		var vectors = new OpenLayers.Layer.Vector("Attr_diff");
+            		if(me.diffLayer != null) {
+            			var layer = me.target.mapPanel.map.getLayer(me.diffLayer);
+            			if(layer != null) {
+            				me.target.mapPanel.map.removeLayer();  
+            			}
+            		}
+            		me.diffLayer = vectors.id;
+            		var newstyle = OpenLayers.Util.applyDefaults(newstyle, OpenLayers.Feature.Vector.style['default']);
+            		newstyle.strokeColor = "#00FF00";
+            		newstyle.fillColor = "#00FF00";
+            		var newvalue = me.store.data.items[xindex-1].data.newvalue;
+            		console.log("newvalue", newvalue);
+            		var newGeom = OpenLayers.Geometry.fromWKT(newvalue);
+            		console.log("newGeom", newGeom);
+            		var newFeature = new OpenLayers.Feature.Vector(newGeom);
+            		newFeature.style = newstyle;
+            		console.log("newFeature", newFeature);
+            		vectors.addFeatures(newFeature);
+            		
+            		var oldvalue = me.store.data.items[xindex-1].data.oldvalue;
+            		if(oldvalue != null){
+            			console.log("oldvalue", oldvalue);
+            			var oldGeom = OpenLayers.Geometry.fromWKT(oldvalue);
+            			console.log("oldGeom", oldGeom);
+            			var oldstyle = OpenLayers.Util.applyDefaults(oldstyle, OpenLayers.Feature.Vector.style['default']);
+            			oldstyle.strokeColor = "#FF0000";
+            			oldstyle.fillColor = "#FF0000";
+            			var oldFeature = new OpenLayers.Feature.Vector(oldGeom);
+            			oldFeature.style = oldstyle;
+            			console.log("oldFeature", oldFeature);
+            			vectors.addFeatures(oldFeature);
+            		}
+            		me.target.mapPanel.map.addLayer(vectors);
             		return true;
             	}
             	return false;
