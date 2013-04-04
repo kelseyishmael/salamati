@@ -248,6 +248,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     },
                     "removelayer" : function(e) {
                         setMapLayersCookie();
+                        
+                        //hide the history panel when a layer is removed
+                        var southPanel = Ext.getCmp('southPanel');
+                    	southPanel.hide();
+                    	app.portal.doLayout();
+                    	
                         console.log("map.events.removelayer: ", e);
                     },
                     "changelayer" : function(e) {
