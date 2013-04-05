@@ -47,6 +47,12 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     geogitUtil: null,
     
+    workspace: null,
+    
+    path: null,
+    
+    dataStore: null,
+    
     /** api: method[addOutput]
      */
     addOutput: function(config) {
@@ -87,7 +93,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         	metadata.attr = 'title="' + value + '"';
         	return value;
         };
-        
+        var plugin = this;
         this.grid = new Ext.grid.GridPanel({
     		store: this.store,
     		cls: "gxp-geogithistory-cls",
@@ -126,8 +132,32 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     		},
     		listeners: {
     			'cellclick': function(grid, rowIndex, columnIndex, e){
-    				var record = grid.getStore().getAt(rowIndex);
-    				console.log("data", record.data);
+    				var oldCommit = grid.getStore().getAt(rowIndex).data.commit;
+    				var newCommit = grid.getStore().getAt(0).data.commit;
+    				var geoserverIndex = plugin.url.indexOf('geoserver');
+    				var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
+    				var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + oldCommit + '&newRefSpec=' + newCommit + '&output_format=JSON';
+    				console.log("url", url);
+    		        var store = new Ext.data.Store({
+    		        	url: url,
+    		    		reader: new Ext.data.JsonReader({
+    		    			root: 'response.Feature',
+    		    			fields: [
+    		    			   {
+    		    				   name: 'fid',
+    		    				   mapping: 'id'
+    		    			   },{
+    		    				   name: 'change',
+    		    				   mapping: 'change'
+    		    			   },{
+    		    				   name: 'geometry',
+    		    				   mapping: 'geometry'
+    		    			   }
+    		    			]
+    		    		}),
+    		    		autoLoad: true
+    		    	});
+    		        console.log("store", store);
     			}
     		}
 		});
@@ -135,8 +165,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         config = Ext.apply(this.grid, config || {});
         
         var geogitHistory = gxp.plugins.GeoGitHistory.superclass.addOutput.call(this, config);
-        
-        var plugin = this;
+
         var onLayerChange = function(tool, layerRecord, schema) {
         	if(schema && schema.url){
         		var typeName = schema.reader.raw.featureTypes[0].typeName;
@@ -154,6 +183,10 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     						plugin.parentContainer.show();
         					plugin.parentContainer.expand();
     						plugin.target.portal.doLayout();
+    						
+        					plugin.workspace = workspace;
+        					plugin.dataStore = layer.geogitStore;
+        					plugin.path = layer.nativeName;
         					
     		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.geogitStore + '/log?path=' + layer.nativeName + '&output_format=JSON';
     		        		plugin.store.url = plugin.url;
