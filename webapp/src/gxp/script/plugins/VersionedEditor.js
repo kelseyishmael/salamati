@@ -313,7 +313,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             		if(me.diffLayer != null) {
             			var layer = me.target.mapPanel.map.getLayer(me.diffLayer);
             			if(layer != null) {
-            				me.target.mapPanel.map.removeLayer();  
+            				me.target.mapPanel.map.removeLayer(layer);  
             			}
             		}
             		me.diffLayer = vectors.id;
@@ -383,6 +383,13 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         this.store.url = url;
         this.store.proxy.setUrl(url, true);
         this.store.load();
+		if(this.diffLayer != null) {
+			var layer = this.target.mapPanel.map.getLayer(this.diffLayer);
+			if(layer != null) {
+				this.target.mapPanel.map.removeLayer(layer);  
+			}
+			this.diffLayer = null;
+		}
         console.log("store", this.store);    	
     },
     
@@ -406,6 +413,13 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     	if(newPanel.feature == null) {
     		this.remove(this.historyTab);
     		this.historyTab = null;
+    		if(this.diffLayer != null) {
+    			var layer = this.target.mapPanel.map.getLayer(this.diffLayer);
+    			if(layer != null) {
+    				this.target.mapPanel.map.removeLayer(layer);  
+    			}
+    			this.diffLayer = null;
+    		}
     	}
         this.feature = newPanel.feature;
         this.schema = newPanel.schema;
