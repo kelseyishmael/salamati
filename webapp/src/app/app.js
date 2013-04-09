@@ -37,6 +37,7 @@
  * @require salamati/locale/es.js
  * @require salamati/plugins/SalamatiTools.js
  * @require plugins/GeoGitHistory.js
+ * @require plugins/GeoGitHistoryButton.js
  */
 
 (function() {
@@ -449,6 +450,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }, {
             ptype: "gxp_removelayer",
             actionTarget: ["tree.tbar", "tree.contextMenu"]
+        }, {
+            ptype: "gxp_geogithistorybutton",
+            actionTarget: "tree.contextMenu"
         }, {
             ptype: "app_settings",
             actionTarget: "tree.tbar"

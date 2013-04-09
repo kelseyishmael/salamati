@@ -180,9 +180,10 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     				//isGeogit
     				var callback = function(layer){
     					if(layer !== false){ // isGeoGit
-    						plugin.parentContainer.show();
+    						//this bit is now handled in GeoGitHistoryButton.js
+    						/*plugin.parentContainer.show();
         					plugin.parentContainer.expand();
-    						plugin.target.portal.doLayout();
+    						plugin.target.portal.doLayout();*/
     						
         					plugin.workspace = workspace;
         					plugin.dataStore = layer.geogitStore;
