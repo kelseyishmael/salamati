@@ -206,6 +206,8 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
      */
     schema: null,
     
+    target: null,
+    
 
     /** private: method[constructor]
      */
@@ -469,6 +471,7 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
                             readOnly: this.readOnly,
                             fields: this.fields,
                             excludeFields: this.excludeFields,
+                            map: this.target.mapPanel.map,
                             listeners: {
                                 "hide": function() {
                                 	popup.setFeature(null);

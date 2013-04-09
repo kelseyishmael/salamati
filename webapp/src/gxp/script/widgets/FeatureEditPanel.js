@@ -2,6 +2,7 @@
  * @requires plugins/FeatureEditorGrid.js
  * @requires GeoExt/widgets/form/FormPanel.js
  * @requires OpenLayers/Control/ModifyFeature.js
+ * @requires Orthogonalization.js
  */
 
 /** api: (define)
@@ -157,6 +158,10 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
      */
     deleteButton: null,
     
+    orthoButton: null,
+    
+    map: null,
+    
     /** private: method[initComponent]
      */
     initComponent: function() {
@@ -263,6 +268,16 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
             scope: this
         });
         
+        this.orthoButton = new Ext.Button({
+            text: "Fix",
+            tooltip: "Make a polygon orthogonalized",
+            hidden: true,
+            handler: function() {
+            	gxp.Orthogonalization.orthogonalize(this.feature, this.map);
+            },
+            scope: this
+        });
+        
         this.plugins = [Ext.apply({
             feature: feature,
             schema: this.schema,
@@ -278,7 +293,8 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
                 this.editButton,
                 this.deleteButton,
                 this.saveButton,
-                this.cancelButton
+                this.cancelButton,
+                this.orthoButton
             ]
         });
         
@@ -327,6 +343,7 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
             this.deleteButton.hide();
             this.saveButton.show();
             this.cancelButton.show();
+            this.orthoButton.show();
             
             this.geometry = this.feature.geometry && this.feature.geometry.clone();
             this.attributes = Ext.apply({}, this.feature.attributes);
@@ -392,6 +409,7 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
 
             this.cancelButton.hide();
             this.saveButton.hide();
+            this.orthoButton.hide();
             this.editButton.show();
             this.allowDelete && this.deleteButton.show();            
             this.editing = false;

@@ -490,6 +490,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             iconClsEdit: "salamati-icon-getfeatureinfo",
             editFeatureActionTip: this.ActionTip_Edit,
             actionTarget: "toolsPanel",
+            target: this,
             outputConfig: {
                 editorPluginConfig: {
                     ptype: "gxp_versionededitor",
