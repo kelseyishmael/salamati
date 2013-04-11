@@ -157,6 +157,10 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
      */
     deleteButton: null,
     
+    featureManager: null,
+    
+    target: null,
+    
     /** private: method[initComponent]
      */
     initComponent: function() {
@@ -218,10 +222,6 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
         }
         if (!this.location) {
             this.location = feature;
-        }
-        
-        if(!this.title && feature.fid) {
-        	this.title = feature.fid;
         }
         
         this.editButton = new Ext.Button({
@@ -432,6 +432,8 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
     		this.schema = newPanel.schema;
     		this.fields = newPanel.fields;
     		this.excludeFields = newPanel.excludeFields;
+    		var featureManager = this.target.tools[this.featureManager];
+    		this.setTitle(featureManager.layerRecord.data.layer.name);
     	}
     	this.plugins[0].reset(this);
     }

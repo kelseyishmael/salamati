@@ -403,10 +403,13 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             	}, {
             		title: 'Layers',
             		id: "layerpanel",
+            		autoScroll: true,
             		width: 200,
             		flex: 0.34
             	}, {
             		id: "attributespanel",
+            		layout: "vbox",
+            		autoScroll: true,
             		width: 200,
             		flex: 0.33
             	}]
@@ -490,6 +493,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             iconClsEdit: "salamati-icon-getfeatureinfo",
             editFeatureActionTip: this.ActionTip_Edit,
             actionTarget: "toolsPanel",
+            target: this,
             outputConfig: {
                 editorPluginConfig: {
                     ptype: "gxp_versionededitor",

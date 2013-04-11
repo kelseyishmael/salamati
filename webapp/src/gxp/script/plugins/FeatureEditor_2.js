@@ -206,6 +206,8 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
      */
     schema: null,
     
+    target: null,
+    
 
     /** private: method[constructor]
      */
@@ -459,11 +461,14 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
                     } else {                    	
                         popup = this.addOutput({
                             xtype: "gxp_featureeditpanel",
+                            featureManager: "feature_manager",
+                            target: this.target,
+                            title: featureManager.layerRecord.data.layer.name,
                             vertexRenderIntent: "vertex",
                             editing: feature.state === OpenLayers.State.INSERT,
                             allowDelete: true,
+                            flex: 1.0,
                             width: 200,
-                            height: 250,
                             feature: featureStore.getByFeature(feature),
                             schema: this.schema,
                             readOnly: this.readOnly,
@@ -612,7 +617,11 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
                 featureManager.featureLayer.events.register("featuresadded", this, function(evt) {
                     featureManager.featureLayer.events.unregister("featuresadded", this, arguments.callee);
                     this.drawControl.deactivate();
+                    if(this.popup && !this.popup.hidden) {
+                    	this.popup.hide();
+                    }
                     this.selectControl.activate();
+                    
                     this.selectControl.select(evt.features[0]);
                 });
             },

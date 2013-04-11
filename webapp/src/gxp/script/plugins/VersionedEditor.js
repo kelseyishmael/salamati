@@ -159,10 +159,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         this.workspace = this.schema.reader.raw.targetPrefix;
         var isGeoGit = function(layer){
         	plugin.dataStore = layer.geogitStore;
+
         	if(plugin.feature == null || plugin.feature.fid == null || layer === false) {
         		return;
         	}
-        	console.log("feature", plugin.feature);
         	plugin.path = layer.nativeName.split(":").pop() + "/" + 
         			   plugin.feature.fid.replace(typeName.split(":").pop(), layer.nativeName.split(":").pop());
             if (plugin.url.charAt(plugin.url.length-1) !== '/') {
