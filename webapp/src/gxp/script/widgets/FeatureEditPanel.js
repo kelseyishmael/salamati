@@ -273,7 +273,43 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
             tooltip: "Make a polygon orthogonalized",
             hidden: true,
             handler: function() {
-            	gxp.Orthogonalization.orthogonalize(this.feature, this.map);
+            	var point;
+            	var dragControl = this.modifyControl.dragControl;
+            	var geometry = this.feature.geometry;
+            	
+            	if(geometry instanceof OpenLayers.Geometry.MultiPolygon){
+            		gxp.Orthogonalization.orthogonalize(this.feature, this.map);
+                	this.feature.layer.redraw();
+                	
+            		for(var i = 0; i < geometry.components.length; i++){
+                		for(var j = 0; j < geometry.components[i].components.length; j++){
+                			for(var y = 0; y < geometry.components[i].components[j].components.length;y++){
+                				point = geometry.components[i].components[j].components[y];
+            	            	dragControl.feature = this.feature;
+            	            	pixel = new OpenLayers.Pixel(point.x, point.y);
+            	            	dragControl.downFeature(pixel);
+            	            	dragControl.moveFeature(pixel);
+            	            	dragControl.upFeature(pixel);
+            	            	dragControl.doneDragging(pixel);
+                			}
+                		}
+                	}
+            	}else{
+            		gxp.Orthogonalization.orthogonalize(this.feature, this.map);
+                	this.feature.layer.redraw();
+                	
+            		for(var i = 0; i < geometry.components.length; i++){
+                		for(var j = 0; j < geometry.components[i].components.length; j++){
+                				point = geometry.components[i].components[j];
+            	            	dragControl.feature = this.feature;
+            	            	pixel = new OpenLayers.Pixel(point.x, point.y);
+            	            	dragControl.downFeature(pixel);
+            	            	dragControl.moveFeature(pixel);
+            	            	dragControl.upFeature(pixel);
+            	            	dragControl.doneDragging(pixel);
+                		}
+                	}
+            	}
             },
             scope: this
         });
