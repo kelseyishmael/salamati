@@ -38,6 +38,7 @@
  * @require salamati/plugins/SalamatiTools.js
  * @require plugins/GeoGitHistory.js
  * @require plugins/GeoGitHistoryButton.js
+ * @require plugins/GeoGitRepoInfo.js
  */
 
 (function() {
@@ -361,51 +362,61 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             	collapsible: true,
             	width: 200,
             	items: [{
-            		title: 'Search',
-            		id: "searchtab",
-            		flex: 0.33,
+            		id: "tabs",
+            		xtype: "tabpanel",
+            		flex: 0.67,
+            		enableTabScroll: true,
+            		activeTab: 1,
             		items: [{
-            			xtype: "textfield",
-            		    id: "searchField",
-            		    cls: "searchFieldClass",
-            		    emptyText: "Search",
-            		    enableKeyEvents: true,
-            		    listeners: {
-            		   	 'keyup' : function(element, event){
-            		   		 if(event.button == 12){
-            		   			 submitSearch(element.getValue());
-            		   		 }
-            		   	 }
-            		    }
-            		}, {
-            		    xtype: "grid",
-                		store: this.NominatimStore,
-                		cls: "nominatimGridClass",
-                		hideHeaders: true,
-                		border: false,
-                		columns: [{
-                			id: 'place',
-                			//header: 'Address',
-                			width: 200,
-                			//sortable: true,
-                			dataIndex: 'display_name'
-                		}],
-                		listeners: {
-                			'cellclick': function(grid, rowIndex, columnIndex, e){
-                				var record = grid.getStore().getAt(rowIndex);
-                				console.log("data", record.data);
+            			title: 'Search',
+            			id: "searchtab",
+            			items: [{
+            				xtype: "textfield",
+            		    	id: "searchField",
+            		    	cls: "searchFieldClass",
+            		    	emptyText: "Search",
+            		    	enableKeyEvents: true,
+            		    	listeners: {
+            		    		'keyup' : function(element, event){
+            		    			if(event.button == 12){
+            		    				submitSearch(element.getValue());
+            		   		 		}
+            		   	 		}
+            		    	}
+            			}, {
+            				xtype: "grid",
+                			store: this.NominatimStore,
+                			cls: "nominatimGridClass",
+                			hideHeaders: true,
+                			border: false,
+                			columns: [{
+                				id: 'place',
+                				//header: 'Address',
+                				width: 200,
+                				//sortable: true,
+                				dataIndex: 'display_name'
+                			}],
+                			listeners: {
+                				'cellclick': function(grid, rowIndex, columnIndex, e){
+                					var record = grid.getStore().getAt(rowIndex);
+                					console.log("data", record.data);
                 				
-                				zoomToPlace(record.data.lon, record.data.lat, record.data.boundingBox[2], 
+                					zoomToPlace(record.data.lon, record.data.lat, record.data.boundingBox[2], 
                 						record.data.boundingBox[0], record.data.boundingBox[3], record.data.boundingBox[1]);
+                				}
                 			}
-                		}
+            			}]
+            		}, {
+            			title: 'Layers',
+            			id: "layerpanel",
+            			autoScroll: true,
+            			width: 200
+            		}, {
+            			title: 'Geogit',
+            			id: "repopanel",
+            			autoScroll: true,
+            			width: 200
             		}]
-            	}, {
-            		title: 'Layers',
-            		id: "layerpanel",
-            		autoScroll: true,
-            		width: 200,
-            		flex: 0.34
             	}, {
             		id: "attributespanel",
             		layout: "vbox",
@@ -474,6 +485,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }, {
         	ptype: "gxp_geogitutil",
         	id: "geogit_util"
+        }, {
+        	ptype: "gxp_geogitrepoinfo",
+        	id: "repo_info",
+        	outputTarget: "repopanel",
+        	geogitUtil: "geogit_util",
+            featureManager: "feature_manager"
         }, {
             ptype: "gxp_featuremanager",
             id: "feature_manager",

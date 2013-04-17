@@ -92,6 +92,12 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 							layer.isGeogit = true;
 							layer.geogitStore = dataStore.name;
 							layer.nativeName = featureTypeInfo.featureType.nativeName;
+							// this is to get the repository name
+	                         if(layer.repoId === undefined) {
+	                             layer.repoId = layer.url.substring(0, geoserverIndex-1);
+	                             layer.repoId += dataStore.connectionParameters.entry[0].$;
+	                         }
+							
 							if(callback !== undefined){
 								callback(layer);
 							}
@@ -151,7 +157,6 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 					url: url + 'rest/workspaces/' + workspace + '/datastores/' + datastore + '.json',
 					success: function(results){
 						var storeInfo = jsonFormatter.read(results.responseText);
-						
 						if(storeInfo){
 							if(storeInfo.dataStore && storeInfo.dataStore.type){
 								if(isGeoGit && (storeInfo.dataStore.type === "GeoGIT")){
