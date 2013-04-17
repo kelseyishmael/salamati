@@ -1,6 +1,13 @@
-#salamati
+#Salamati
 
-ROGUE Basic Client
+Salamati is a web client based on OpenLayers that provides capabilities for editing features and interacting with GeoGit repositories
+
+##Features
+ * Add and manage map layers using OGC services
+ * Edit point, line, and polygon features (geometry and attributes)
+ * Interact with GeoGit respositories using the GeoGit web API
+ * Temporal playback for temporal layers
+ * Intergration with GeoNode
 
 ##Build Instructions
 **Example**
@@ -24,7 +31,7 @@ Here are some ways to deploy the generated war file (there are probably others):
  * Use the *deploy* target in the suitesdk/build.xml ant script to deploy using [Cargo](http://cargo.codehaus.org/)
  * Set up a custom [Cargo](http://cargo.codehaus.org/) deployment
  
- ##Deploying through GeoServer
+##Deploying through GeoServer
  **Example**
  
  * Run GeoServer.
@@ -34,3 +41,18 @@ Here are some ways to deploy the generated war file (there are probably others):
  
  * This should deploy to port 9080 by default (the console will output the port number)
  * This will also allow you to update the files without having to remake the war file. Just save and refresh the webpage.
+
+##License
+
+Salamati is licensed under the [BSD 3-clause license] (http://opensource.org/licenses/BSD-3-Clause)
+
+Copyright (c) 2013, LMN Solutions LLC.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+ * Neither the name of the copyright holder, nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
