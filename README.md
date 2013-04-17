@@ -3,9 +3,11 @@
 Salamati is a web client based on OpenLayers that provides capabilities for editing features and interacting with GeoGit repositories
 
 ##Features
- * Add and manage map layers using OGC services
- * Edit point, line, and polygon features (geometry and attributes)
- * Interact with GeoGit respositories using the GeoGit web API
+ * Add/Remove/Re-order WMS, WFS, and GeoGit layers
+ * Edit geometries for 2D point, line, and polygon features
+ * Edit attributes for point, line, and polygon features
+ * View the edit history of a feature in a GeoGit data store
+ * Basic merge capabilities for GeoGit data stores
  * Temporal playback for temporal layers
  * Intergration with GeoNode
 
