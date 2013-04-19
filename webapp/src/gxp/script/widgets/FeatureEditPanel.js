@@ -2,6 +2,7 @@
  * @requires plugins/FeatureEditorGrid.js
  * @requires GeoExt/widgets/form/FormPanel.js
  * @requires OpenLayers/Control/ModifyFeature.js
+ * @requires Orthogonalization.js
  */
 
 /** api: (define)
@@ -158,8 +159,12 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
     deleteButton: null,
     
     featureManager: null,
+
+    orthoButton: null,
     
     target: null,
+
+    map: null,
     
     /** private: method[initComponent]
      */
@@ -263,6 +268,52 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
             scope: this
         });
         
+        this.orthoButton = new Ext.Button({
+            text: "Fix",
+            tooltip: "Make a polygon orthogonalized",
+            hidden: true,
+            handler: function() {
+            	var point;
+            	var dragControl = this.modifyControl.dragControl;
+            	var geometry = this.feature.geometry;
+            	
+            	if(geometry instanceof OpenLayers.Geometry.MultiPolygon){
+            		gxp.Orthogonalization.orthogonalize(this.feature, this.map);
+                	this.feature.layer.redraw();
+                	
+            		for(var i = 0; i < geometry.components.length; i++){
+                		for(var j = 0; j < geometry.components[i].components.length; j++){
+                			for(var y = 0; y < geometry.components[i].components[j].components.length;y++){
+                				point = geometry.components[i].components[j].components[y];
+            	            	dragControl.feature = this.feature;
+            	            	pixel = new OpenLayers.Pixel(point.x, point.y);
+            	            	dragControl.downFeature(pixel);
+            	            	dragControl.moveFeature(pixel);
+            	            	dragControl.upFeature(pixel);
+            	            	dragControl.doneDragging(pixel);
+                			}
+                		}
+                	}
+            	}else{
+            		gxp.Orthogonalization.orthogonalize(this.feature, this.map);
+                	this.feature.layer.redraw();
+                	
+            		for(var i = 0; i < geometry.components.length; i++){
+                		for(var j = 0; j < geometry.components[i].components.length; j++){
+                				point = geometry.components[i].components[j];
+            	            	dragControl.feature = this.feature;
+            	            	pixel = new OpenLayers.Pixel(point.x, point.y);
+            	            	dragControl.downFeature(pixel);
+            	            	dragControl.moveFeature(pixel);
+            	            	dragControl.upFeature(pixel);
+            	            	dragControl.doneDragging(pixel);
+                		}
+                	}
+            	}
+            },
+            scope: this
+        });
+        
         this.plugins = [Ext.apply({
             feature: feature,
             schema: this.schema,
@@ -278,7 +329,8 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
                 this.editButton,
                 this.deleteButton,
                 this.saveButton,
-                this.cancelButton
+                this.cancelButton,
+                this.orthoButton
             ]
         });
         
@@ -327,6 +379,7 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
             this.deleteButton.hide();
             this.saveButton.show();
             this.cancelButton.show();
+            this.orthoButton.show();
             
             this.geometry = this.feature.geometry && this.feature.geometry.clone();
             this.attributes = Ext.apply({}, this.feature.attributes);
@@ -392,6 +445,7 @@ gxp.FeatureEditPanel = Ext.extend(GeoExt.form.FormPanel, {
 
             this.cancelButton.hide();
             this.saveButton.hide();
+            this.orthoButton.hide();
             this.editButton.show();
             this.allowDelete && this.deleteButton.show();            
             this.editing = false;

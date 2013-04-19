@@ -309,7 +309,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             		if(xindex === -1) {
             			return true;
             		}
-            		console.log("target", me.target);
             		var vectors = new OpenLayers.Layer.Vector("Attr_diff");
             		if(me.diffLayer != null) {
             			var layer = me.target.mapPanel.map.getLayer(me.diffLayer);
@@ -322,25 +321,19 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             		newstyle.strokeColor = "#00FF00";
             		newstyle.fillColor = "#00FF00";
             		var newvalue = me.store.data.items[xindex-1].data.newvalue;
-            		console.log("newvalue", newvalue);
             		var newGeom = OpenLayers.Geometry.fromWKT(newvalue);
-            		console.log("newGeom", newGeom);
             		var newFeature = new OpenLayers.Feature.Vector(newGeom);
             		newFeature.style = newstyle;
-            		console.log("newFeature", newFeature);
             		vectors.addFeatures(newFeature);
             		
             		var oldvalue = me.store.data.items[xindex-1].data.oldvalue;
             		if(oldvalue != null){
-            			console.log("oldvalue", oldvalue);
             			var oldGeom = OpenLayers.Geometry.fromWKT(oldvalue);
-            			console.log("oldGeom", oldGeom);
             			var oldstyle = OpenLayers.Util.applyDefaults(oldstyle, OpenLayers.Feature.Vector.style['default']);
             			oldstyle.strokeColor = "#FF0000";
             			oldstyle.fillColor = "#FF0000";
             			var oldFeature = new OpenLayers.Feature.Vector(oldGeom);
             			oldFeature.style = oldstyle;
-            			console.log("oldFeature", oldFeature);
             			vectors.addFeatures(oldFeature);
             		}
             		me.target.mapPanel.map.addLayer(vectors);
@@ -390,8 +383,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
 				this.target.mapPanel.map.removeLayer(layer);  
 			}
 			this.diffLayer = null;
-		}
-        console.log("store", this.store);    	
+		}	
     },
     
     /** private: method[init]
