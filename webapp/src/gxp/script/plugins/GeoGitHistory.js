@@ -174,7 +174,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         		if(layerRecord && layerRecord.data && layerRecord.data.layer){
         			var key = workspace + ':' + typeName;
         			
-    				var geoserverIndex = schema.url.indexOf('geoserver/);
+    				var geoserverIndex = schema.url.indexOf('geoserver/');
     				var geoserverUrl = schema.url.substring(0, geoserverIndex + 10);
     				
     				//isGeogit
