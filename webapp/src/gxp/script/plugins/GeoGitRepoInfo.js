@@ -88,7 +88,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                 if(layerRecord && layerRecord.data && layerRecord.data.layer){
                     var key = workspace + ':' + typeName;
                     
-                    var geoserverIndex = schema.url.indexOf('geoserver');
+                    var geoserverIndex = schema.url.indexOf('geoserver/');
                     var geoserverUrl = schema.url.substring(0, geoserverIndex + 10);
                     
                     //isGeogit
@@ -131,7 +131,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             }));
             
             var plugin = this;
-            var geoserverIndex = layer.url.indexOf('geoserver');
+            var geoserverIndex = layer.url.indexOf('geoserver/');
             var geoserverUrl = layer.url.substring(0, geoserverIndex + 10);
             OpenLayers.Request.GET({
                 url: geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/branch?list=true&remotes=true&output_format=JSON',

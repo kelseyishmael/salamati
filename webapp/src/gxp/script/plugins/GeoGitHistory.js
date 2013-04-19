@@ -134,7 +134,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     			'cellclick': function(grid, rowIndex, columnIndex, e){
     				var oldCommit = grid.getStore().getAt(rowIndex).data.commit;
     				var newCommit = grid.getStore().getAt(0).data.commit;
-    				var geoserverIndex = plugin.url.indexOf('geoserver');
+    				var geoserverIndex = plugin.url.indexOf('geoserver/');
     				var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
     				var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + oldCommit + '&newRefSpec=' + newCommit + '&output_format=JSON';
     				console.log("url", url);
@@ -174,7 +174,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         		if(layerRecord && layerRecord.data && layerRecord.data.layer){
         			var key = workspace + ':' + typeName;
         			
-    				var geoserverIndex = schema.url.indexOf('geoserver');
+    				var geoserverIndex = schema.url.indexOf('geoserver/);
     				var geoserverUrl = schema.url.substring(0, geoserverIndex + 10);
     				
     				//isGeogit

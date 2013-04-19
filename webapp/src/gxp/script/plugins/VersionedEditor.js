@@ -151,7 +151,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         var typeName = this.schema.reader.raw.featureTypes[0].typeName;
     	}
         
-        var geoserverIndex = this.schema.url.indexOf('geoserver');
+        var geoserverIndex = this.schema.url.indexOf('geoserver/');
         this.url = this.schema.url.substring(0, geoserverIndex + 9) + '/';
 
         var plugin = this;

@@ -76,7 +76,7 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 			var featureType = layer.params.LAYERS;
 			var parsedFeatureType = this.parseFeatureType(featureType);
 			
-			var geoserverIndex = layer.url.indexOf('geoserver');
+			var geoserverIndex = layer.url.indexOf('geoserver/');
 			var geoserverUrl = layer.url.substring(0, geoserverIndex + 10);
 			
 			// Check to see if the layer has already been checked
