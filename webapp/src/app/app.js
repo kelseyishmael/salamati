@@ -222,7 +222,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     // write cookie
                     document.cookie = cookietext;
                 };
-                //TODO: implement but we also need to cach the sources as by defaut it only tries to parse out local host geoserver
+                //TODO: implement but we also need to cache the sources as by default it only tries to parse out local host geoserver
                 var setMapLayersCookie = function(expiredays) {
                 };
 
@@ -291,6 +291,16 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                         }
                     }
                 });
+            },
+            "togglesouthpanel" : function() { 
+                var southPanel = Ext.getCmp('southPanel');
+                if(southPanel.hidden) {
+                    southPanel.show();
+                    southPanel.expand();
+                } else {
+                    southPanel.hide();
+                }
+                app.portal.doLayout();
             }
         };
 

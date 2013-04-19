@@ -23,8 +23,8 @@ Ext.namespace("gxp.plugins");
 /** api: constructor
  *  .. class:: GeoGitHistoryButton(config)
  *
- *    Plugin that adds a context menu option to hide or show the geogit 
- *    history panel far a layer.
+ *    Plugin to hide or show the geogit 
+ *    history panel for a layer.
  */
 gxp.plugins.GeoGitHistoryButton = Ext.extend(gxp.plugins.Tool, {
     
@@ -33,15 +33,9 @@ gxp.plugins.GeoGitHistoryButton = Ext.extend(gxp.plugins.Tool, {
     
     /** api: config[historyButtonText]
      *  ``String``
-     *  Text for remove menu item (i18n).
+     *  Text for history button item (i18n).
      */
     historyButtonText: "Show/Hide History",
-
-    /** api: config[historyButtonTip]
-     *  ``String``
-     *  Text for remove action tooltip (i18n).
-     */
-    //historyButtonTip: "Show or Hide this layer's GeoGit history",
     
     /** api: method[addActions]
      */
@@ -53,14 +47,7 @@ gxp.plugins.GeoGitHistoryButton = Ext.extend(gxp.plugins.Tool, {
             disabled: true,
             tooltip: this.historyButtonTip,
             handler: function() {
-            	var southPanel = Ext.getCmp('southPanel');
-            	if(southPanel.hidden) {
-            		southPanel.show();
-            		southPanel.expand();
-            	} else {
-            		southPanel.hide();
-            	}
-            	app.portal.doLayout();
+                app.fireEvent("togglesouthpanel");
             },
             scope: this
         }]);
@@ -69,7 +56,7 @@ gxp.plugins.GeoGitHistoryButton = Ext.extend(gxp.plugins.Tool, {
         this.target.on("layerselectionchange", function(record) {
             selectedLayer = record;
             historyButtonAction.setDisabled(
-                this.target.mapPanel.layers.getCount() <= 1 || !record
+                !record ? true : false
             );
         }, this);
         var enforceOne = function(store) {
