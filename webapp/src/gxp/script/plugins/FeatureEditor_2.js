@@ -208,6 +208,8 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
     
     target: null,
     
+    saveHandleSet: false,
+    
 
     /** private: method[constructor]
      */
@@ -255,7 +257,7 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
         gxp.plugins.FeatureEditor_2.superclass.init.apply(this, arguments);
         this.target.on("authorizationchange", this.onAuthorizationChange, this);
         
-
+        
     },
 
     /** private: method[destroy]
@@ -415,6 +417,7 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
             },
             "featureunselected": function(evt) {
                 var feature = evt.feature;
+                
                 if (feature) {
                     this.fireEvent("featureeditable", this, feature, false);
                 }
@@ -443,6 +446,18 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
                     this.fireEvent("featureeditable", this, feature, true);
                 }
                 var featureStore = featureManager.featureStore;
+                if(!this.saveHandleSet){
+                	this.saveHandleSet = true;
+                	featureStore.on('save', function(store, batch, data){
+                    	console.log("save callback");
+                    	popup.reset(this);
+                    	popup.show();
+                    	if(popup.disabled) {
+                    		popup.enable();
+                    	}
+                    }, this);
+                }
+                
                 if(this._forcePopupForNoGeometry === true || (this.selectControl.active && feature.geometry !== null)) {
                     // deactivate select control so no other features can be
                     // selected until the popup is closed
