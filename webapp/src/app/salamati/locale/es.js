@@ -29,5 +29,9 @@ GeoExt.Lang.add("es", {
         Title_Search: "Busca",
         ActionTip_Default: "Distancia/Cojinete",
         ActionTip_Edit: "Obtener informaci�n"
+    },
+    "gxp.plugins.DiffPanel.prototype": {
+        Title_Fid: "es_fid",
+        Title_Change: "es_Change"
     }
 });

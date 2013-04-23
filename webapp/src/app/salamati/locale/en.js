@@ -29,5 +29,9 @@ GeoExt.Lang.add("en", {
         Title_Search: "Search",
         ActionTip_Default: "Distance/Bearing of features from click location",
         ActionTip_Edit: "Get feature info"
+    },
+    "gxp.plugins.DiffPanel.prototype": {
+        Title_Fid: "fid",
+        Title_Change: "Change"
     }
 });

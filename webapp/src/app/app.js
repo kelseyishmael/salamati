@@ -39,6 +39,7 @@
  * @require plugins/GeoGitHistory.js
  * @require plugins/GeoGitHistoryButton.js
  * @require plugins/GeoGitRepoInfo.js
+ * @require plugins/DiffPanel.js
  */
 
 (function() {
@@ -251,14 +252,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     "removelayer" : function(e) {
                         setMapLayersCookie();
                         console.log("map.events.removelayer: ", e);
-                        var callback = function(layer){
-        					if(layer !== false){ 
-        						var southPanel = Ext.getCmp('southPanel');
-                            	southPanel.hide();
-                            	app.portal.doLayout();
-        					}
-        				};
-                        app.tools.geogit_util.isGeoGitLayer(e.layer, callback);
+                        if(e.layer.metadata.isGeoGit) {
+                            app.fireEvent("togglesouthpanel");
+                        }
                     },
                     "changelayer" : function(e) {
                         setMapLayersCookie();
@@ -299,6 +295,16 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     southPanel.expand();
                 } else {
                     southPanel.hide();
+                    Ext.getCmp('westpanel').hide();
+                }
+                app.portal.doLayout();
+            },
+            "commitdiffselected" : function(tool, store) { 
+                var westPanel = Ext.getCmp('westpanel');
+                this.tools['diffpanel'].fireEvent("commitdiffselected", tool, store);
+                if(westPanel.hidden) {
+                    westPanel.show();
+                    westPanel.expand();
                 }
                 app.portal.doLayout();
             }
@@ -366,6 +372,13 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 items: ["mymap",
                     win]
             }, {
+            	id: "westpanel",
+            	layout: "fit",
+            	region: "west",
+            	collapsible: false,
+            	hidden: true,
+            	width: 200
+            },{
             	id: "eastpanel",
             	layout: "vbox",
             	region: "east",
@@ -538,6 +551,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         	featureManager: "feature_manager",
         	geogitUtil: "geogit_util",
         	outputTarget: "southPanel"
+        },{
+        	ptype: "gxp_diffpanel",
+        	id: "diffpanel",
+            featureManager: "feature_manager",
+            geogitUtil: "geogit_util",
+        	outputTarget: "westpanel"
         },{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",

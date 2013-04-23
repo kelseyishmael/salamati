@@ -36,6 +36,8 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
      */
     store: null,
     
+    diffStore: null,
+    
     /**
      * Ext.grid.GridPanel
      */
@@ -138,7 +140,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     				var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
     				var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + oldCommit + '&newRefSpec=' + newCommit + '&output_format=JSON';
     				console.log("url", url);
-    		        var store = new Ext.data.Store({
+    				plugin.diffStore = new Ext.data.Store({
     		        	url: url,
     		    		reader: new Ext.data.JsonReader({
     		    			root: 'response.Feature',
@@ -157,9 +159,27 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     		    		}),
     		    		autoLoad: true
     		    	});
-    		        console.log("store", store);
+    		        console.log("store", plugin.diffStore);
+    			},
+    			contextmenu: function(event) {
+    			    geogitHistory.contextMenu.showAt(event.getXY());
+    			    event.stopEvent();
     			}
-    		}
+    		},
+            contextMenu: new Ext.menu.Menu({
+                items: [
+                    {
+                        xtype: 'button',
+                        text: 'Show diff',
+                        handler: function() {
+                            if(plugin.diffStore) {
+                                app.fireEvent("commitdiffselected", this, plugin.diffStore);
+                            }
+                            geogitHistory.contextMenu.hide();
+                        }
+                    }
+                ]
+            })
 		});
         
         config = Ext.apply(this.grid, config || {});
@@ -254,8 +274,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
 			},
 			failure: error
 		});
-	}
-                
+	}       
 });
 
 Ext.preg(gxp.plugins.GeoGitHistory.prototype.ptype, gxp.plugins.GeoGitHistory);
