@@ -8,6 +8,7 @@
 
 /**
  * @requires plugins/FeatureEditorGrid.js
+ * @requires GeoGitUtil.js
  */
 
 Ext.namespace("gxp.plugins");
@@ -35,6 +36,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     day: "day",
     days: "days",
     ago: "ago",
+    nextCommitText: "Next",    
+    nextCommitTooltip: "See what changed in the next commit",    
+    prevCommitText: "Prev",    
+    prevCommitTooltip: "See what changed in the previous commit",
     /* end i18n */
 
     border: false,
@@ -53,11 +58,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     
     historyTab: null,
     
-    geogitUtil: null,
-    
     featureManager: null,
-    
-    target: null,
     
     commits: null,
     
@@ -71,19 +72,14 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     
     nullObjectId: "0000000000000000000000000000000000000000",
     
-    nextCommitText: "Next",
-    
-    nextCommitTooltip: "See what changed in the next commit",
-    
-    prevCommitText: "Prev",
-    
-    prevCommitTooltip: "See what changed in the previous commit",
-    
-    buttons: null,
-    
     commitIndex: 0,
     
     diffLayer: null,
+    
+    // style options to add to the old and new features in the attribute diff layer
+    oldStyle: null,
+    
+    newStyle: null,
 
     /** api: ptype = gxp_versionededitor */
     ptype: "gxp_versionededitor",
@@ -106,7 +102,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         }, editorConfig);
         this.attributeEditor = Ext.ComponentMgr.create(config);
         this.add(this.attributeEditor);
-        
         var plugin = this;
         
         var nextCommitButton = new Ext.Button({
@@ -125,8 +120,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             scope: this
         });
         
-        this.buttons = [prevCommitButton, nextCommitButton];
-        
         var addPanel = function(dataView){
         	plugin.historyTab = Ext.ComponentMgr.create({
                 xtype: 'panel',
@@ -136,11 +129,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 autoScroll: true, 
                 items: [dataView], 
                 title: plugin.historyTitle,
-                tbar: [plugin.buttons]
+                tbar: [prevCommitButton, nextCommitButton]
             });
         	plugin.add(plugin.historyTab);
         };
-        
         this.createDataView(addPanel);
     },
 
@@ -148,23 +140,22 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
      */
     createDataView: function(addPanel) {
     	if(this.schema) {
-        var typeName = this.schema.reader.raw.featureTypes[0].typeName;
-    	}
-        
-        var geoserverIndex = this.schema.url.indexOf('geoserver/');
-        this.url = this.schema.url.substring(0, geoserverIndex + 9) + '/';
+    	    var typeName = this.schema.reader.raw.featureTypes[0].typeName;
+            this.workspace = this.schema.reader.raw.targetPrefix;
+            var geoserverIndex = this.schema.url.indexOf('geoserver/');
+            this.url = this.schema.url.substring(0, geoserverIndex + 9) + '/';
+    	}     
 
-        var plugin = this;
+        var plugin = this;        
         
-        this.workspace = this.schema.reader.raw.targetPrefix;
         var isGeoGit = function(layer){
-        	plugin.dataStore = layer.geogitStore;
+        	plugin.dataStore = layer.metadata.geogitStore;
 
         	if(plugin.feature == null || plugin.feature.fid == null || layer === false) {
         		return;
         	}
-        	plugin.path = layer.nativeName.split(":").pop() + "/" + 
-        			   plugin.feature.fid.replace(typeName.split(":").pop(), layer.nativeName.split(":").pop());
+        	plugin.path = layer.metadata.nativeName.split(":").pop() + "/" + 
+        			   plugin.feature.fid.replace(typeName.split(":").pop(), layer.metadata.nativeName.split(":").pop());
             if (plugin.url.charAt(plugin.url.length-1) !== '/') {
                 plugin.url = plugin.url + "/";
             }
@@ -174,27 +165,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             
             var store = new Ext.data.Store({
             	url: url,
-        		reader: new Ext.data.JsonReader({
-        			root: 'response.commit',
-        			fields: [
-        			   {
-        				   name: 'message',
-        				   mapping: 'message'
-        			   },{
-        				   name: 'commit',
-        				   mapping: 'id'
-        			   },{
-        				   name: 'author',
-        				   mapping: 'author.name'
-        			   },{
-        				   name: 'email',
-        				   mapping: 'author.email'
-        			   }, {
-        				   name: 'date',
-        				   mapping: 'author.timestamp'
-        			   }
-        			]
-        		}),
+        		reader: gxp.GeoGitUtil.logReader,
         		listeners: {
         			"load": function() {
         				plugin.commits = store.data.items;  
@@ -214,9 +185,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         	featureType = this.schema.baseParams['TYPENAME'];
         }
 
-        var geogitUtil = this.target.tools[this.geogitUtil];
-        var featureManager = this.target.tools[this.featureManager];
-        geogitUtil.isGeoGitLayer(featureManager.layerRecord.data.layer, isGeoGit);
+        var featureManager = app.tools[this.featureManager];
+        gxp.GeoGitUtil.isGeoGitLayer(featureManager.layerRecord.data.layer, isGeoGit);
     },
 
     createDiffStore: function(newCommitId, oldCommitId, addPanel) {
@@ -225,49 +195,30 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         var me = this;
         this.store = new Ext.data.Store({
         	url: url,
-    		reader: new Ext.data.JsonReader({
-    			root: 'response.diff',
-    			fields: [
-          			   {
-          				   name: 'name',
-          				   mapping: 'attributename'
-          			   },{
-          				   name: 'change',
-          				   mapping: 'changetype'
-          			   },{
-          				   name: 'newvalue',
-          				   mapping: 'newvalue'
-          			   },{
-          				   name: 'oldvalue',
-          				   mapping: 'oldvalue'
-          			   }
-          			],
-          		idProperty: 'attributename'
-    			}),
+    		reader: gxp.GeoGitUtil.featureDiffReader,
         		listeners: {
         			"load": function() { 
+        			    var buttons = me.historyTab.getTopToolbar().items.items;
         				if(me.commitIndex === 0) {
-        					if(me.buttons[1].disabled != true) {
-        						me.buttons[1].disable();
-        					}
+        					buttons[1].disable();
         					
         					if(me.commitIndex === me.commits.length-1) {
-        						me.buttons[0].disable();
-        					} else if(me.buttons[0].disabled === true) {
-        						me.buttons[0].enable();
+        						buttons[0].disable();
+        					} else if(buttons[0].disabled === true) {
+        						buttons[0].enable();
         					}
         				} else if(me.commitIndex === me.commits.length-1) {
-        					if(me.buttons[0].disabled != true) {
-        						me.buttons[0].disable();
+        					if(buttons[0].disabled != true) {
+        						buttons[0].disable();
         					}
-        					if(me.buttons[1].disabled === true) {
-        						me.buttons[1].enable();
+        					if(buttons[1].disabled === true) {
+        						buttons[1].enable();
         					}
         				} else {
-        					if(me.buttons[0].disabled === true) {
-        						me.buttons[0].enable();
-        					}else if(me.buttons[1].disabled === true) {
-        						me.buttons[1].enable();
+        					if(buttons[0].disabled === true) {
+        						buttons[0].enable();
+        					}else if(buttons[1].disabled === true) {
+        						buttons[1].enable();
         					}
         				}
         			}
@@ -296,7 +247,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             },
             checkForGeometry: function(type, xindex) {
             	var geomRegex = /gml:((Multi)?(Point|Line|Polygon|Curve|Surface|Geometry)).*/;
-            	var properties = me.target.tools[me.featureManager].schema.reader.raw.featureTypes[0].properties;
+            	var properties = app.tools[me.featureManager].schema.reader.raw.featureTypes[0].properties;
             	var name = null;
             	for(var index=0; index < properties.length; index++) {
             		var match = geomRegex.exec(properties[index].type);
@@ -309,34 +260,28 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             		if(xindex === -1) {
             			return true;
             		}
-            		var vectors = new OpenLayers.Layer.Vector("Attr_diff");
-            		if(me.diffLayer != null) {
-            			var layer = me.target.mapPanel.map.getLayer(me.diffLayer);
-            			if(layer != null) {
-            				me.target.mapPanel.map.removeLayer(layer);  
-            			}
+            		
+            		if(me.diffLayer === null) {
+            		    me.diffLayer = new OpenLayers.Layer.Vector("Attr_diff");
+            		} else {
+            		    me.diffLayer.removeAllFeatures();
             		}
-            		me.diffLayer = vectors.id;
-            		var newstyle = OpenLayers.Util.applyDefaults(newstyle, OpenLayers.Feature.Vector.style['default']);
-            		newstyle.strokeColor = "#00FF00";
-            		newstyle.fillColor = "#00FF00";
+            		var newstyle = OpenLayers.Util.applyDefaults(me.newStyle, OpenLayers.Feature.Vector.style['default']);
             		var newvalue = me.store.data.items[xindex-1].data.newvalue;
             		var newGeom = OpenLayers.Geometry.fromWKT(newvalue);
             		var newFeature = new OpenLayers.Feature.Vector(newGeom);
             		newFeature.style = newstyle;
-            		vectors.addFeatures(newFeature);
+            		me.diffLayer.addFeatures(newFeature);
             		
             		var oldvalue = me.store.data.items[xindex-1].data.oldvalue;
             		if(oldvalue != null){
             			var oldGeom = OpenLayers.Geometry.fromWKT(oldvalue);
-            			var oldstyle = OpenLayers.Util.applyDefaults(oldstyle, OpenLayers.Feature.Vector.style['default']);
-            			oldstyle.strokeColor = "#FF0000";
-            			oldstyle.fillColor = "#FF0000";
+            			var oldstyle = OpenLayers.Util.applyDefaults(me.oldStyle, OpenLayers.Feature.Vector.style['default']);
             			var oldFeature = new OpenLayers.Feature.Vector(oldGeom);
             			oldFeature.style = oldstyle;
-            			vectors.addFeatures(oldFeature);
+            			me.diffLayer.addFeatures(oldFeature);
             		}
-            		me.target.mapPanel.map.addLayer(vectors);
+            		app.mapPanel.map.addLayer(me.diffLayer);
             		return true;
             	}
             	return false;
@@ -378,11 +323,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         this.store.proxy.setUrl(url, true);
         this.store.load();
 		if(this.diffLayer != null) {
-			var layer = this.target.mapPanel.map.getLayer(this.diffLayer);
+			var layer = app.mapPanel.map.getLayer(this.diffLayer.id);
 			if(layer != null) {
-				this.target.mapPanel.map.removeLayer(layer);  
+				app.mapPanel.map.removeLayer(layer);  
 			}
-			this.diffLayer = null;
 		}	
     },
     
@@ -396,28 +340,44 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         // of adding the editor to our container later on
         target.on('beforeadd', OpenLayers.Function.False, this);
         this.attributeEditor.init(target);
+        this.target = target;
         target.un('beforeadd', OpenLayers.Function.False, this);
         target.add(this);
         target.doLayout();
     },
     
     reset: function(newPanel) {
-    	this.attributeEditor.reset(newPanel);
-    	if(newPanel.feature == null) {
+    	if(newPanel == null || newPanel.feature == null) {
     		this.remove(this.historyTab);
+    		this.remove(this.attributeEditor);
+    		this.attributeEditor = null;
     		this.historyTab = null;
     		if(this.diffLayer != null) {
-    			var layer = this.target.mapPanel.map.getLayer(this.diffLayer);
-    			if(layer != null) {
-    				this.target.mapPanel.map.removeLayer(layer);  
-    			}
-    			this.diffLayer = null;
+    			var layer = app.mapPanel.map.getLayer(this.diffLayer.id);
+                if(layer != null) {
+                    app.mapPanel.map.removeLayer(layer);  
+                }
     		}
+    		return;
     	}
+           	
         this.feature = newPanel.feature;
         this.schema = newPanel.schema;
         this.fields = newPanel.fields;
         this.excludeFields = newPanel.excludeFields;
+
+        this.attributeEditor = Ext.ComponentMgr.create({
+            xtype: "gxp_editorgrid",
+            title: this.attributesTitle,
+            feature: this.feature,
+            schema: this.schema,
+            fields: this.fields,
+            excludeFields: this.excludeFields
+        });
+        
+        this.attributeEditor.init(this.target);
+        this.add(this.attributeEditor);
+        this.setActiveTab(0);          
 
         this.commitIndex = 0;
                
@@ -437,8 +397,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             scope: this
         });
         
-        this.buttons = [prevCommitButton, nextCommitButton];
-        
         var plugin = this;
         var addPanel = function(dataView){
         	var historyTab = Ext.ComponentMgr.create({
@@ -449,7 +407,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 autoScroll: true, 
                 items: [dataView], 
                 title: plugin.historyTitle,
-                tbar: [plugin.buttons]
+                tbar: [prevCommitButton, nextCommitButton]
             });
         	if(plugin.historyTab != null) {
         		plugin.remove(plugin.historyTab);
@@ -459,6 +417,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         };
         
         this.createDataView(addPanel);
+        this.target.doLayout(false, true);                 
+        
     }
 
 });

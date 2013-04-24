@@ -6,61 +6,91 @@
  * of the license.
  */
 
-/**
- * @requires plugins/Tool.js
- */
-
 /** api: (define)
- *  module = gxp.plugins
+ *  module = gxp
  *  class = GeoGitUtil
  */
 
-/** api: (extends)
- *  plugins/Tool.js
- */
-Ext.ns("gxp.plugins");
+Ext.namespace("gxp");
 
-/** api: constructor
- *  .. class:: Tools(config)
- *
- *    Provides actions for box zooming, zooming in and zooming out.
- */
-gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
-    
-    /** api: ptype = gxp_geogitutil */
-    ptype: "gxp_geogitutil",
-
-    /** private: method[constructor]
-     */
-    constructor: function(config) {
-        gxp.plugins.GeoGitUtil.superclass.constructor.apply(this, arguments);
-    },
-    
-    /** api: method[addOutput]
-     */
-    addOutput: function(config) {
-    	this.target.mapPanel.map.events.register('addlayer', this, this.onLayerAdded);
-    },
+gxp.GeoGitUtil = {
     
     /**
-     * Send the requests to check to see if a layer is from a geogit data st
+     * JSON reader for the log operation in GeoGit
      */
-    onLayerAdded: function(evt){
-    	this.isGeoGitLayer(evt.layer);
-    },
+    logReader: new Ext.data.JsonReader({
+        root: 'response.commit',
+        fields: [
+           {
+               name: 'message',
+               mapping: 'message'
+           },{
+               name: 'commit',
+               mapping: 'id'
+           },{
+               name: 'author',
+               mapping: 'author.name'
+           },{
+               name: 'email',
+               mapping: 'author.email'
+           }, {
+               name: 'date',
+               mapping: 'author.timestamp'
+           }
+        ]
+    }),
     
+    /**
+     * JSON reader for the diff operation in GeoGit
+     */
+    diffReader: new Ext.data.JsonReader({
+        root: 'response.Feature',
+        fields: [
+           {
+               name: 'fid',
+               mapping: 'id'
+           },{
+               name: 'change',
+               mapping: 'change'
+           },{
+               name: 'geometry',
+               mapping: 'geometry'
+           }
+        ]
+    }),
+    
+    /**
+     * JSON reader for the featureDiff operation in GeoGit
+     */
+    featureDiffReader: new Ext.data.JsonReader({
+        root: 'response.diff',
+        fields: [
+               {
+                   name: 'name',
+                   mapping: 'attributename'
+               },{
+                   name: 'change',
+                   mapping: 'changetype'
+               },{
+                   name: 'newvalue',
+                   mapping: 'newvalue'
+               },{
+                   name: 'oldvalue',
+                   mapping: 'oldvalue'
+               }
+            ],
+        idProperty: 'attributename'
+        }),
+        
     /**
      * Parse the featureType for the workspace and typename
      */
     parseFeatureType: function(featureType){
     	if(featureType){
-    		var indexOfColon = featureType.indexOf(':');
-    		var workspace = featureType.substring(0, indexOfColon);
-    		var typeName = featureType.substr(indexOfColon + 1);
-    		
+    		var split = featureType.split(":");
     		return {
-    			workspace: workspace,
-    			typeName: typeName
+    			workspace: split[0],
+    			typeName: split[1]
     		};
     		
     	}
@@ -68,8 +98,7 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
     
     /** public: method[isGeoGitLayer]
      * 
-     *  callback should expect either false for it's not a geogit layer or the name
-     *  of the geogit datastore if it is a geogit layer
+     *  callback should expect either false for it's not a geogit layer or the layer object itself
      */
     isGeoGitLayer: function(layer, callback){
     	if(layer && layer.params && layer.params.LAYERS && !(layer.params.LAYERS instanceof Array)){
@@ -80,7 +109,7 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 			var geoserverUrl = layer.url.substring(0, geoserverIndex + 10);
 			
 			// Check to see if the layer has already been checked
-			if(layer.isGeogit === undefined){
+			if(layer.metadata.isGeogit === undefined){
 				var isGeoGit = function(dataStore){
 					var plugin = this;
 					OpenLayers.Request.GET({
@@ -89,13 +118,13 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 						success: function(results){
 							var jsonFormatter = new OpenLayers.Format.JSON();
 							var featureTypeInfo = jsonFormatter.read(results.responseText);
-							layer.isGeogit = true;
-							layer.geogitStore = dataStore.name;
-							layer.nativeName = featureTypeInfo.featureType.nativeName;
+							layer.metadata.isGeogit = true;
+							layer.metadata.geogitStore = dataStore.name;
+							layer.metadata.nativeName = featureTypeInfo.featureType.nativeName;
 							// this is to get the repository name
-	                         if(layer.repoId === undefined) {
-	                             layer.repoId = layer.url.substring(0, geoserverIndex-1);
-	                             layer.repoId += dataStore.connectionParameters.entry[0].$;
+	                         if(layer.metadata.repoId === undefined) {
+	                             layer.metadata.repoId = layer.url.substring(0, geoserverIndex-1);
+	                             layer.metadata.repoId += dataStore.connectionParameters.entry[0].$;
 	                         }
 							
 							if(callback !== undefined){
@@ -107,7 +136,7 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 				};
 				
 				var isNotGeoGit = function(){
-					layer.isGeogit = false;
+					layer.metadata.isGeogit = false;
 					if(callback != undefined){
 						callback(false);
 					}
@@ -116,7 +145,7 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 				//check to see if the layer is a geogit layer
 				this.fetchIsGeoGitLayer(geoserverUrl, parsedFeatureType.workspace, featureType, isGeoGit, isNotGeoGit);
 				
-			}else if(layer.isGeogit){
+			}else if(layer.metadata.isGeogit){
 				// It is a geogit layer so execute the callback, passing in the name of the store
 				if(callback !== undefined){
 					callback(layer);
@@ -179,7 +208,4 @@ gxp.plugins.GeoGitUtil = Ext.extend(gxp.plugins.Tool, {
 			failure: plugin.errorFetching
 		});
 	}
-        
-});
-
-Ext.preg(gxp.plugins.GeoGitUtil.prototype.ptype, gxp.plugins.GeoGitUtil);
+};

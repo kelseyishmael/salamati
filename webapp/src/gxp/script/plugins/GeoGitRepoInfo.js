@@ -8,6 +8,7 @@
 
 /**
  * @requires plugins/Tool.js
+ * @requires GeoGitUtil.js
  */
 
 /** api: (define)
@@ -23,14 +24,20 @@ Ext.ns("gxp.plugins");
 
 gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     ptype: "gxp_geogitrepoinfo",
-
-    panel: null,
+    
+    /* i18n */
+    Text_Info: "Info",
+    Text_Repos: "Repos",
+    Text_Branches: "Branches",
+    Text_Local: "Local",
+    Text_Remote: "Remote",
+    Text_Remotes: "Remotes",
+    Text_Tags: "Tags",
+    /* end i18n */
     
     treeRoot: null,
     
     featureManager: null,
-    
-    geogitUtil: null,
     
     workspace: null,
     
@@ -50,31 +57,28 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     tagRoot: "TagRoot",
 
     addOutput: function(config) {
-        this.parentContainer = Ext.getCmp(this.outputTarget);
-
         var featureManager = this.target.tools[this.featureManager];
-        var geogitUtil = this.target.tools[this.geogitUtil];
 
         this.treeRoot = new Ext.tree.TreeNode({
-            text: "Info",
+            text: this.Text_Info,
             expanded: true,
             isTarget: false,
             allowDrop: false
         });
         var repoNode = this.treeRoot.appendChild(new Ext.tree.TreeNode({
-            text: "Repos",
+            text: this.Text_Repos,
             expanded: true,
             type: this.repoRoot
         }));
         
-        this.panel = new Ext.tree.TreePanel({
+        var panel = new Ext.tree.TreePanel({
             root: this.treeRoot,
             rootVisible: false,
             border: false,
             autoScroll: true
         });
 
-        config = Ext.apply(this.panel, config || {});
+        config = Ext.apply(panel, config || {});
 
         var repoInfo = gxp.plugins.GeoGitRepoInfo.superclass.addOutput.call(this, config);
 
@@ -95,12 +99,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                     var callback = function(layer){
                         if(layer !== false) {
                             plugin.workspace = workspace;
-                            plugin.dataStore = layer.geogitStore;
+                            plugin.dataStore = layer.metadata.geogitStore;
                             plugin.addRepo(layer);
                         }
                     };
                     
-                    geogitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
+                    gxp.GeoGitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
                 }
             }
         };
@@ -114,18 +118,18 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     },
     
     addRepo: function(layer) {
-        var node = this.treeRoot.findChild("repoId", layer.repoId, true);
+        var node = this.treeRoot.findChild("repoId", layer.metadata.repoId, true);
         if(node === null) {
             node = this.treeRoot.findChild("type", this.repoRoot);
-            var repoName = layer.repoId.substring(layer.repoId.lastIndexOf('/' || '\\') + 1, layer.repoId.length);
+            var repoName = layer.metadata.repoId.substring(layer.metadata.repoId.lastIndexOf('/' || '\\') + 1, layer.metadata.repoId.length);
             var repoNode = node.appendChild(new Ext.tree.TreeNode({
                 text: repoName,
                 expanded: true,
-                repoId: layer.repoId
+                repoId: layer.metadata.repoId
             }));
             
             var branchNode = repoNode.appendChild(new Ext.tree.TreeNode({
-                text: "Branches",
+                text: this.Text_Branches,
                 expanded: true,
                 type: this.branchRoot
             }));
@@ -136,17 +140,14 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             OpenLayers.Request.GET({
                 url: geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/branch?list=true&remotes=true&output_format=JSON',
                 success: function(results){
-                    var jsonFormatter = new OpenLayers.Format.JSON();
-                    var branchInfo = jsonFormatter.read(results.responseText);
-                    console.log("branchInfo", branchInfo);
-                    
+                    var branchInfo = Ext.decode(results.responseText);
                     var localBranchNode = branchNode.appendChild(new Ext.tree.TreeNode({
-                        text: "Local",
+                        text: plugin.Text_Local,
                         expanded: true,
                         type: plugin.localBranchRoot
                     }));
                     var remoteBranchNode = branchNode.appendChild(new Ext.tree.TreeNode({
-                        text: "Remote",
+                        text: plugin.Text_Remote,
                         expanded: true,
                         type: plugin.remoteBranchRoot
                     }));
@@ -176,7 +177,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             });
             
             var remoteNode = repoNode.appendChild(new Ext.tree.TreeNode({
-                text: "Remotes",
+                text: this.Text_Remotes,
                 expanded: true,
                 type: this.remoteRoot
             }));
@@ -184,9 +185,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             OpenLayers.Request.GET({
                 url: geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/remote?list=true&output_format=JSON',
                 success: function(results){
-                    var jsonFormatter = new OpenLayers.Format.JSON();
-                    var remoteInfo = jsonFormatter.read(results.responseText);
-                    console.log("remoteInfo", remoteInfo);
+                    var remoteInfo = Ext.decode(results.responseText);
                     if(remoteInfo.response.Remote !== undefined) {
                         var length = remoteInfo.response.Remote.length;
                         if(length !== undefined) {
@@ -206,7 +205,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             });
             
             var tagNode = repoNode.appendChild(new Ext.tree.TreeNode({
-                text: "Tags",
+                text: this.Text_Tags,
                 expanded: true,
                 type: this.tagRoot
             }));
@@ -214,9 +213,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             OpenLayers.Request.GET({
                 url: geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/tag?list=true&output_format=JSON',
                 success: function(results){
-                    var jsonFormatter = new OpenLayers.Format.JSON();
-                    var tagInfo = jsonFormatter.read(results.responseText);
-                    console.log("tagInfo", tagInfo);
+                    var tagInfo = Ext.decode(results.responseText);
                     if(tagInfo.response.Tag !== undefined) {
                         var length = tagInfo.response.Tag.length;
                         if(length !== undefined) {
@@ -241,7 +238,6 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         var name = branchInfo.name;
         var plugin = this;
         var path = "";
-        console.log("parentNode", parentNode);
         if(parentNode.attributes.type === this.remoteBranchRoot) {
             path = "refs/remotes/" + branchInfo.remoteName + "/";
             name += " (" + branchInfo.remoteName + ")";
@@ -256,9 +252,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         OpenLayers.Request.GET({
             url: url + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/ls-tree?path=' + path + '&output_format=JSON',
             success: function(results){
-                var jsonFormatter = new OpenLayers.Format.JSON();
-                var featureTypeInfo = jsonFormatter.read(results.responseText);
-                console.log("featureTypeInfo", featureTypeInfo);
+                var featureTypeInfo = Ext.decode(results.responseText);
                 var length = featureTypeInfo.response.node.length;
                 if(length !== undefined) {
                     for(var index = 0; index < length; index++) {

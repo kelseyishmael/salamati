@@ -23,11 +23,59 @@ GeoExt.Lang.add("es", {
         menuText: "Configuraci�n",
         tooltip: "Spanish Show Settings"
     },
+    // TODO: translate all strings with es_ or (es)
     "salamati.Viewer.prototype": {
     	Map: "Mapa",
         Title_Tools: "Instrumentos",
         Title_Search: "Busca",
+        Title_Layers: "es_Layers",
+        Title_GeoGit: "es_GeoGit",
         ActionTip_Default: "Distancia/Cojinete",
         ActionTip_Edit: "Obtener informaci�n"
+    },
+    "gxp.plugins.GeoGitHistory.prototype": {
+        Text_Author: "es_Author",
+        Text_Email: "es_Email",
+        Text_Message: "es_Message",
+        Text_CommitId: "es_Commit Id",
+        Text_Date: "es_Date"
+    },
+    "gxp.plugins.GeoGitRepoInfo.prototype": {
+        Text_Info: "es_Info",
+        Text_Repos: "es_Repos",
+        Text_Branches: "es_Branches",
+        Text_Local: "es_Local",
+        Text_Remote: "es_Remote",
+        Text_Remotes: "es_Remotes",
+        Text_Tags: "es_Tags"
+    },
+    "gxp.FeatureEditPanel.prototype": {
+        closeMsgTitle: '(es)Save Changes?',
+        closeMsg: '(es)This feature has unsaved changes. Would you like to save your changes?',
+        deleteMsgTitle: '(es)Delete Feature?',
+        deleteMsg: '(es)Are you sure you want to delete this feature?',
+        editButtonText: 'es_Edit',
+        editButtonTooltip: '(es)Make this feature editable',
+        deleteButtonText: 'es_Delete',
+        deleteButtonTooltip: '(es)Delete this feature',
+        cancelButtonText: 'es_Cancel',
+        cancelButtonTooltip: '(es)Stop editing, discard changes',
+        saveButtonText: 'es_Save',
+        saveButtonTooltip: '(es)Save changes',
+        orthoButtonText: 'es_Fix',
+        orthoButtonTooltip: '(es)Make a polygon orthogonalized'
+    },
+    "gxp.plugins.VersionedEditor.prototype": {
+        attributesTitle: "es_Attributes",
+        historyTitle: "es_History",
+        hour: "es_hour",
+        hours: "es_hours",
+        day: "es_day",
+        days: "es_days",
+        ago: "es_ago",
+        nextCommitText: "es_Next",    
+        nextCommitTooltip: "(es)See what changed in the next commit",    
+        prevCommitText: "es_Prev",    
+        prevCommitTooltip: "(es)See what changed in the previous commit"
     }
 });

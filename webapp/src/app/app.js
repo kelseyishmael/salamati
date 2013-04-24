@@ -20,10 +20,10 @@
  * @require widgets/NewSourceDialog.js
  * @require plugins/FeatureManager.js
  * @require plugins/FeatureGrid.js
- * @require plugins/FeatureEditor_2.js
+ * @require plugins/FeatureEditor.js
  * @require plugins/Navigation.js
  * @require plugins/SnappingAgent.js
- * @require plugins/GeoGitUtil.js
+ * @require GeoGitUtil.js
  * @require plugins/VersionedEditor.js
  * @require plugins/Playback.js
  * @require plugins/Measure.js
@@ -56,6 +56,8 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Map: "Default Map",
 	Title_Tools: "Default Tools",
 	Title_Search: "Default Search",
+    Title_Layers: "Layers",
+    Title_GeoGit: "GeoGit",
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info",
@@ -100,7 +102,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 
             	// Hide the southPanel - needed it to display at first
             	// in order to size the columns correctly
-            	var southPanel = Ext.getCmp('southPanel');
+            	var southPanel = app.portal.southPanel;
             	southPanel.hide();
             	app.portal.doLayout();
             	
@@ -247,18 +249,14 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     "addlayer" : function(e) {
                         setMapLayersCookie();
                         console.log("map.events.addlayer: ", e);
+                        gxp.GeoGitUtil.isGeoGitLayer(e.layer);
                     },
                     "removelayer" : function(e) {
                         setMapLayersCookie();
                         console.log("map.events.removelayer: ", e);
-                        var callback = function(layer){
-        					if(layer !== false){ 
-        						var southPanel = Ext.getCmp('southPanel');
-                            	southPanel.hide();
-                            	app.portal.doLayout();
-        					}
-        				};
-                        app.tools.geogit_util.isGeoGitLayer(e.layer, callback);
+                        if(e.layer.metadata.isGeoGit){ 
+                            app.fireEvent("togglesouthpanel");
+        				}
                     },
                     "changelayer" : function(e) {
                         setMapLayersCookie();
@@ -293,7 +291,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 });
             },
             "togglesouthpanel" : function() { 
-                var southPanel = Ext.getCmp('southPanel');
+                var southPanel = app.portal.southPanel;
                 if(southPanel.hidden) {
                     southPanel.show();
                     southPanel.expand();
@@ -358,7 +356,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             // by configuring items here, we don't need to configure portalItems
             // and save a wrapping container
             items: [{
-                id: "centerpanel",
+                ref: "centerpanel",
                 xtype: "panel",
                 layout: "fit",
                 region: "center",
@@ -366,25 +364,25 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 items: ["mymap",
                     win]
             }, {
-            	id: "eastpanel",
+            	ref: "eastpanel",
             	layout: "vbox",
             	region: "east",
             	collapsible: true,
             	width: 200,
             	items: [{
-            		id: "tabs",
+            		ref: "../tabs",
             		xtype: "tabpanel",
             		flex: 0.67,
             		enableTabScroll: true,
             		activeTab: 1,
             		items: [{
-            			title: 'Search',
-            			id: "searchtab",
+            			title: this.Title_Search,
+            			ref: "../../searchtab",
             			items: [{
             				xtype: "textfield",
             		    	id: "searchField",
             		    	cls: "searchFieldClass",
-            		    	emptyText: "Search",
+            		    	emptyText:  this.Title_Search,
             		    	enableKeyEvents: true,
             		    	listeners: {
             		    		'keyup' : function(element, event){
@@ -418,29 +416,61 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             			}]
             		}, {
             			title: 'Layers',
-            			id: "layerpanel",
+            			ref: "../../layerpanel",
             			autoScroll: true,
             			width: 200
             		}, {
-            			title: 'Geogit',
-            			id: "repopanel",
+            			title: 'GeoGit',
+            			ref: "../../repopanel",
             			autoScroll: true,
             			width: 200
             		}]
             	}, {
-            		id: "attributespanel",
+            		ref: "../attributespanel",
             		layout: "vbox",
             		autoScroll: true,
             		width: 200,
             		flex: 0.33
             	}]
-            },{
-            	id: "southPanel",
+            },/*{
+                id: "diffPanel",
+                xtype: "window",
+                hidden: false,
+                closable: false,
+                layout: "hbox",
+                height: 200,
+                width: 600,
+                title: "Diff",
+                items: [{
+                    title: "Old",
+                    xtype: "panel",
+                    ref: "../yourspanel",
+                    height: 200,
+                    flex: 0.33                   
+                },{
+                    title: "Inbetween",
+                    ref: "../mergepanel",
+                    xtype: "panel",
+                    disabled: true,
+                    height: 200,
+                    flex: 0.33  
+                },{
+                    title: "New",
+                    xtype: "panel",
+                    ref: "../theirspanel",
+                    height: 200,
+                    flex: 0.33  
+                }]
+            },*/{
+            	ref: "southPanel",
             	xtype: "panel",
             	layout: "fit",
             	region: "south",
             	collapsible: true,
             	border: "false",
+            	split: true,
+            	minSize: 200,
+            	maxSize: 500,
             	height: 200
             }],
             bbar: {id: "mybbar"}
@@ -493,13 +523,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             ptype: "gxp_navigationhistory",
             actionTarget: "mymap.tbar"
         }, {
-        	ptype: "gxp_geogitutil",
-        	id: "geogit_util"
-        }, {
         	ptype: "gxp_geogitrepoinfo",
         	id: "repo_info",
         	outputTarget: "repopanel",
-        	geogitUtil: "geogit_util",
             featureManager: "feature_manager"
         }, {
             ptype: "gxp_featuremanager",
@@ -511,7 +537,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             id: "snapping_agent",
             targets: []
         },{
-            ptype: "gxp_featureeditor_2",
+            ptype: "gxp_featureeditor",
             featureManager: "feature_manager",
             id: "feature_editor",
             autoLoadFeature: true,
@@ -520,15 +546,15 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             iconClsEdit: "salamati-icon-getfeatureinfo",
             editFeatureActionTip: this.ActionTip_Edit,
             actionTarget: "toolsPanel",
-            target: this,
+            popupType: "gxp_featureeditpanel",
             outputConfig: {
                 editorPluginConfig: {
                     ptype: "gxp_versionededitor",
                     /* assume we will proxy the geogit web api*/ 
                     url: "/geoserver/",
-                    geogitUtil: "geogit_util",
                     featureManager: "feature_manager",
-                    target: this
+                    newStyle: {fillColor: "#00FF00", strokeColor: "#00FF00"},
+                    oldStyle: {fillColor: "#FF0000", strokeColor: "#FF0000"}
                 }
             },
             outputTarget: "attributespanel"
@@ -536,7 +562,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         	ptype: "gxp_geogithistory",
         	id: "geogithistory",
         	featureManager: "feature_manager",
-        	geogitUtil: "geogit_util",
         	outputTarget: "southPanel"
         },{
             ptype: "app_distancebearing",
