@@ -7,7 +7,8 @@
  */
 
 /**
- * @requires plugins/GeoGitUtil.js
+ * @requires plugins/Tool.js
+ * @requires GeoGitUtil.js
  */
 
 /** api: (define)
@@ -28,24 +29,20 @@ Ext.namespace("gxp.plugins");
  */   
 gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
-    /** api: ptype = gxp_featuregrid */
+    /* i18n */
+    Text_Author: "Author",
+    Text_Email: "Email",
+    Text_Message: "Message",
+    Text_CommitId: "Commit Id",
+    Text_Date: "Date",
+    /* end i18n */
+    
+    /** api: ptype = gxp_geogithistory */
     ptype: "gxp_geogithistory",
     
-    /**
-     * Ext.data.Store
-     */
     store: null,
     
-    /**
-     * Ext.grid.GridPanel
-     */
-    grid: null,
-    
-    parentContainer: null,
-    
     featureManager: null,
-    
-    geogitUtil: null,
     
     workspace: null,
     
@@ -56,37 +53,15 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     /** api: method[addOutput]
      */
     addOutput: function(config) {
-    	this.parentContainer = Ext.getCmp(this.outputTarget);
     	
         var featureManager = this.target.tools[this.featureManager];
-        var geogitUtil = this.target.tools[this.geogitUtil];
         
         var map = this.target.mapPanel.map;
-        var url = "http://192.168.10.175/geoserver/geogit/lmn_demo:DemoRepo/log?path=osm_point_hospitals&output_format=JSON";
+        var url = "default";
         this.store = new Ext.data.Store({
         	url: url,
-    		reader: new Ext.data.JsonReader({
-    			root: 'response.commit',
-    			fields: [
-    			   {
-    				   name: 'message',
-    				   mapping: 'message'
-    			   },{
-    				   name: 'commit',
-    				   mapping: 'id'
-    			   },{
-    				   name: 'author',
-    				   mapping: 'author.name'
-    			   },{
-    				   name: 'email',
-    				   mapping: 'author.email'
-    			   }, {
-    				   name: 'date',
-    				   mapping: 'author.timestamp'
-    			   }
-    			]
-    		}),
-    		autoLoad: true
+    		reader: gxp.GeoGitUtil.logReader,
+    		autoLoad: false
     	});
         
         var addToolTip = function(value, metadata, record, rowIndex, colIndex, store){
@@ -94,75 +69,61 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         	return value;
         };
         var plugin = this;
-        this.grid = new Ext.grid.GridPanel({
-    		store: this.store,
-    		cls: "gxp-geogithistory-cls",
-    		border: false,
-    		hideParent: true,
-    		flex: 10,
-    		colModel: new Ext.grid.ColumnModel({
-    			defaults: {
-    				sortable: false,
-    				renderer: addToolTip
-    			},
-    			columns: [{
-        			id: 'author',
-        			header: 'Author',
-        			dataIndex: 'author'
-        		},{
-        			id: 'email',
-        			header: 'Email',
-        			dataIndex: 'email'
-        		},{
-        			id: 'message',
-        			header: 'Message',
-        			dataIndex: 'message'
-        		},{
-        			id: 'commit',
-        			header: 'Commit Id',
-        			dataIndex: 'commit'
-        		},{
-        			id: 'date',
-        			header: 'Date',
-        			dataIndex: 'date'
-        		}]
-    		}),
-    		viewConfig: {
-    			autoFill: true
-    		},
-    		listeners: {
-    			'cellclick': function(grid, rowIndex, columnIndex, e){
-    				var oldCommit = grid.getStore().getAt(rowIndex).data.commit;
-    				var newCommit = grid.getStore().getAt(0).data.commit;
-    				var geoserverIndex = plugin.url.indexOf('geoserver/');
-    				var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
-    				var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + oldCommit + '&newRefSpec=' + newCommit + '&output_format=JSON';
-    				console.log("url", url);
-    		        var store = new Ext.data.Store({
-    		        	url: url,
-    		    		reader: new Ext.data.JsonReader({
-    		    			root: 'response.Feature',
-    		    			fields: [
-    		    			   {
-    		    				   name: 'fid',
-    		    				   mapping: 'id'
-    		    			   },{
-    		    				   name: 'change',
-    		    				   mapping: 'change'
-    		    			   },{
-    		    				   name: 'geometry',
-    		    				   mapping: 'geometry'
-    		    			   }
-    		    			]
-    		    		}),
-    		    		autoLoad: true
-    		    	});
-    		        console.log("store", store);
-    			}
-    		}
-		});
         
-        config = Ext.apply(this.grid, config || {});
+        config = Ext.apply({
+            xtype: "grid",
+            store: this.store,
+            cls: "gxp-geogithistory-cls",
+            border: false,
+            hideParent: true,
+            flex: 10,
+            colModel: new Ext.grid.ColumnModel({
+                defaults: {
+                    sortable: false,
+                    renderer: addToolTip
+                },
+                columns: [{
+                    id: 'author',
+                    header: plugin.Text_Author,
+                    dataIndex: 'author'
+                },{
+                    id: 'email',
+                    header: plugin.Text_Email,
+                    dataIndex: 'email'
+                },{
+                    id: 'message',
+                    header: plugin.Text_Message,
+                    dataIndex: 'message'
+                },{
+                    id: 'commit',
+                    header: plugin.Text_CommitId,
+                    dataIndex: 'commit'
+                },{
+                    id: 'date',
+                    header: plugin.Text_Date,
+                    dataIndex: 'date'
+                }]
+            }),
+            viewConfig: {
+                autoFill: true
+            },
+            listeners: {
+                'cellclick': function(grid, rowIndex, columnIndex, e){
+                    var oldCommit = grid.getStore().getAt(rowIndex).data.commit;
+                    var newCommit = grid.getStore().getAt(0).data.commit;
+                    var geoserverIndex = plugin.url.indexOf('geoserver/');
+                    var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
+                    var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + oldCommit + '&newRefSpec=' + newCommit + '&output_format=JSON';
+                    console.log("url", url);
+                    var store = new Ext.data.Store({
+                        url: url,
+                        reader: gxp.GeoGitUtil.diffReader,
+                        autoLoad: true
+                    });
+                    console.log("store", store);
+                }
+            }
+        }, config || {});
         
         var geogitHistory = gxp.plugins.GeoGitHistory.superclass.addOutput.call(this, config);
 
@@ -186,21 +147,21 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     						plugin.target.portal.doLayout();*/
     						
         					plugin.workspace = workspace;
-        					plugin.dataStore = layer.geogitStore;
-        					plugin.path = layer.nativeName;
+        					plugin.dataStore = layer.metadata.geogitStore;
+        					plugin.path = layer.metadata.nativeName;
         					
-    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.geogitStore + '/log?path=' + layer.nativeName + '&output_format=JSON';
+    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?path=' + layer.metadata.nativeName + '&output_format=JSON';
     		        		plugin.store.url = plugin.url;
     		        		plugin.store.proxy.conn.url = plugin.url;
     		        		plugin.store.proxy.url = plugin.url;
     		        		plugin.store.load();
     					}else{ // isNotGeoGit
-    						plugin.parentContainer.hide();
-    						plugin.target.portal.doLayout();
+    					    plugin.output[0].ownerCt.hide();
+    					    plugin.target.portal.doLayout();
     					}
     				};
     				
-    				geogitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
+    				gxp.GeoGitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
             	}
         	}
         };
@@ -211,50 +172,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         featureManager.on("layerchange", onLayerChange, this);
         
         return geogitHistory;
-    },
-    
-    fetchIsGeoGitLayer: function(url, workspace, featureType, isGeoGit, isNotGeoGit, error){
-		OpenLayers.Request.GET({
-			url: url + 'rest/layers/' + workspace + ':' + featureType + '.json',
-			success: function(results){
-				var jsonFormatter = new OpenLayers.Format.JSON();
-				var layerinfo = jsonFormatter.read(results.responseText);
-				var resourceUrl = layerinfo.layer.resource.href;
-				
-				var datastoreStartIndex = resourceUrl.indexOf(workspace + '/datastores');
-                datastoreStartIndex = datastoreStartIndex + workspace.length + 12;
-                
-                var datastoreEnd = resourceUrl.substr(datastoreStartIndex);
-                var datastoreEndIndex = datastoreEnd.indexOf('/');
-				var datastore = datastoreEnd.substring(0, datastoreEndIndex);
-				
-				OpenLayers.Request.GET({
-					url: url + 'rest/workspaces/' + workspace + '/datastores/' + datastore + '.json',
-					success: function(results){
-						var storeInfo = jsonFormatter.read(results.responseText);
-						
-						if(storeInfo){
-							if(storeInfo.dataStore && storeInfo.dataStore.type){
-								if(isGeoGit && (storeInfo.dataStore.type === "GeoGIT")){
-									isGeoGit(workspace, featureType, storeInfo.dataStore);
-								}else{
-									if(isNotGeoGit){
-										isNotGeoGit(storeInfo.dataStore);
-									}
-								}
-							}else{
-								error();
-							}
-						}else{
-							error();
-						}
-					},
-					failure: error
-				});
-			},
-			failure: error
-		});
-	}
+    }
                 
 });
 
