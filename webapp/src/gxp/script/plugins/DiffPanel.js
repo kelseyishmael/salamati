@@ -40,6 +40,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
      */
     grid: null,
     
+    rowSelected: null,
+    
 //    parentContainer: null,
 //    
 //    featureManager: null,
@@ -75,6 +77,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 console.log("commitdefselected event received. store.url: ", store.url);
                 this.store.load();
                 app.portal.doLayout();
+                
+                rowSelected = null;
             },
             scope: this
         });
@@ -143,14 +147,36 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
             },
             listeners: {
                 'cellclick': function(grid, rowIndex, columnIndex, e){
-                    console.log("diffpanel cell clicked");
+                    console.log("diffpanel cell clicked", rowIndex);
+                    rowSelected = rowIndex;
+                },
+                contextmenu: function(event) {
+                    diffPanel.contextMenu.showAt(event.getXY());
+                    event.stopEvent();
                 }
-            }
+            },
+            contextMenu: new Ext.menu.Menu({
+                items: [
+                    {
+                        xtype: 'button',
+                        text: plugin.Text_Zoom,
+                        handler: function() {
+                            var geometryText = plugin.store.data.items[rowSelected].data.geometry;
+                            var geometry = OpenLayers.Geometry.fromWKT(geometryText);
+                            console.log("diffpanel geometry", geometry);
+                            map.zoomToExtent(geometry.getBounds());
+                            //TODO: rather than clamping to a hard-coded zoom level, it should clamp to a scale
+                            if(map.zoom > 15) {
+                                map.zoomTo(15, map.center);
+                            }
+                            diffPanel.contextMenu.hide();
+                        }
+                    }
+                ]
+            })
         });
 
-        config = Ext.apply(
-            this.grid,
-            config || {});
+        config = Ext.apply(this.grid, config || {});
         
         var diffPanel = gxp.plugins.DiffPanel.superclass.addOutput.call(this, config);
     }

@@ -32,6 +32,7 @@ GeoExt.Lang.add("en", {
     },
     "gxp.plugins.DiffPanel.prototype": {
         Title_Fid: "fid",
-        Title_Change: "Change"
+        Title_Change: "Change",
+        Text_Zoom: "Zoom To Extent"
     }
 });
