@@ -215,6 +215,8 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
      */
     schema: null,
     
+    saveHandleSet: false,
+    
     popupType: "gxp_featureeditpanel",
 
     /** private: method[constructor]
@@ -462,6 +464,20 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                     this.fireEvent("featureeditable", this, feature, true);
                 }
                 var featureStore = featureManager.featureStore;
+                
+                if(!this.saveHandleSet){
+                	this.saveHandleSet = true;
+                	featureStore.on('save', function(store, batch, data){
+                    	if(data.destroy == undefined){
+                    		popup.reset(this);
+                        	popup.show();
+                        	if(popup.disabled) {
+                        		popup.enable();
+                        	}
+                    	}
+                    }, this);
+                }
+                
                 if(this._forcePopupForNoGeometry === true || (this.selectControl.active && feature.geometry !== null)) {
                     // deactivate select control so no other features can be
                     // selected until the popup is closed

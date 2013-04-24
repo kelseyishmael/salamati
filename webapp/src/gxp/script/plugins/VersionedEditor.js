@@ -360,24 +360,26 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     		}
     		return;
     	}
-           	
+    	
         this.feature = newPanel.feature;
         this.schema = newPanel.schema;
         this.fields = newPanel.fields;
         this.excludeFields = newPanel.excludeFields;
 
-        this.attributeEditor = Ext.ComponentMgr.create({
-            xtype: "gxp_editorgrid",
-            title: this.attributesTitle,
-            feature: this.feature,
-            schema: this.schema,
-            fields: this.fields,
-            excludeFields: this.excludeFields
-        });
-        
-        this.attributeEditor.init(this.target);
-        this.add(this.attributeEditor);
-        this.setActiveTab(0);          
+        if(!this.attributeEditor){
+        	this.attributeEditor = Ext.ComponentMgr.create({
+                xtype: "gxp_editorgrid",
+                title: this.attributesTitle,
+                feature: this.feature,
+                schema: this.schema,
+                fields: this.fields,
+                excludeFields: this.excludeFields
+            });
+            
+            this.attributeEditor.init(this.target);
+            this.add(this.attributeEditor);
+            this.setActiveTab(0); 
+        }         
 
         this.commitIndex = 0;
                
