@@ -449,11 +449,12 @@ gxp.plugins.FeatureEditor_2 = Ext.extend(gxp.plugins.ClickableFeatures, {
                 if(!this.saveHandleSet){
                 	this.saveHandleSet = true;
                 	featureStore.on('save', function(store, batch, data){
-                    	console.log("save callback");
-                    	popup.reset(this);
-                    	popup.show();
-                    	if(popup.disabled) {
-                    		popup.enable();
+                    	if(data.destroy == undefined){
+                    		popup.reset(this);
+                        	popup.show();
+                        	if(popup.disabled) {
+                        		popup.enable();
+                        	}
                     	}
                     }, this);
                 }
