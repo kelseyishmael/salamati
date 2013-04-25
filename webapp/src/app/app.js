@@ -39,6 +39,7 @@
  * @require plugins/GeoGitHistory.js
  * @require plugins/GeoGitHistoryButton.js
  * @require plugins/GeoGitRepoInfo.js
+ * @require plugins/DiffPanel.js
  */
 
 (function() {
@@ -254,9 +255,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     "removelayer" : function(e) {
                         setMapLayersCookie();
                         console.log("map.events.removelayer: ", e);
-                        if(e.layer.metadata.isGeoGit){ 
+                        if(e.layer.metadata.isGeoGit) {
                             app.fireEvent("togglesouthpanel");
-        				}
+                        }
                     },
                     "changelayer" : function(e) {
                         setMapLayersCookie();
@@ -297,6 +298,16 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     southPanel.expand();
                 } else {
                     southPanel.hide();
+                    app.portal.westpanel.hide();
+                }
+                app.portal.doLayout();
+            },
+            "commitdiffselected" : function(tool, store) {
+                var westPanel = app.portal.westpanel;
+                this.tools['diffpanel'].fireEvent("commitdiffselected", tool, store);
+                if(westPanel.hidden) {
+                    westPanel.show();
+                    westPanel.expand();
                 }
                 app.portal.doLayout();
             }
@@ -363,7 +374,14 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 border: false,
                 items: ["mymap",
                     win]
-            }, {
+            },{
+            	ref: "westpanel",
+            	layout: "fit",
+            	region: "west",
+            	collapsible: false,
+            	hidden: true,
+            	width: 200
+            },{
             	ref: "eastpanel",
             	layout: "vbox",
             	region: "east",
@@ -563,6 +581,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         	id: "geogithistory",
         	featureManager: "feature_manager",
         	outputTarget: "southPanel"
+        },{
+        	ptype: "gxp_diffpanel",
+        	id: "diffpanel",
+        	outputTarget: "westpanel"
         },{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",

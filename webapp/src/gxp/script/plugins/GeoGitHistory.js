@@ -42,6 +42,8 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     store: null,
     
+    diffStore: null,
+
     featureManager: null,
     
     workspace: null,
@@ -49,6 +51,8 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     path: null,
     
     dataStore: null,
+    
+    contextMenu: null,
     
     /** api: method[addOutput]
      */
@@ -115,14 +119,32 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                     var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
                     var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + oldCommit + '&newRefSpec=' + newCommit + '&output_format=JSON';
                     console.log("url", url);
-                    var store = new Ext.data.Store({
+                    plugin.diffStore = new Ext.data.Store({
                         url: url,
                         reader: gxp.GeoGitUtil.diffReader,
                         autoLoad: true
                     });
-                    console.log("store", store);
-                }
-            }
+                    console.log("store", plugin.diffStore);
+                },
+    			contextmenu: function(event) {
+    			    geogitHistory.contextMenu.showAt(event.getXY());
+    			    event.stopEvent();
+    			}
+            },
+            contextMenu: new Ext.menu.Menu({
+                items: [
+                    {
+                        xtype: 'button',
+                        text: 'Show diff',
+                        handler: function() {
+                            if(plugin.diffStore) {
+                                app.fireEvent("commitdiffselected", this, plugin.diffStore);
+                            }
+                            geogitHistory.contextMenu.hide();
+                        }
+                    }
+                ]
+            })
         }, config || {});
         
         var geogitHistory = gxp.plugins.GeoGitHistory.superclass.addOutput.call(this, config);
@@ -141,10 +163,6 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     				//isGeogit
     				var callback = function(layer){
     					if(layer !== false){ // isGeoGit
-    						//this bit is now handled in GeoGitHistoryButton.js
-    						/*plugin.parentContainer.show();
-        					plugin.parentContainer.expand();
-    						plugin.target.portal.doLayout();*/
     						
         					plugin.workspace = workspace;
         					plugin.dataStore = layer.metadata.geogitStore;
@@ -173,7 +191,6 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         
         return geogitHistory;
     }
-                
 });
 
 Ext.preg(gxp.plugins.GeoGitHistory.prototype.ptype, gxp.plugins.GeoGitHistory);

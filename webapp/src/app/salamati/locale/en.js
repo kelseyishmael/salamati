@@ -76,5 +76,10 @@ GeoExt.Lang.add("en", {
         nextCommitTooltip: "See what changed in the next commit",    
         prevCommitText: "Prev",    
         prevCommitTooltip: "See what changed in the previous commit"
+    },    
+    "gxp.plugins.DiffPanel.prototype": {
+        Title_Fid: "fid",
+        Title_Change: "Change",
+        Text_Zoom: "Zoom To Extent"
     }
 });
