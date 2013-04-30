@@ -160,6 +160,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                         xtype: 'button',
                         text: plugin.Text_Show_Diff,
                         handler: function() {
+                            plugin.selectedRows.sort(function(a,b){return a-b});
                             plugin.oldCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;
                             if(plugin.selectedRows.length > 1) {
                                 plugin.newCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[0]).data.commit;
