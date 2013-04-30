@@ -77,11 +77,11 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
      */
     addOutput: function(config) {       
         var map = this.target.mapPanel.map;
-        var url = "http://192.168.10.175/geoserver/geogit/lmn_demo:DemoRepo/log?path=osm_point_hospitals&output_format=JSON";
+        var url = "default";
         this.store = new Ext.data.Store({
             url: url,
             reader: gxp.GeoGitUtil.diffReader,
-            autoLoad: true
+            autoLoad: false
         });
         
         var addToolTip = function(value, metadata, record, rowIndex, colIndex, store){

@@ -486,6 +486,7 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                         // deactivate will hide the layer, so show it again
                         featureManager.showLayer(this.id, this.showSelectedOnly && "selected");
                     }
+
                     if(popup) { 
                         popup.setFeature(featureStore.getByFeature(feature));
                         popup.reset(this);
@@ -947,13 +948,13 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
             "Polygon": OpenLayers.Handler.Polygon,
             "Surface": OpenLayers.Handler.Polygon
         };
-        var simpleType = mgr.geometryType.replace("Multi", "");
-        var Handler = handlers[simpleType];
+        var simpleType = mgr.geometryType && mgr.geometryType.replace("Multi", "");
+        var Handler = simpleType && handlers[simpleType];
         if (Handler) {
             var multi = (simpleType != mgr.geometryType);
             this.setHandler(Handler, multi);
             button.enable();
-        } else if (this.supportAbstractGeometry === true && mgr.geometryType === 'Geometry') {
+        } else if (this.supportAbstractGeometry === true && mgr.geometryType && mgr.geometryType === 'Geometry') {
             button.enable();
         } else {
             button.disable();
