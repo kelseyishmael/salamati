@@ -98,7 +98,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         };
         var config = Ext.apply({
             xtype: this.initialConfig.editor || "gxp_editorgrid",
-            title: this.attributesTitle
+            title: this.attributesTitle,
+            cls: 'gxp-grid-font-cls'
         }, editorConfig);
         this.attributeEditor = Ext.ComponentMgr.create(config);
         this.add(this.attributeEditor);
@@ -149,11 +150,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         var plugin = this;        
         
         var isGeoGit = function(layer){
-        	plugin.dataStore = layer.metadata.geogitStore;
-
         	if(plugin.feature == null || plugin.feature.fid == null || layer === false) {
         		return;
         	}
+        	plugin.dataStore = layer.metadata.geogitStore;
         	plugin.path = layer.metadata.nativeName.split(":").pop() + "/" + 
         			   plugin.feature.fid.replace(typeName.split(":").pop(), layer.metadata.nativeName.split(":").pop());
             if (plugin.url.charAt(plugin.url.length-1) !== '/') {

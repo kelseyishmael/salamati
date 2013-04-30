@@ -14,7 +14,7 @@ li.commit div {
 }
 
 li.diff {
-    font-size: 14px;
+    font-size: 11px;
     border-bottom: 2px solid #666666;
     padding: 5px;
 }
@@ -26,7 +26,7 @@ div.attr-value {
 }
 div.info {
 	font-weight: bold;
-	font-size: 14px;
+	font-size: 11px;
 	border-bottom: 2px solid #000000;
     padding: 5px;
     background-color: #CCCCCC;
@@ -34,6 +34,25 @@ div.info {
 
 .ext-chrome input[type="checkbox"] {
     margin-top: 1px;
+}
+
+.gxp-grid-font-cls .x-grid3-row .x-grid3-cell-inner{
+	font-size: 11px;
+	height: 15px;
+}
+
+.gxp-added-cls .x-grid3-cell-inner {
+    background-color: #e2ffe2; 
+    color: #090;
+}
+
+.gxp-removed-cls .x-grid3-cell-inner {
+	background-color: #ffe2e2; 
+    color: #900;
+}
+.gxp-modified-cls .x-grid3-cell-inner {
+	background-color: #ffa; 
+    color: #009; 
 }
 
 .gxp-layerproperties-label {

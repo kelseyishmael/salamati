@@ -33,6 +33,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     Text_Remote: "Remote",
     Text_Remotes: "Remotes",
     Text_Tags: "Tags",
+    Text_Merge: "Merge",
     /* end i18n */
     
     treeRoot: null,
@@ -71,11 +72,31 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             type: this.repoRoot
         }));
         
+        var plugin = this;
+        
         var panel = new Ext.tree.TreePanel({
             root: this.treeRoot,
             rootVisible: false,
             border: false,
-            autoScroll: true
+            autoScroll: true,
+            selModel: new Ext.tree.MultiSelectionModel(),
+            listeners: {
+                contextmenu: function(node, event) {
+                    //repoInfo.contextMenu.showAt(event.getXY());
+                    //event.stopEvent();
+                }
+            },
+            contextMenu: new Ext.menu.Menu({
+                items: [
+                    {
+                        xtype: 'button',
+                        text: plugin.Text_Merge,
+                        handler: function() {
+                            //console.log("panel", panel);
+                        }
+                    }
+                ]
+            })
         });
 
         config = Ext.apply(panel, config || {});

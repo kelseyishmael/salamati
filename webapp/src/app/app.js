@@ -40,6 +40,7 @@
  * @require plugins/GeoGitHistoryButton.js
  * @require plugins/GeoGitRepoInfo.js
  * @require plugins/DiffPanel.js
+ * @require plugins/GeoGitFeatureAttributeGrid.js
  */
 
 (function() {
@@ -59,6 +60,11 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
 	Title_Search: "Default Search",
     Title_Layers: "Layers",
     Title_GeoGit: "GeoGit",
+    Title_Diff: "Diff",
+    Title_Feature_Diff: "Feature Diff",
+    Title_Old: "Old",
+    Title_New: "New",
+    Tile_Merged: "Merged",
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info",
@@ -299,15 +305,26 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 } else {
                     southPanel.hide();
                     app.portal.westpanel.hide();
+                    app.portal.featureDiffPanel.hide();
                 }
                 app.portal.doLayout();
             },
-            "commitdiffselected" : function(tool, store) {
+            "commitdiffselected" : function(store, oldCommitId, newCommitId) {
                 var westPanel = app.portal.westpanel;
-                this.tools['diffpanel'].fireEvent("commitdiffselected", tool, store);
+                this.tools['diffpanel'].fireEvent("commitdiffselected", store, oldCommitId, newCommitId);
                 if(westPanel.hidden) {
                     westPanel.show();
                     westPanel.expand();
+                }
+                app.portal.featureDiffPanel.hide();
+                app.portal.doLayout();
+            },
+            "getattributeinfo" : function(store, oldCommitId, newCommitId, path) {
+                var featureDiffPanel = app.portal.featureDiffPanel;
+                app.tools['old_attribute_grid'].fireEvent("getattributeinfo", store, oldCommitId, newCommitId, path);
+                app.tools['new_attribute_grid'].fireEvent("getattributeinfo", store, oldCommitId, newCommitId, path);
+                if(featureDiffPanel.hidden) {
+                    featureDiffPanel.show();
                 }
                 app.portal.doLayout();
             }
@@ -373,24 +390,72 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 region: "center",
                 border: false,
                 items: ["mymap",
-                    win]
-            },{
+                    win, {
+                    ref: "../featureDiffPanel",
+                    xtype: "window",
+                    hidden: true,
+                    closable: false,
+                    layout: "hbox",
+                    height: 200,
+                    width: 600,
+                    constrainHeader: true,
+                    title: this.Title_Feature_Diff,
+                    items: [{
+                        title: this.Title_Old,
+                        xtype: "panel",
+                        layout: "fit",
+                        ref: "../../leftDiffAttributePanel",
+                        autoScroll: true,
+                        flex: 0.33
+                    },{
+                        title: this.Title_Merged,
+                        ref: "../../mergepanel",
+                        xtype: "panel",
+                        layout: "fit",
+                        hidden: true,
+                        autoScroll: true,
+                        flex: 0.33
+                    },{
+                        title: this.Title_New,
+                        xtype: "panel",
+                        layout: "fit",
+                        ref: "../../rightDiffAttributePanel",
+                        autoScroll: true,
+                        flex: 0.33  
+                    }],
+                    listeners: {
+                        'resize': function(win, width, height) {
+                            // this is to keep the three panels the same size as the window if it resizes
+                            win.items.items[0].height = height;
+                            win.items.items[1].height = height;
+                            win.items.items[2].height = height;
+                        }
+                    }
+                }]
+            }, {
             	ref: "westpanel",
             	layout: "fit",
             	region: "west",
             	collapsible: false,
+            	title: this.Title_Diff,
             	hidden: true,
+            	split: true,
+            	minSize: 200,
+            	maxSize: 300,
             	width: 200
-            },{
+            }, {
             	ref: "eastpanel",
             	layout: "vbox",
             	region: "east",
             	collapsible: true,
+            	split: true,
+            	minSize: 200,
+            	maxSize: 300,
             	width: 200,
             	items: [{
             		ref: "../tabs",
             		xtype: "tabpanel",
-            		flex: 0.67,
+            		flex: 0.50,
             		enableTabScroll: true,
             		activeTab: 1,
             		items: [{
@@ -433,12 +498,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 			}
             			}]
             		}, {
-            			title: 'Layers',
+            			title: this.Title_Layers,
             			ref: "../../layerpanel",
             			autoScroll: true,
             			width: 200
             		}, {
-            			title: 'GeoGit',
+            			title: this.Title_GeoGit,
             			ref: "../../repopanel",
             			autoScroll: true,
             			width: 200
@@ -448,38 +513,25 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             		layout: "vbox",
             		autoScroll: true,
             		width: 200,
-            		flex: 0.33
-            	}]
-            },/*{
-                id: "diffPanel",
-                xtype: "window",
-                hidden: false,
-                closable: false,
-                layout: "hbox",
-                height: 200,
-                width: 600,
-                title: "Diff",
-                items: [{
-                    title: "Old",
-                    xtype: "panel",
-                    ref: "../yourspanel",
-                    height: 200,
-                    flex: 0.33                   
-                },{
-                    title: "Inbetween",
-                    ref: "../mergepanel",
-                    xtype: "panel",
-                    disabled: true,
-                    height: 200,
-                    flex: 0.33  
-                },{
-                    title: "New",
-                    xtype: "panel",
-                    ref: "../theirspanel",
-                    height: 200,
-                    flex: 0.33  
-                }]
-            },*/{
+            		flex: 0.50,
+                    listeners: {
+                        'resize': function(win, width, height) {
+                            // this is to keep the panel the same size as the window if it resizes
+                            win.width = width;
+                            if(win.items !== undefined && win.items.items[0] !== undefined) {
+                                win.items.items[0].width = width;
+                            }
+                        }
+                    }
+            	}],
+            	listeners: {
+            	    'resize': function(win, width, height) {
+                        // this is to keep the panels the same size as the window if it resizes
+                        win.items.items[0].width = width;
+                        win.items.items[1].setWidth(width);
+                    }
+            	}
+            },{
             	ref: "southPanel",
             	xtype: "panel",
             	layout: "fit",
@@ -487,7 +539,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             	collapsible: true,
             	border: "false",
             	split: true,
-            	minSize: 200,
+            	minSize: 150,
             	maxSize: 500,
             	height: 200
             }],
@@ -585,6 +637,16 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         	ptype: "gxp_diffpanel",
         	id: "diffpanel",
         	outputTarget: "westpanel"
+        },{
+            ptype: "gxp_geogitattributegrid",
+            id: "old_attribute_grid",
+            valueIndex: "oldvalue",
+            outputTarget: "leftDiffAttributePanel"
+        },{
+            ptype: "gxp_geogitattributegrid",
+            id: "new_attribute_grid",
+            valueIndex: "newvalue",
+            outputTarget: "rightDiffAttributePanel"
         },{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",

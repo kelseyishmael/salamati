@@ -40,33 +40,33 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
      */
     grid: null,
     
-    rowSelected: null,
+    oldCommitId: null,
+    
+    newCommitId: null,
     
     constructor: function() {
-        console.log("diffpanel constructor");
         this.addEvents(
             /** api: event[commitdiffselected]
-             *  Fired when a new source is selected.
+             *  Fired when the diff button from the GeoGitHistory plugin is pressed.
              *
              *  Listener arguments:
-             *  * tool - :class:`gxp.plugins.AddLayers` This tool.
              *  * store - :class:`Ext.data.Store` The data to be displayed in the diff panel.
+             *  * oldCommitId - ``String`` The old commit id to use for the diff.
+             *  * newCommitId - ``String`` The new commit id to use for the diff.
              */
             "commitdiffselected"
         );
         this.on({
-            commitdiffselected: function(tool, store) {
-                console.log("commitdefselected event received. store: ", store);
+            commitdiffselected: function(store, oldCommitId, newCommitId) {
                 
                 //TODO change this.store url to the url of the store passed in
                 this.store.url = store.url;
                 this.store.proxy.conn.url = store.url;
                 this.store.proxy.url = store.url;
-                console.log("commitdefselected event received. store.url: ", store.url);
                 this.store.load();
-                app.portal.doLayout();
-                
-                rowSelected = null;
+                this.oldCommitId = oldCommitId;
+                this.newCommitId = newCommitId;
+                app.portal.doLayout();                
             },
             scope: this
         });
@@ -75,9 +75,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     /** api: method[addOutput]
      */
-    addOutput: function(config) {
-        console.log("diffpanel add output");
-        
+    addOutput: function(config) {       
         var map = this.target.mapPanel.map;
         var url = "http://192.168.10.175/geoserver/geogit/lmn_demo:DemoRepo/log?path=osm_point_hospitals&output_format=JSON";
         this.store = new Ext.data.Store({
@@ -85,8 +83,6 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
             reader: gxp.GeoGitUtil.diffReader,
             autoLoad: true
         });
-
-        console.log("diffpanel temp store ", this.store);
         
         var addToolTip = function(value, metadata, record, rowIndex, colIndex, store){
             metadata.attr = 'title="' + value + '"';
@@ -95,7 +91,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         var plugin = this;
         this.grid = new Ext.grid.GridPanel({
             store: this.store,
-            //cls: "gxp-diffpanel-cls",
+            cls: "gxp-grid-font-cls",
             border: false,
             hideParent: false,
             flex: 1,
@@ -115,15 +111,13 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 }]
             }),
             viewConfig: {
-                autoFill: true
+                forceFit: true
             },
             listeners: {
-                'cellclick': function(grid, rowIndex, columnIndex, e){
-                    console.log("diffpanel cell clicked", rowIndex);
-                    rowSelected = rowIndex;
-                },
-                contextmenu: function(event) {
-                    diffPanel.contextMenu.showAt(event.getXY());
+                cellcontextmenu: function(grid, rowIndex, cellIndex, event) {
+                    if(diffPanel.getSelectionModel().hasSelection()) {
+                        diffPanel.contextMenu.showAt(event.getXY());
+                    }
                     event.stopEvent();
                 }
             },
@@ -133,18 +127,21 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                         xtype: 'button',
                         text: plugin.Text_Zoom,
                         handler: function() {
-                            var geometryText = plugin.store.data.items[rowSelected].data.geometry;
+                            var geometryText = diffPanel.getSelectionModel().getSelected().data.geometry;
                             var geometry = OpenLayers.Geometry.fromWKT(geometryText);
-                            console.log("diffpanel geometry", geometry);
                             map.zoomToExtent(geometry.getBounds());
                             //TODO: rather than clamping to a hard-coded zoom level, it should clamp to a scale
                             if(map.zoom > 15) {
                                 map.zoomTo(15, map.center);
                             }
+                            app.fireEvent("getattributeinfo", plugin.store, plugin.oldCommitId, plugin.newCommitId, diffPanel.getSelectionModel().getSelected().data.fid);
                             diffPanel.contextMenu.hide();
                         }
                     }
                 ]
+            }),
+            selModel: new Ext.grid.RowSelectionModel({
+                singleSelect: true
             })
         });
 

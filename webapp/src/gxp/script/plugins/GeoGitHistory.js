@@ -35,6 +35,12 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     Text_Message: "Message",
     Text_CommitId: "Commit Id",
     Text_Date: "Date",
+    Text_Hour: "hour",
+    Text_Hours: "hours",
+    Text_Day: "day",
+    Text_Days: "days",
+    Text_Ago: "ago",
+    Text_Show_Diff: "Show Diff",
     /* end i18n */
     
     /** api: ptype = gxp_geogithistory */
@@ -54,6 +60,12 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     contextMenu: null,
     
+    newCommitId: null,
+    
+    oldCommitId: null,
+    
+    selectedRows: [],
+    
     /** api: method[addOutput]
      */
     addOutput: function(config) {
@@ -68,6 +80,12 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     		autoLoad: false
     	});
         
+        this.diffStore = new Ext.data.Store({
+            url: url,
+            reader: gxp.GeoGitUtil.diffReader,
+            autoLoad: false
+        });
+        
         var addToolTip = function(value, metadata, record, rowIndex, colIndex, store){
         	metadata.attr = 'title="' + value + '"';
         	return value;
@@ -77,10 +95,10 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         config = Ext.apply({
             xtype: "grid",
             store: this.store,
-            cls: "gxp-geogithistory-cls",
+            cls: 'gxp-grid-font-cls',
             border: false,
             hideParent: true,
-            flex: 10,
+            flex: 1.0,
             colModel: new Ext.grid.ColumnModel({
                 defaults: {
                     sortable: false,
@@ -105,29 +123,34 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                 },{
                     id: 'date',
                     header: plugin.Text_Date,
-                    dataIndex: 'date'
+                    dataIndex: 'date',
+                    renderer: function(value) {
+                        // Perhaps make this a function in the GeoGitUtil since its technically duplicate code
+                        var now = new Date(), result = '';
+                        if (value > now.add(Date.DAY, -1)) {
+                            var hours = Math.round((now-value)/(1000*60*60));
+                            result += hours + ' ';
+                            result += (hours > 1) ? plugin.Text_Hours : plugin.Text_Hour;
+                            result += ' ' + plugin.Text_Ago + '.';
+                            return result;
+                        } else if (value > now.add(Date.MONTH, -1)) {
+                            var days = Math.round((now-value)/(1000*60*60*24));
+                            result += days + ' ';
+                            result += (days > 1) ? plugin.Text_Days : plugin.Text_Day;
+                            result += ' ' + plugin.Text_Ago + '.';
+                            return result;
+                        }
+                    }
                 }]
             }),
             viewConfig: {
                 autoFill: true
             },
             listeners: {
-                'cellclick': function(grid, rowIndex, columnIndex, e){
-                    var oldCommit = grid.getStore().getAt(rowIndex).data.commit;
-                    var newCommit = grid.getStore().getAt(0).data.commit;
-                    var geoserverIndex = plugin.url.indexOf('geoserver/');
-                    var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
-                    var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + oldCommit + '&newRefSpec=' + newCommit + '&output_format=JSON';
-                    console.log("url", url);
-                    plugin.diffStore = new Ext.data.Store({
-                        url: url,
-                        reader: gxp.GeoGitUtil.diffReader,
-                        autoLoad: true
-                    });
-                    console.log("store", plugin.diffStore);
-                },
-    			contextmenu: function(event) {
-    			    geogitHistory.contextMenu.showAt(event.getXY());
+    			cellcontextmenu: function(grid, rowIndex, cellIndex, event) {
+    			    if(geogitHistory.getSelectionModel().hasSelection()) {
+    			        geogitHistory.contextMenu.showAt(event.getXY());
+    			    }
     			    event.stopEvent();
     			}
             },
@@ -135,15 +158,39 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                 items: [
                     {
                         xtype: 'button',
-                        text: 'Show diff',
+                        text: plugin.Text_Show_Diff,
                         handler: function() {
-                            if(plugin.diffStore) {
-                                app.fireEvent("commitdiffselected", this, plugin.diffStore);
+                            plugin.oldCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;
+                            if(plugin.selectedRows.length > 1) {
+                                plugin.newCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[0]).data.commit;
+                            } else {
+                                plugin.newCommitId = geogitHistory.getStore().getAt(0).data.commit;
                             }
+                            var geoserverIndex = plugin.url.indexOf('geoserver/');
+                            var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
+                            var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + plugin.oldCommitId + '&newRefSpec=' + plugin.newCommitId + '&showGeometryChanges=true&output_format=JSON';
+                            plugin.diffStore.url = url;
+                            plugin.diffStore.proxy.conn.url = url;
+                            plugin.diffStore.proxy.url = url;
+                            plugin.diffStore.load();
+                            
+                            app.fireEvent("commitdiffselected", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId);
                             geogitHistory.contextMenu.hide();
                         }
                     }
                 ]
+            }),
+            selModel: new Ext.grid.RowSelectionModel({
+                listeners: {
+                    rowselect: function(selection, rowIndex, record) {
+                        plugin.selectedRows.push(rowIndex);
+                    },
+                    rowdeselect: function(selection, rowIndex, record) {
+                        if(plugin.selectedRows.indexOf(rowIndex) !== -1) {
+                            plugin.selectedRows.remove(rowIndex);
+                        }                            
+                    }
+                }
             })
         }, config || {});
         

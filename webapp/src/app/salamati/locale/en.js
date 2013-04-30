@@ -29,6 +29,11 @@ GeoExt.Lang.add("en", {
         Title_Search: "Search",
         Title_Layers: "Layers",
         Title_GeoGit: "GeoGit",
+        Title_Diff: "Diff",
+        Title_Feature_Diff: "Feature Diff",
+        Title_Old: "Old",
+        Title_New: "New",
+        Tile_Merged: "Merged",
         ActionTip_Default: "Distance/Bearing of features from click location",
         ActionTip_Edit: "Get feature info"
     },
@@ -37,7 +42,13 @@ GeoExt.Lang.add("en", {
         Text_Email: "Email",
         Text_Message: "Message",
         Text_CommitId: "Commit Id",
-        Text_Date: "Date"
+        Text_Date: "Date",
+        Text_Hour: "hour",
+        Text_Hours: "hours",
+        Text_Day: "day",
+        Text_Days: "days",
+        Text_Ago: "ago",
+        Text_Show_Diff: "Show Diff"
     },
     "gxp.plugins.GeoGitRepoInfo.prototype": {
         Text_Info: "Info",
@@ -46,7 +57,12 @@ GeoExt.Lang.add("en", {
         Text_Local: "Local",
         Text_Remote: "Remote",
         Text_Remotes: "Remotes",
-        Text_Tags: "Tags"
+        Text_Tags: "Tags",
+        Text_Merge: "Merge"
+    },
+    "gxp.plugins.GeoGitFeatureAttributeGrid.prototype": {
+        Text_Name: "Name",
+        Text_Value: "Value"
     },
     "gxp.FeatureEditPanel.prototype": {
         closeMsgTitle: 'Save Changes?',

@@ -30,6 +30,11 @@ GeoExt.Lang.add("es", {
         Title_Search: "Busca",
         Title_Layers: "es_Layers",
         Title_GeoGit: "es_GeoGit",
+        Title_Diff: "es_Diff",
+        Title_Feature_Diff: "es_Feature Diff",
+        Title_Old: "es_Old",
+        Title_New: "es_New",
+        Tile_Merged: "es_Merged",
         ActionTip_Default: "Distancia/Cojinete",
         ActionTip_Edit: "Obtener informaci�n"
     },
@@ -38,7 +43,13 @@ GeoExt.Lang.add("es", {
         Text_Email: "es_Email",
         Text_Message: "es_Message",
         Text_CommitId: "es_Commit Id",
-        Text_Date: "es_Date"
+        Text_Date: "es_Date",
+        Text_Hour: "es_hour",
+        Text_Hours: "es_hours",
+        Text_Day: "es_day",
+        Text_Days: "es_days",
+        Text_Ago: "es_ago",
+        Text_Show_Diff: "(es)Show Diff"
     },
     "gxp.plugins.GeoGitRepoInfo.prototype": {
         Text_Info: "es_Info",
@@ -47,7 +58,12 @@ GeoExt.Lang.add("es", {
         Text_Local: "es_Local",
         Text_Remote: "es_Remote",
         Text_Remotes: "es_Remotes",
-        Text_Tags: "es_Tags"
+        Text_Tags: "es_Tags",
+        Text_Merge: "es_Merge"
+    },
+    "gxp.plugins.GeoGitFeatureAttributeGrid.prototype": {
+        Text_Name: "es_Name",
+        Text_Value: "es_Value"
     },
     "gxp.FeatureEditPanel.prototype": {
         closeMsgTitle: '(es)Save Changes?',
