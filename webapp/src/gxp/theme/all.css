@@ -41,6 +41,15 @@ div.info {
 	height: 15px;
 }
 
+.gxp-grid-hd-font-cls .x-grid3-hd-row .x-grid3-hd-inner {
+	font-size: 11px;
+	height: 15px;
+}
+
+.gxp-selected-branch-cls .x-tree-node-anchor {
+	font-weight: bold;
+}
+
 .gxp-added-cls .x-grid3-cell-inner {
     background-color: #e2ffe2; 
     color: #090;

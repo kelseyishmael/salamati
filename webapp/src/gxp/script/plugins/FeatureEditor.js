@@ -315,7 +315,9 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                         }
                     }
                     function unregisterDoIt() {
-                        featureManager.featureStore.un("write", doIt, this);
+                        if(featureManager.featureStore) {
+                            featureManager.featureStore.un("write", doIt, this);
+                        }
                         popup.un("canceledit", doIt, this);
                         popup.un("cancelclose", unregisterDoIt, this);
                     }
@@ -328,7 +330,7 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                     if(popup.closable) {
                         popup.close();
                         popup = null;
-                    } else {
+                    } else if(!popup.editing){
                         popup.hide();
                     }
                 }

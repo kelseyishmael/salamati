@@ -84,7 +84,7 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
         config = Ext.apply({
             xtype: "grid",
             store: this.store,
-            cls: 'gxp-grid-font-cls',
+            cls: 'gxp-grid-font-cls gxp-grid-hd-font-cls',
             border: false,
             flex: 1.0,
             colModel: new Ext.grid.ColumnModel({

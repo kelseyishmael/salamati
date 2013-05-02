@@ -95,10 +95,11 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         config = Ext.apply({
             xtype: "grid",
             store: this.store,
-            cls: 'gxp-grid-font-cls',
+            cls: 'gxp-grid-font-cls gxp-grid-hd-font-cls',
             border: false,
             hideParent: true,
             flex: 1.0,
+            columnLines: true,
             colModel: new Ext.grid.ColumnModel({
                 defaults: {
                     sortable: false,
@@ -127,24 +128,26 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                     renderer: function(value) {
                         // Perhaps make this a function in the GeoGitUtil since its technically duplicate code
                         var now = new Date(), result = '';
+                        var then = new Date(value);
+                        result += then.toLocaleDateString() + ' ' + then.toLocaleTimeString() + " (approx. ";
                         if (value > now.add(Date.DAY, -1)) {
                             var hours = Math.round((now-value)/(1000*60*60));
                             result += hours + ' ';
                             result += (hours > 1) ? plugin.Text_Hours : plugin.Text_Hour;
-                            result += ' ' + plugin.Text_Ago + '.';
+                            result += ' ' + plugin.Text_Ago + ')';
                             return result;
                         } else if (value > now.add(Date.MONTH, -1)) {
                             var days = Math.round((now-value)/(1000*60*60*24));
                             result += days + ' ';
                             result += (days > 1) ? plugin.Text_Days : plugin.Text_Day;
-                            result += ' ' + plugin.Text_Ago + '.';
+                            result += ' ' + plugin.Text_Ago + ')';
                             return result;
                         }
                     }
                 }]
             }),
             viewConfig: {
-                autoFill: true
+                forceFit: true
             },
             listeners: {
     			cellcontextmenu: function(grid, rowIndex, cellIndex, event) {

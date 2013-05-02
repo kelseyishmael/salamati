@@ -406,7 +406,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                         xtype: "panel",
                         layout: "fit",
                         ref: "../../leftDiffAttributePanel",
-                        autoScroll: true,
                         flex: 0.33
                     },{
                         title: this.Title_Merged,
@@ -414,14 +413,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                         xtype: "panel",
                         layout: "fit",
                         hidden: true,
-                        autoScroll: true,
                         flex: 0.33
                     },{
                         title: this.Title_New,
                         xtype: "panel",
                         layout: "fit",
                         ref: "../../rightDiffAttributePanel",
-                        autoScroll: true,
                         flex: 0.33  
                     }],
                     listeners: {
@@ -539,6 +536,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             	layout: "fit",
             	region: "south",
             	collapsible: true,
+            	hidden: true,
             	border: "false",
             	split: true,
             	minSize: 150,

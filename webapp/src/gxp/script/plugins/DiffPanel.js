@@ -91,13 +91,13 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         var plugin = this;
         this.grid = new Ext.grid.GridPanel({
             store: this.store,
-            cls: "gxp-grid-font-cls",
+            cls: "gxp-grid-font-cls gxp-grid-hd-font-cls",
             border: false,
             hideParent: false,
             flex: 1,
             colModel: new Ext.grid.ColumnModel({
                 defaults: {
-                    sortable: false,
+                    sortable: true,
                     renderer: addToolTip
                 },
                 columns: [{

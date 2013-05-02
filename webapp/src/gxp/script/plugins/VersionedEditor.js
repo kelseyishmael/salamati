@@ -99,7 +99,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         var config = Ext.apply({
             xtype: this.initialConfig.editor || "gxp_editorgrid",
             title: this.attributesTitle,
-            cls: 'gxp-grid-font-cls'
+            cls: 'gxp-grid-font-cls gxp-grid-hd-font-cls'
         }, editorConfig);
         this.attributeEditor = Ext.ComponentMgr.create(config);
         this.add(this.attributeEditor);
@@ -373,7 +373,8 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 feature: this.feature,
                 schema: this.schema,
                 fields: this.fields,
-                excludeFields: this.excludeFields
+                excludeFields: this.excludeFields,
+                cls: 'gxp-grid-font-cls gxp-grid-hd-font-cls'
             });
             
             this.attributeEditor.init(this.target);
