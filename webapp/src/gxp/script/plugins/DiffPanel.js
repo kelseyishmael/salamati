@@ -44,6 +44,14 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     newCommitId: null,
     
+    diffLayer: null,
+    
+    newStyle: null,
+    
+    oldStyle: null,
+    
+    modifiedStyle: null,
+    
     constructor: function() {
         this.addEvents(
             /** api: event[commitdiffselected]
@@ -63,7 +71,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 this.store.url = store.url;
                 this.store.proxy.conn.url = store.url;
                 this.store.proxy.url = store.url;
-                this.store.load();
+                this.store.load({callback: this.addDiffLayer, scope: this});
                 this.oldCommitId = oldCommitId;
                 this.newCommitId = newCommitId;
                 app.portal.doLayout();                
@@ -131,8 +139,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                             var geometry = OpenLayers.Geometry.fromWKT(geometryText);
                             map.zoomToExtent(geometry.getBounds());
                             //TODO: rather than clamping to a hard-coded zoom level, it should clamp to a scale
-                            if(map.zoom > 15) {
-                                map.zoomTo(15, map.center);
+                            if(map.zoom > 18) {
+                                map.zoomTo(18, map.center);
                             }
                             app.fireEvent("getattributeinfo", plugin.store, plugin.oldCommitId, plugin.newCommitId, diffPanel.getSelectionModel().getSelected().data.fid);
                             diffPanel.contextMenu.hide();
@@ -148,6 +156,32 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         config = Ext.apply(this.grid, config || {});
         
         var diffPanel = gxp.plugins.DiffPanel.superclass.addOutput.call(this, config);
+    },
+    
+    addDiffLayer: function() {        
+        if(this.diffLayer === null) {
+            this.diffLayer = new OpenLayers.Layer.Vector("Diff");
+        } else {
+            this.diffLayer.removeAllFeatures();
+        }
+        var length = this.store.data.items.length;
+        for(var index = 0; index < length; index++) {
+            var data = this.store.data.items[index].data;
+            var style = OpenLayers.Util.applyDefaults(data.change === "REMOVED" ? this.oldStyle : data.change === "ADDED" ? this.newStyle : this.modifiedStyle,
+                    OpenLayers.Feature.Vector.style['default']);
+            var geom = OpenLayers.Geometry.fromWKT(data.geometry);
+            var feature = new OpenLayers.Feature.Vector(geom);
+            feature.style = style;
+            this.diffLayer.addFeatures(feature);
+        }
+        var layer = app.mapPanel.map.getLayer(this.diffLayer.id);
+        if(layer === null) {
+            app.mapPanel.map.addLayer(this.diffLayer);
+        }
+        app.mapPanel.map.zoomToExtent(this.diffLayer.getDataExtent());
+        if(app.mapPanel.map.zoom > 18) {
+            app.mapPanel.map.zoomTo(18, app.mapPanel.map.center);
+        }
     }
 });
 Ext.preg(gxp.plugins.DiffPanel.prototype.ptype, gxp.plugins.DiffPanel);

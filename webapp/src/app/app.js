@@ -307,6 +307,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     southPanel.hide();
                     app.portal.westpanel.hide();
                     app.portal.featureDiffPanel.hide();
+                    if(app.tools.diffpanel.diffLayer) {
+                        var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.diffLayer.id);
+                        if(layer !== null) {
+                            app.mapPanel.map.removeLayer(layer);
+                        }
+                    }
                 }
                 app.portal.doLayout();
             },
@@ -643,7 +649,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         },{
         	ptype: "gxp_diffpanel",
         	id: "diffpanel",
-        	outputTarget: "westpanel"
+        	outputTarget: "westpanel",
+        	newStyle: {fillColor: "#00FF00", fillOpacity: 0.1, strokeColor: "#00FF00", strokeWidth: 5},
+            oldStyle: {fillColor: "#FF0000", fillOpacity: 0.1, strokeColor: "#FF0000", strokeWidth: 5},
+            modifiedStyle: {fillColor: "#FFFF00", fillOpacity: 0.1, strokeColor: "#FFFF00", strokeWidth: 5}
         },{
             ptype: "gxp_geogitattributegrid",
             id: "old_attribute_grid",

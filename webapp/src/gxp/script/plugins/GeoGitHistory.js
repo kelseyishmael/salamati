@@ -176,7 +176,6 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                             plugin.diffStore.url = url;
                             plugin.diffStore.proxy.conn.url = url;
                             plugin.diffStore.proxy.url = url;
-                            plugin.diffStore.load();
                             
                             app.fireEvent("commitdiffselected", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId);
                             geogitHistory.contextMenu.hide();
@@ -228,6 +227,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     					    plugin.output[0].ownerCt.hide();
     					    plugin.target.portal.doLayout();
     					}
+    					plugin.selectedRows = [];
     				};
     				
     				gxp.GeoGitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
