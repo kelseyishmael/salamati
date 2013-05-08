@@ -33,7 +33,8 @@ GeoExt.Lang.add("en", {
         Title_Feature_Diff: "Feature Diff",
         Title_Old: "Old",
         Title_New: "New",
-        Tile_Merged: "Merged",
+        Title_Merged: "Merged",
+        Title_Geometry_Diff: "Geometry Diff",
         ActionTip_Default: "Distance/Bearing of features from click location",
         ActionTip_Edit: "Get feature info"
     },

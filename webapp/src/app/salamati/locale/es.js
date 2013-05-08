@@ -34,7 +34,8 @@ GeoExt.Lang.add("es", {
         Title_Feature_Diff: "es_Feature Diff",
         Title_Old: "es_Old",
         Title_New: "es_New",
-        Tile_Merged: "es_Merged",
+        Title_Merged: "es_Merged",
+        Title_Geometry_Diff: "es_Geometry Diff",
         ActionTip_Default: "Distancia/Cojinete",
         ActionTip_Edit: "Obtener informaci�n"
     },

@@ -52,6 +52,10 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     modifiedStyle: null,
     
+    oldGeomLayer: null,
+    mergeGeomLayer: null,
+    currentGeomLayer: null,
+    
     constructor: function() {
         this.addEvents(
             /** api: event[commitdiffselected]
@@ -62,19 +66,40 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
              *  * oldCommitId - ``String`` The old commit id to use for the diff.
              *  * newCommitId - ``String`` The new commit id to use for the diff.
              */
-            "commitdiffselected"
+            "commitdiffselected",
+            "showCurrentGeometry",
+            "showOldGeometry",
+            "showMergeGeometry"
         );
         this.on({
             commitdiffselected: function(store, oldCommitId, newCommitId) {
-                
-                //TODO change this.store url to the url of the store passed in
                 this.store.url = store.url;
                 this.store.proxy.conn.url = store.url;
                 this.store.proxy.url = store.url;
                 this.store.load({callback: this.addDiffLayer, scope: this});
                 this.oldCommitId = oldCommitId;
                 this.newCommitId = newCommitId;
-                app.portal.doLayout();                
+                app.portal.doLayout();
+                
+                this.clearLayers();
+            },
+            showOldGeometry: function() {
+                this.clearLayers();
+                if(this.oldGeomLayer) {
+                    app.mapPanel.map.addLayer(this.oldGeomLayer);
+                }
+            },
+            showMergeGeometry: function() {
+                this.clearLayers();
+                if(this.mergeGeomLayer) {
+                    app.mapPanel.map.addLayer(this.mergeGeomLayer);
+                }
+            },
+            showCurrentGeometry: function() {
+                this.clearLayers();
+                if(this.currentGeomLayer) {
+                    app.mapPanel.map.addLayer(this.currentGeomLayer);
+                }
             },
             scope: this
         });
@@ -135,14 +160,87 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                         xtype: 'button',
                         text: plugin.Text_Zoom,
                         handler: function() {
-                            var geometryText = diffPanel.getSelectionModel().getSelected().data.geometry;
-                            var geometry = OpenLayers.Geometry.fromWKT(geometryText);
-                            map.zoomToExtent(geometry.getBounds());
-                            //TODO: rather than clamping to a hard-coded zoom level, it should clamp to a scale
-                            if(map.zoom > 18) {
-                                map.zoomTo(18, map.center);
+                            var index = plugin.store.url.indexOf('diff?');
+                            var path = diffPanel.getSelectionModel().getSelected().data.fid;
+                            var url = plugin.store.url.substring(0, index) + "featurediff?all=true&oldCommitId=" + plugin.oldCommitId + "&newCommitId="+ plugin.newCommitId + "&path=" + path + "&output_format=JSON";
+                            
+                            var geomStore = new Ext.data.Store({
+                                url: url,
+                                reader: gxp.GeoGitUtil.featureDiffReader,
+                                autoLoad: false
+                            });
+                            
+                            plugin.clearLayers();
+                            
+                            var loadCallback = function() {
+                                var geomRegex = /gml:((Multi)?(Point|Line|Polygon|Curve|Surface|Geometry)).*/;
+                                var properties = app.tools['feature_manager'].schema.reader.raw.featureTypes[0].properties;
+                                var name = null;
+                                var geomDiff = null;
+                                for(storeIndex = 0; storeIndex < geomStore.data.items.length; storeIndex++) {
+                                    for(var propIndex=0; propIndex < properties.length; propIndex++) {
+                                        var match = geomRegex.exec(properties[propIndex].type);
+                                        if(match) {
+                                            name = properties[propIndex].name;
+                                            break;
+                                        }
+                                    }
+                                    if(name === geomStore.data.items[storeIndex].data.name) {
+                                        geomDiff = geomStore.data.items[storeIndex].data;
+                                    }
+                                }
+
+                                if(geomDiff) {
+                                    var oldGeomText = geomDiff.oldvalue;
+                                    var newGeomText = geomDiff.newvalue;
+                                    if(geomDiff.change === "NO_CHANGE") {
+                                        newGeomText = oldGeomText;
+                                        //should add something to indicate to the user that there was no change
+                                    }
+                                    
+                                    if(oldGeomText) {
+                                        var oldGeometry = OpenLayers.Geometry.fromWKT(oldGeomText);
+                                        var oldFeature = new OpenLayers.Feature.Vector(oldGeometry);
+
+                                        if(plugin.oldGeomLayer != null) {
+                                            plugin.oldGeomLayer = app.mapPanel.map.getLayer(plugin.oldGeomLayer.id);
+                                            if(plugin.oldGeomLayer != null) {
+                                                app.mapPanel.map.removeLayer(plugin.oldGeomLayer);  
+                                            }
+                                            plugin.oldGeomLayer = null;
+                                        }
+                                        plugin.oldGeomLayer = new OpenLayers.Layer.Vector("old_Geometry");
+                                        plugin.oldGeomLayer.addFeatures(oldFeature);
+                                    } else {
+                                        plugin.oldGeomLayer = null;
+                                    }
+                                    if(newGeomText) {
+                                        var newGeometry = OpenLayers.Geometry.fromWKT(newGeomText);
+                                        var newFeature = new OpenLayers.Feature.Vector(newGeometry);
+                                        
+                                        if(plugin.currentGeomLayer != null) {
+                                            plugin.currentGeomLayer = app.mapPanel.map.getLayer(plugin.currentGeomLayer.id);
+                                            if(plugin.currentGeomLayer != null) {
+                                                app.mapPanel.map.removeLayer(plugin.currentGeomLayer);
+                                            }
+                                            plugin.currentGeomLayer = null;
+                                        }
+                                        plugin.currentGeomLayer = new OpenLayers.Layer.Vector("new_Geometry");
+                                        plugin.currentGeomLayer.addFeatures(newFeature);
+                                    } else {
+                                        plugin.currentGeomLayer = null;
+                                    }
+
+                                    map.zoomToExtent(geomDiff.change === "REMOVED" ? oldGeometry.getBounds() : newGeometry.getBounds());
+                                    //TODO: rather than clamping to a hard-coded zoom level, it should clamp to a scale
+                                    if(map.zoom > 18) {
+                                        map.zoomTo(18, map.center);
+                                    }
+                                }
                             }
-                            app.fireEvent("getattributeinfo", plugin.store, plugin.oldCommitId, plugin.newCommitId, diffPanel.getSelectionModel().getSelected().data.fid);
+                            geomStore.load({callback:loadCallback});
+                            
+                            app.fireEvent("getattributeinfo", plugin.store, plugin.oldCommitId, plugin.newCommitId, path);
                             diffPanel.contextMenu.hide();
                         }
                     }
@@ -181,6 +279,27 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         app.mapPanel.map.zoomToExtent(this.diffLayer.getDataExtent());
         if(app.mapPanel.map.zoom > 18) {
             app.mapPanel.map.zoomTo(18, app.mapPanel.map.center);
+        }
+    },
+    
+    clearLayers: function() {
+        if(this.currentGeomLayer) {
+            var layer = app.mapPanel.map.getLayer(this.currentGeomLayer.id);
+            if(layer != null) {
+                app.mapPanel.map.removeLayer(layer);
+            }
+        }
+        if(this.mergeGeomLayer) {
+            var layer = app.mapPanel.map.getLayer(this.mergeGeomLayer.id);
+            if(layer != null) {
+                app.mapPanel.map.removeLayer(layer);
+            }
+        }
+        if(this.oldGeomLayer) {
+            var layer = app.mapPanel.map.getLayer(this.oldGeomLayer.id);
+            if(layer != null) {
+                app.mapPanel.map.removeLayer(layer);
+            }
         }
     }
 });
