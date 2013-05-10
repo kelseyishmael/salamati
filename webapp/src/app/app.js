@@ -43,6 +43,7 @@
  * @require plugins/GeoGitRepoInfo.js
  * @require plugins/DiffPanel.js
  * @require plugins/GeoGitFeatureAttributeGrid.js
+ * @require plugins/Styler.js
  */
 
 (function() {
@@ -575,8 +576,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             ptype: "gn_layerinfo",
             actionTarget: ["tree.contextMenu"]
         }, {
-            ptype: "gxp_playback",
-            outputTarget: "map.tbar"
+        	ptype: "gxp_playback",
+        	outputTarget: "map.tbar"
+        }, {
+        	ptype: "gxp_styler",
+        	actionTarget: ["tree.tbar", "tree.contextMenu"],
+        	rasterStyling: true
         }, {
         	ptype: "salamati_tools",
         	outputTarget: "map.tbar",
