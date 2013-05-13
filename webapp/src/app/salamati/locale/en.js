@@ -98,5 +98,8 @@ GeoExt.Lang.add("en", {
         Title_Fid: "fid",
         Title_Change: "Change",
         Text_Zoom: "Zoom To Extent"
+    },
+    "gxp.plugins.LayerTree.prototype": {
+        Title_ZoomTo: "Zoom to Layer"
     }
 });

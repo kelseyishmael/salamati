@@ -706,9 +706,6 @@ gxp.plugins.AddLayers = Ext.extend(gxp.plugins.Tool, {
                 }
             }
         }
-        if (extent) {
-            this.target.mapPanel.map.zoomToExtent(extent);
-        }
         if (records.length === 1 && record) {
             // select the added layer
             this.target.selectLayer(record);

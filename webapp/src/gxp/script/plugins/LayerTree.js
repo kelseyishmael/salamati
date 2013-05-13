@@ -197,7 +197,15 @@ gxp.plugins.LayerTree = Ext.extend(gxp.plugins.Tool, {
                 }
             }),
             contextMenu: new Ext.menu.Menu({
-                items: []
+                items: [
+                    {
+                        text: plugin.Title_ZoomTo,
+                        iconCls: "gxp-icon-zoom-to",
+                        handler: function() {
+                            app.mapPanel.map.zoomToExtent(plugin.target.selectedLayer.data.layer.maxExtent);
+                        }
+                    }
+                ]
             })
         };
     },
