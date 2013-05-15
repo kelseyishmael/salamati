@@ -163,49 +163,71 @@ gxp.GeoGitUtil = {
     	throw "GeoGitUtil: Error fetching data store info";
     },
     
+    isLayerGroup: function(url, featureType, callback){
+    	var requestUrl = url + 'wms?service=WMS&version=1.1.1&request=DescribeLayer&layers=' + featureType;
+    
+    	OpenLayers.Request.GET({
+    		url: requestUrl,
+    		success: function(response){
+    			var describeLayer = new OpenLayers.Format.WMSDescribeLayer();
+    			var results = describeLayer.read(response.responseText);
+    			console.log("describe layer results: ", results);
+    			if((results.length == 1) && (results[0].layerName === featureType)){
+    				callback(true);
+    			}
+    		}
+    	});
+    },
+    
     /**
      * Query the rest api to get the type of datastore for this layer
      */
     fetchIsGeoGitLayer: function(url, workspace, featureType, isGeoGit, isNotGeoGit){
     	var plugin = this;
-		OpenLayers.Request.GET({
-			url: url + 'rest/layers/' + featureType + '.json',
-			success: function(results){
-				var jsonFormatter = new OpenLayers.Format.JSON();
-				var layerinfo = jsonFormatter.read(results.responseText);
-				var resourceUrl = layerinfo.layer.resource.href;
-				
-				var datastoreStartIndex = resourceUrl.indexOf(workspace + '/datastores');
-                datastoreStartIndex = datastoreStartIndex + workspace.length + 12;
-                
-                var datastoreEnd = resourceUrl.substr(datastoreStartIndex);
-                var datastoreEndIndex = datastoreEnd.indexOf('/');
-				var datastore = datastoreEnd.substring(0, datastoreEndIndex);
-				
-				OpenLayers.Request.GET({
-					url: url + 'rest/workspaces/' + workspace + '/datastores/' + datastore + '.json',
-					success: function(results){
-						var storeInfo = jsonFormatter.read(results.responseText);
-						if(storeInfo){
-							if(storeInfo.dataStore && storeInfo.dataStore.type){
-								if(isGeoGit && (storeInfo.dataStore.type === "GeoGIT")){
-									isGeoGit(storeInfo.dataStore);
-								}else{
-									if(isNotGeoGit){
-										isNotGeoGit(storeInfo.dataStore);
-									}
-								}
-							}else{
-								plugin.errorFetching();
-							}
-						}else{
-							plugin.errorFetching();
-						}
-					},
-					failure: plugin.errorFetching
-				});
-			},
-			failure: plugin.errorFetching
-		});
+    	
+    	// Only perform the request if the layer is not actually a layer group 
+    	this.isLayerGroup(url, featureType, function(_isLayerGroup){
+    		if(_isLayerGroup){
+    			OpenLayers.Request.GET({
+        			url: url + 'rest/layers/' + featureType + '.json',
+        			success: function(results){
+        				var jsonFormatter = new OpenLayers.Format.JSON();
+        				var layerinfo = jsonFormatter.read(results.responseText);
+        				var resourceUrl = layerinfo.layer.resource.href;
+        				
+        				var datastoreStartIndex = resourceUrl.indexOf(workspace + '/datastores');
+                        datastoreStartIndex = datastoreStartIndex + workspace.length + 12;
+                        
+                        var datastoreEnd = resourceUrl.substr(datastoreStartIndex);
+                        var datastoreEndIndex = datastoreEnd.indexOf('/');
+        				var datastore = datastoreEnd.substring(0, datastoreEndIndex);
+        				
+        				OpenLayers.Request.GET({
+        					url: url + 'rest/workspaces/' + workspace + '/datastores/' + datastore + '.json',
+        					success: function(results){
+        						var storeInfo = jsonFormatter.read(results.responseText);
+        						if(storeInfo){
+        							if(storeInfo.dataStore && storeInfo.dataStore.type){
+        								if(isGeoGit && (storeInfo.dataStore.type === "GeoGIT")){
+        									isGeoGit(storeInfo.dataStore);
+        								}else{
+        									if(isNotGeoGit){
+        										isNotGeoGit(storeInfo.dataStore);
+        									}
+        								}
+        							}else{
+        								plugin.errorFetching();
+        							}
+        						}else{
+        							plugin.errorFetching();
+        						}
+        					},
+        					failure: plugin.errorFetching
+        				});
+        			},
+        			failure: plugin.errorFetching
+        		});
+    		}
+    	});
 	}
 };
