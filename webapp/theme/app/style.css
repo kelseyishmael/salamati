@@ -28,7 +28,8 @@ body {
 
 .mytoolwindowclass {
    /* width: 342px !important;*/
-   	width: 210px !important;
+   /*	width: 210px !important;*/
+    width: 145px !important;
     height: 78px !important;
 }
 

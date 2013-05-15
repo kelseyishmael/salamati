@@ -668,7 +668,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             id: "new_attribute_grid",
             valueIndex: "newvalue",
             outputTarget: "rightDiffAttributePanel"
-        },{
+        },/*{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
@@ -677,7 +677,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-generic"
             iconCls: "gxp-icon-distance-bearing"
-        }, {
+        },*/ {
             actions: ['->']
         }, {
             ptype: 'gn_savehyperlink'
