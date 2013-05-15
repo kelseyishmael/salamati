@@ -55,13 +55,22 @@ gxp.plugins.GeoGitHistoryButton = Ext.extend(gxp.plugins.Tool, {
 
         this.target.on("layerselectionchange", function(record) {
             selectedLayer = record;
+            
+            var isGeoGit = false;
+            
+            if(record && record.data && record.data.layer 
+            		&& record.data.layer.metadata && record.data.layer.metadata.isGeogit){
+            	isGeoGit = record.data.layer.metadata.isGeogit;
+            }
+            
             historyButtonAction.setDisabled(
-                !record ? true : false
+                //!record ? true : false
+            	!isGeoGit ? true : false
             );
         }, this);
         var enforceOne = function(store) {
         	historyButtonAction.setDisabled(
-                !selectedLayer || store.getCount() <= 1
+                !selectedLayer || store.getCount() <= 1 
             );
         };
         this.target.mapPanel.layers.on({
