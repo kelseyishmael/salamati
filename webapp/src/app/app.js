@@ -305,16 +305,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     southPanel.expand();
                 } else {
                     southPanel.hide();
-                    app.portal.westpanel.hide();
-
-                    app.portal.featureDiffPanel.hide();
-                    diffLayersWindow.hide();
-                    if(app.tools.diffpanel.diffLayer) {
-                        var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.diffLayer.id);
-                        if(layer !== null) {
-                            app.mapPanel.map.removeLayer(layer);
-                        }
-                    }
                 }
                 app.portal.doLayout();
             },
@@ -325,8 +315,8 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 if(westPanel.hidden) {
                     westPanel.show();
                     westPanel.expand();
-                    diffLayersWindow.show();
                 }
+                app.fireEvent("togglesouthpanel");
                 app.portal.featureDiffPanel.hide();
                 app.portal.doLayout();
             },
@@ -336,6 +326,13 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 app.tools['new_attribute_grid'].fireEvent("getattributeinfo", store, oldCommitId, newCommitId, path);
                 if(featureDiffPanel.hidden) {
                     featureDiffPanel.show();
+                    diffLayersWindow.show();
+                    
+                    diffLayersWindow.setPosition(app.mapPanel.getWidth() / 2 - diffLayersWindow.getWidth() / 2, app.mapPanel.tbar.getHeight());
+                    app.portal.featureDiffPanel.setPosition(app.mapPanel.getWidth() / 2 - app.portal.featureDiffPanel.getWidth() / 2, 
+                            app.mapPanel.getHeight() - app.portal.featureDiffPanel.getHeight());
+                    
+                    app.portal.westpanel.diffDoneButton.show();
                 }
                 app.portal.doLayout();
             }
@@ -444,7 +441,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 }]
             }, {
             	ref: "westpanel",
-            	layout: "fit",
+            	layout: "vbox",
             	region: "west",
             	collapsible: false,
             	title: this.Title_Diff,
@@ -452,7 +449,50 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             	split: true,
             	minSize: 200,
             	maxSize: 300,
-            	width: 200
+            	width: 200,
+            	items: [{
+                    xtype: 'button',
+                    text: 'Done',
+                    ref: 'diffDoneButton',
+                    cls: "diffDoneButtonClass",
+                    hidden: true,
+                    width: 200,
+                    handler: function() {
+                        app.portal.westpanel.hide();
+                        app.portal.westpanel.diffDoneButton.hide();
+
+                        app.portal.featureDiffPanel.hide();
+                        diffLayersWindow.hide();
+                        if(app.tools.diffpanel.diffLayer) {
+                            var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.diffLayer.id);
+                            if(layer !== null) {
+                                app.mapPanel.map.removeLayer(layer);
+                            }
+                        }
+
+                        if(app.tools.diffpanel.oldGeomLayer) {
+                            var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.oldGeomLayer.id);
+                            if(layer !== null) {
+                                app.mapPanel.map.removeLayer(layer);
+                            }
+                        }
+
+                        if(app.tools.diffpanel.mergeGeomLayer) {
+                            var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.mergeGeomLayer.id);
+                            if(layer !== null) {
+                                app.mapPanel.map.removeLayer(layer);
+                            }
+                        }
+
+                        if(app.tools.diffpanel.currentGeomLayer) {
+                            var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.currentGeomLayer.id);
+                            if(layer !== null) {
+                                app.mapPanel.map.removeLayer(layer);
+                            }
+                        }
+                        app.portal.doLayout();
+                    }
+                }]
             }, {
             	ref: "eastpanel",
             	layout: "vbox",
@@ -921,6 +961,7 @@ Ext.onReady(function() {
         closeAction: "hide",
         xtype: "window",
         resizable: false,
+        closable: false,
         layout: "fit",
         items: [
             {

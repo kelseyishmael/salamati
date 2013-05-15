@@ -43,7 +43,7 @@ gxp.plugins.GeoGitHistoryButton = Ext.extend(gxp.plugins.Tool, {
         var selectedLayer;
         var actions = gxp.plugins.GeoGitHistoryButton.superclass.addActions.apply(this, [{
             menuText: this.historyButtonText,
-            iconCls: "gxp-icon-removelayers",
+            iconCls: "gxp-icon-legend",
             disabled: true,
             tooltip: this.historyButtonTip,
             handler: function() {

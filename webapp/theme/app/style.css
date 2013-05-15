@@ -321,3 +321,9 @@ p.css-vertical-text {
     width: 60px !important;
 
 }
+
+.diffDoneButtonClass {
+	font-size: 20px !important;
+	font-weight: bold !important;
+    height: 40px !important;
+}
