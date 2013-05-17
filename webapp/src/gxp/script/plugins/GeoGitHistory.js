@@ -66,6 +66,31 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     selectedRows: [],
     
+    merging: false,
+    
+    constructor: function() {
+        this.addEvents(
+                /** api: event[conflictsDetected]
+                 *  Fired when conflicts in a merge are found.
+                 */
+                "beginMerge",
+                /** api: event[conflictsResolved]
+                 *  Fired when all conflicts in a merge are resolved.
+                 */
+                "endMerge"
+        );
+        this.on({
+            beginMerge: function() {
+                this.merging = true;
+            },
+            endMerge: function() {
+                this.merging = false;
+            },
+            scope: this
+        });
+        gxp.plugins.GeoGitHistory.superclass.constructor.apply(this, arguments);
+    },
+    
     /** api: method[addOutput]
      */
     addOutput: function(config) {
@@ -151,7 +176,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
             },
             listeners: {
     			cellcontextmenu: function(grid, rowIndex, cellIndex, event) {
-    			    if(geogitHistory.getSelectionModel().hasSelection()) {
+    			    if(geogitHistory.getSelectionModel().hasSelection() && !plugin.merging) {
     			        geogitHistory.contextMenu.showAt(event.getXY());
     			    }
     			    event.stopEvent();
@@ -218,7 +243,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         					plugin.dataStore = layer.metadata.geogitStore;
         					plugin.path = layer.metadata.nativeName;
         					
-    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?path=' + layer.metadata.nativeName + '&output_format=JSON';
+    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?path=' + layer.metadata.nativeName + '&until=' + layer.metadata.branch + '&output_format=JSON';
     		        		plugin.store.url = plugin.url;
     		        		plugin.store.proxy.conn.url = plugin.url;
     		        		plugin.store.proxy.url = plugin.url;

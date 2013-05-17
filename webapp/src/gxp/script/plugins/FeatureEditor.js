@@ -218,6 +218,8 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
     saveHandleSet: false,
     
     popupType: "gxp_featureeditpanel",
+    
+    merging: false,
 
     /** private: method[constructor]
      */
@@ -250,8 +252,19 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
              *  * editable - ``Boolean`` The feature is ready to be edited.
              */
             "featureeditable"
-
         );
+        
+        this.on({
+            beginMerge: function() {
+                this.merging = true;
+                this.enableOrDisable();
+            },
+            endMerge: function() {
+                this.merging = false;
+                this.enableOrDisable();
+            },
+            scope: this
+        });
         gxp.plugins.FeatureEditor.superclass.constructor.apply(this, arguments);        
     },
 
@@ -918,7 +931,7 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
      */
     enableOrDisable: function() {
         // disable editing if no schema
-        var disable = !this.schema;
+        var disable = !this.schema || this.merging;
         if (this.splitButton) {
             this.splitButton.setDisabled(disable);
         }
