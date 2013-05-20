@@ -15,6 +15,10 @@ Ext.namespace("gxp");
 
 gxp.GeoGitUtil = {
     
+    merging: false,
+    
+    transactionIds: {},
+        
     /**
      * JSON reader for the log operation in GeoGit
      */
@@ -45,6 +49,25 @@ gxp.GeoGitUtil = {
      */
     diffReader: new Ext.data.JsonReader({
         root: 'response.Feature',
+        fields: [
+           {
+               name: 'fid',
+               mapping: 'id'
+           },{
+               name: 'change',
+               mapping: 'change'
+           },{
+               name: 'geometry',
+               mapping: 'geometry'
+           }
+        ]
+    }),
+    
+    /**
+     * JSON reader for the merge dry-run operation in GeoGit
+     */
+    mergeReader: new Ext.data.JsonReader({
+        root: 'response.Merge.Feature',
         fields: [
            {
                name: 'fid',
@@ -118,6 +141,8 @@ gxp.GeoGitUtil = {
 						success: function(results){
 							var jsonFormatter = new OpenLayers.Format.JSON();
 							var featureTypeInfo = jsonFormatter.read(results.responseText);
+							console.log("featureTypeInfo", featureTypeInfo);
+							console.log("dataStore", dataStore);
 							layer.metadata.isGeogit = true;
 							layer.metadata.geogitStore = dataStore.name;
 							layer.metadata.nativeName = featureTypeInfo.featureType.nativeName;
@@ -125,6 +150,7 @@ gxp.GeoGitUtil = {
 	                         if(layer.metadata.repoId === undefined) {
 	                             layer.metadata.repoId = layer.url.substring(0, geoserverIndex-1);
 	                             layer.metadata.repoId += dataStore.connectionParameters.entry[0].$;
+	                             layer.metadata.branch = dataStore.connectionParameters.entry[1].$;
 	                         }
 							
 							if(callback !== undefined){
@@ -207,5 +233,20 @@ gxp.GeoGitUtil = {
 			},
 			failure: plugin.errorFetching
 		});
+	},
+	
+	addTransactionId: function(transactionId, repoName) {
+	    if(this.transactionIds[repoName] === undefined) {
+	        this.transactionIds[repoName] = transactionId;
+	    } else {
+	        this.transactionIds[repoName] = undefined;
+	    }
+	},
+	
+	checkForTransaction: function(repoName) {
+	    if(this.transactionIds[repoName] === undefined) {
+	        return false;
+	    }
+	    return true;
 	}
 };

@@ -33,7 +33,9 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     /**
      * Ext.data.Store
      */
-    store: null,
+    diffStore: null,
+    
+    mergeStore: null,
     
     /**
      * Ext.grid.GridPanel
@@ -44,6 +46,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     newCommitId: null,
     
+    ancestorCommitId: null,
+    
     diffLayer: null,
     
     newStyle: null,
@@ -52,6 +56,9 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     modifiedStyle: null,
     
+    merge: false,
+    
+    transactionId: null,
     oldGeomLayer: null,
     mergeGeomLayer: null,
     currentGeomLayer: null,
@@ -73,10 +80,16 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         );
         this.on({
             commitdiffselected: function(store, oldCommitId, newCommitId) {
-                this.store.url = store.url;
-                this.store.proxy.conn.url = store.url;
-                this.store.proxy.url = store.url;
-                this.store.load({callback: this.addDiffLayer, scope: this});
+                
+                //TODO change this.store url to the url of the store passed in                
+                if(this.grid.view) {
+                    this.diffStore.clearData();
+                    this.grid.view.refresh();
+                }
+                this.diffStore.url = store.url;
+                this.diffStore.proxy.conn.url = store.url;
+                this.diffStore.proxy.url = store.url;
+                this.diffStore.load({callback: this.addDiffLayer, scope: this});
                 this.oldCommitId = oldCommitId;
                 this.newCommitId = newCommitId;
                 app.portal.doLayout();
@@ -101,6 +114,43 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                     app.mapPanel.map.addLayer(this.currentGeomLayer);
                 }
             },
+            beginMerge: function(store, transactionId) {
+                this.mergeStore.clearData();
+                this.grid.reconfigure(this.mergeStore, this.grid.getColumnModel());
+                this.mergeStore.url = store.url;
+                this.mergeStore.proxy.conn.url = store.url;
+                this.mergeStore.proxy.url = store.url;
+                this.merge = true;
+                this.transactionId = transactionId;
+                this.mergeStore.load({
+                    callback: function() {
+                        this.oldCommitId = this.mergeStore.reader.jsonData.response.Merge.ours;
+                        this.newCommitId = this.mergeStore.reader.jsonData.response.Merge.theirs;
+                        this.ancestorCommitId = this.mergeStore.reader.jsonData.response.Merge.ancestor;
+                        if(this.mergeStore.reader.jsonData.response.Merge.conflicts !== undefined) {
+                            Ext.Msg.show({
+                                title: "Conflicts",
+                                msg: "We have detected " + this.mergeStore.reader.jsonData.response.Merge.conflicts + " conflicts as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
+                                buttons: Ext.Msg.OK,
+                                fn: function(button) {
+                                    app.fireEvent("conflictsDetected");
+                                },
+                                scope: this,
+                                icon: Ext.MessageBox.WARNING,
+                                animEl: this.grid.ownerCt.getEl()
+                            });
+                        }
+                        //this.addDiffLayer();
+                    },
+                    scope: this
+                });                
+                app.portal.doLayout();         
+            },
+            endMerge: function() {
+                this.grid.reconfigure(this.diffStore, this.grid.getColumnModel());
+                this.merge = false;
+                this.transactionId = null;
+            },
             scope: this
         });
         gxp.plugins.DiffPanel.superclass.constructor.apply(this, arguments);
@@ -111,11 +161,17 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     addOutput: function(config) {       
         var map = this.target.mapPanel.map;
         var url = "default";
-        this.store = new Ext.data.Store({
+        this.diffStore = new Ext.data.Store({
             url: url,
             reader: gxp.GeoGitUtil.diffReader,
             autoLoad: false
         });
+        
+        this.mergeStore = new Ext.data.Store({
+            url: url,
+            reader: gxp.GeoGitUtil.mergeReader,
+            autoLoad: false
+        })
         
         var addToolTip = function(value, metadata, record, rowIndex, colIndex, store){
             metadata.attr = 'title="' + value + '"';
@@ -123,9 +179,10 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         };
         var plugin = this;
         this.grid = new Ext.grid.GridPanel({
-            store: this.store,
+            store: this.diffStore,
             cls: "gxp-grid-font-cls gxp-grid-hd-font-cls",
             border: false,
+            columnLines: true,
             hideParent: false,
             flex: 1,
             colModel: new Ext.grid.ColumnModel({
@@ -160,9 +217,17 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                         xtype: 'button',
                         text: plugin.Text_Zoom,
                         handler: function() {
-                            var index = plugin.store.url.indexOf('diff?');
+                            var index;
+                            var store;
+                            if(plugin.merge) {
+                                index = plugin.mergeStore.url.indexOf('merge?');
+                                store = plugin.mergeStore;
+                            } else {
+                                index = plugin.diffStore.url.indexOf('diff?');
+                                store = plugin.diffStore;
+                            }
                             var path = diffPanel.getSelectionModel().getSelected().data.fid;
-                            var url = plugin.store.url.substring(0, index) + "featurediff?all=true&oldCommitId=" + plugin.oldCommitId + "&newCommitId="+ plugin.newCommitId + "&path=" + path + "&output_format=JSON";
+                            var url = store.url.substring(0, index) + "featurediff?all=true&oldCommitId=" + plugin.oldCommitId + "&newCommitId="+ plugin.newCommitId + "&path=" + path + "&output_format=JSON";
                             
                             var geomStore = new Ext.data.Store({
                                 url: url,
@@ -240,7 +305,11 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                             }
                             geomStore.load({callback:loadCallback});
                             
-                            app.fireEvent("getattributeinfo", plugin.store, plugin.oldCommitId, plugin.newCommitId, path);
+                            if(plugin.merge) {
+                                app.fireEvent("getmergeinfo", plugin.mergeStore, plugin.oldCommitId, plugin.newCommitId, plugin.ancestorCommitId, diffPanel.getSelectionModel().getSelected().data, plugin.transactionId);
+                            } else {
+                                app.fireEvent("getattributeinfo", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, diffPanel.getSelectionModel().getSelected().data.fid);
+                            }
                             diffPanel.contextMenu.hide();
                         }
                     }
@@ -262,9 +331,10 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         } else {
             this.diffLayer.removeAllFeatures();
         }
-        var length = this.store.data.items.length;
+        var length = this.diffStore.data.items.length;
+
         for(var index = 0; index < length; index++) {
-            var data = this.store.data.items[index].data;
+            var data = this.diffStore.data.items[index].data;
             var style = OpenLayers.Util.applyDefaults(data.change === "REMOVED" ? this.oldStyle : data.change === "ADDED" ? this.newStyle : this.modifiedStyle,
                     OpenLayers.Feature.Vector.style['default']);
             var geom = OpenLayers.Geometry.fromWKT(data.geometry);
@@ -273,6 +343,12 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
             this.diffLayer.addFeatures(feature);
         }
         var layer = app.mapPanel.map.getLayer(this.diffLayer.id);
+        if(length === 0) {
+            if(layer) {
+                app.mapPanel.map.removeLayer(layer);
+            }
+            return;
+        }
         if(layer === null) {
             app.mapPanel.map.addLayer(this.diffLayer);
         }

@@ -63,6 +63,10 @@ div.info {
 	background-color: #ffa; 
     color: #009; 
 }
+.gxp-conflicted-cls .x-grid3-cell-inner {
+	background-color: #ffd27f; 
+ 
+}
 
 .gxp-layerproperties-label {
     line-height: 21px;
