@@ -43,6 +43,7 @@
  * @require plugins/GeoGitRepoInfo.js
  * @require plugins/DiffPanel.js
  * @require plugins/GeoGitFeatureAttributeGrid.js
+ * @require plugins/Styler.js
  */
 
 (function() {
@@ -644,8 +645,12 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             ptype: "gn_layerinfo",
             actionTarget: ["tree.contextMenu"]
         }, {
-            ptype: "gxp_playback",
-            outputTarget: "map.tbar"
+        	ptype: "gxp_playback",
+        	outputTarget: "map.tbar"
+        }, {
+        	ptype: "gxp_styler",
+        	actionTarget: ["tree.tbar", "tree.contextMenu"],
+        	rasterStyling: true
         }, {
         	ptype: "salamati_tools",
         	outputTarget: "map.tbar",
@@ -733,7 +738,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             conflictStyle: {fillColor: "#FFA500", fillOpacity: 0.1, strokeColor: "#FFA500", strokeWidth: 5},
             ourStyle: {fillColor: "#0000FF", fillOpacity: 0.1, strokeColor: "#0000FF", strokeWidth: 5},
             theirStyle: {fillColor: "#FF00FF", fillOpacity: 0.1, strokeColor: "#FF00FF", strokeWidth: 5}
-        },{
+        },/*{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
             toggleGroup: "distanceBearing",
@@ -742,7 +747,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             infoActionTip: this.ActionTip_Default,
            // iconCls: "gxp-icon-distance-bearing-generic"
             iconCls: "gxp-icon-distance-bearing"
-        }, {
+        },*/ {
             actions: ['->']
         }, {
             ptype: 'gn_savehyperlink'
