@@ -161,7 +161,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             }
             var command = 'log';
             var url = plugin.url + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/' + command;
-            url = Ext.urlAppend(url, 'path=' + plugin.path + '&output_format=json');
+            url = Ext.urlAppend(url, 'path=' + plugin.path + '&firstParentOnly=true&output_format=json');
             
             var store = new Ext.data.Store({
             	url: url,
@@ -246,16 +246,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 }
             },
             checkForGeometry: function(type, xindex) {
-            	var geomRegex = /gml:((Multi)?(Point|Line|Polygon|Curve|Surface|Geometry)).*/;
-            	var properties = app.tools[me.featureManager].schema.reader.raw.featureTypes[0].properties;
-            	var name = null;
-            	for(var index=0; index < properties.length; index++) {
-            		var match = geomRegex.exec(properties[index].type);
-            		if(match) {
-            			name = properties[index].name;
-            			break;
-            		}
-            	}
+            	var name = gxp.GeoGitUtil.getGeometryAttributeName();
             	if(type === name) {
             		if(xindex === -1) {
             			return true;

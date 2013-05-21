@@ -56,12 +56,11 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     modifiedStyle: null,
     
+    conflictStyle: null,
+    
     merge: false,
     
     transactionId: null,
-    oldGeomLayer: null,
-    mergeGeomLayer: null,
-    currentGeomLayer: null,
     
     constructor: function() {
         this.addEvents(
@@ -73,15 +72,10 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
              *  * oldCommitId - ``String`` The old commit id to use for the diff.
              *  * newCommitId - ``String`` The new commit id to use for the diff.
              */
-            "commitdiffselected",
-            "showCurrentGeometry",
-            "showOldGeometry",
-            "showMergeGeometry"
+            "commitdiffselected"
         );
         this.on({
-            commitdiffselected: function(store, oldCommitId, newCommitId) {
-                
-                //TODO change this.store url to the url of the store passed in                
+            commitdiffselected: function(store, oldCommitId, newCommitId) {          
                 if(this.grid.view) {
                     this.diffStore.clearData();
                     this.grid.view.refresh();
@@ -93,26 +87,6 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 this.oldCommitId = oldCommitId;
                 this.newCommitId = newCommitId;
                 app.portal.doLayout();
-                
-                this.clearLayers();
-            },
-            showOldGeometry: function() {
-                this.clearLayers();
-                if(this.oldGeomLayer) {
-                    app.mapPanel.map.addLayer(this.oldGeomLayer);
-                }
-            },
-            showMergeGeometry: function() {
-                this.clearLayers();
-                if(this.mergeGeomLayer) {
-                    app.mapPanel.map.addLayer(this.mergeGeomLayer);
-                }
-            },
-            showCurrentGeometry: function() {
-                this.clearLayers();
-                if(this.currentGeomLayer) {
-                    app.mapPanel.map.addLayer(this.currentGeomLayer);
-                }
             },
             beginMerge: function(store, transactionId) {
                 this.mergeStore.clearData();
@@ -124,13 +98,14 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 this.transactionId = transactionId;
                 this.mergeStore.load({
                     callback: function() {
-                        this.oldCommitId = this.mergeStore.reader.jsonData.response.Merge.ours;
-                        this.newCommitId = this.mergeStore.reader.jsonData.response.Merge.theirs;
-                        this.ancestorCommitId = this.mergeStore.reader.jsonData.response.Merge.ancestor;
-                        if(this.mergeStore.reader.jsonData.response.Merge.conflicts !== undefined) {
+                        var mergeData = this.mergeStore.reader.jsonData.response.Merge;
+                        this.oldCommitId = mergeData.ours;
+                        this.newCommitId = mergeData.theirs;
+                        this.ancestorCommitId = mergeData.ancestor;
+                        if(mergeData.conflicts !== undefined) {
                             Ext.Msg.show({
                                 title: "Conflicts",
-                                msg: "We have detected " + this.mergeStore.reader.jsonData.response.Merge.conflicts + " conflicts as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
+                                msg: "We have detected " + mergeData.conflicts + " conflicts as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
                                 buttons: Ext.Msg.OK,
                                 fn: function(button) {
                                     app.fireEvent("conflictsDetected");
@@ -140,13 +115,19 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                                 animEl: this.grid.ownerCt.getEl()
                             });
                         }
-                        //this.addDiffLayer();
+                        this.addDiffLayer();
                     },
                     scope: this
                 });                
                 app.portal.doLayout();         
             },
             endMerge: function() {
+                if(this.diffLayer) {
+                    var layer = app.mapPanel.map.getLayer(this.diffLayer.id);
+                    if(layer != null) {
+                        app.mapPanel.map.removeLayer(layer);
+                    }
+                }
                 this.grid.reconfigure(this.diffStore, this.grid.getColumnModel());
                 this.merge = false;
                 this.transactionId = null;
@@ -217,94 +198,6 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                         xtype: 'button',
                         text: plugin.Text_Zoom,
                         handler: function() {
-                            var index;
-                            var store;
-                            if(plugin.merge) {
-                                index = plugin.mergeStore.url.indexOf('merge?');
-                                store = plugin.mergeStore;
-                            } else {
-                                index = plugin.diffStore.url.indexOf('diff?');
-                                store = plugin.diffStore;
-                            }
-                            var path = diffPanel.getSelectionModel().getSelected().data.fid;
-                            var url = store.url.substring(0, index) + "featurediff?all=true&oldCommitId=" + plugin.oldCommitId + "&newCommitId="+ plugin.newCommitId + "&path=" + path + "&output_format=JSON";
-                            
-                            var geomStore = new Ext.data.Store({
-                                url: url,
-                                reader: gxp.GeoGitUtil.featureDiffReader,
-                                autoLoad: false
-                            });
-                            
-                            plugin.clearLayers();
-                            
-                            var loadCallback = function() {
-                                var geomRegex = /gml:((Multi)?(Point|Line|Polygon|Curve|Surface|Geometry)).*/;
-                                var properties = app.tools['feature_manager'].schema.reader.raw.featureTypes[0].properties;
-                                var name = null;
-                                var geomDiff = null;
-                                for(storeIndex = 0; storeIndex < geomStore.data.items.length; storeIndex++) {
-                                    for(var propIndex=0; propIndex < properties.length; propIndex++) {
-                                        var match = geomRegex.exec(properties[propIndex].type);
-                                        if(match) {
-                                            name = properties[propIndex].name;
-                                            break;
-                                        }
-                                    }
-                                    if(name === geomStore.data.items[storeIndex].data.name) {
-                                        geomDiff = geomStore.data.items[storeIndex].data;
-                                    }
-                                }
-
-                                if(geomDiff) {
-                                    var oldGeomText = geomDiff.oldvalue;
-                                    var newGeomText = geomDiff.newvalue;
-                                    if(geomDiff.change === "NO_CHANGE") {
-                                        newGeomText = oldGeomText;
-                                        //should add something to indicate to the user that there was no change
-                                    }
-                                    
-                                    if(oldGeomText) {
-                                        var oldGeometry = OpenLayers.Geometry.fromWKT(oldGeomText);
-                                        var oldFeature = new OpenLayers.Feature.Vector(oldGeometry);
-
-                                        if(plugin.oldGeomLayer != null) {
-                                            plugin.oldGeomLayer = app.mapPanel.map.getLayer(plugin.oldGeomLayer.id);
-                                            if(plugin.oldGeomLayer != null) {
-                                                app.mapPanel.map.removeLayer(plugin.oldGeomLayer);  
-                                            }
-                                            plugin.oldGeomLayer = null;
-                                        }
-                                        plugin.oldGeomLayer = new OpenLayers.Layer.Vector("old_Geometry");
-                                        plugin.oldGeomLayer.addFeatures(oldFeature);
-                                    } else {
-                                        plugin.oldGeomLayer = null;
-                                    }
-                                    if(newGeomText) {
-                                        var newGeometry = OpenLayers.Geometry.fromWKT(newGeomText);
-                                        var newFeature = new OpenLayers.Feature.Vector(newGeometry);
-                                        
-                                        if(plugin.currentGeomLayer != null) {
-                                            plugin.currentGeomLayer = app.mapPanel.map.getLayer(plugin.currentGeomLayer.id);
-                                            if(plugin.currentGeomLayer != null) {
-                                                app.mapPanel.map.removeLayer(plugin.currentGeomLayer);
-                                            }
-                                            plugin.currentGeomLayer = null;
-                                        }
-                                        plugin.currentGeomLayer = new OpenLayers.Layer.Vector("new_Geometry");
-                                        plugin.currentGeomLayer.addFeatures(newFeature);
-                                    } else {
-                                        plugin.currentGeomLayer = null;
-                                    }
-
-                                    map.zoomToExtent(geomDiff.change === "REMOVED" ? oldGeometry.getBounds() : newGeometry.getBounds());
-                                    //TODO: rather than clamping to a hard-coded zoom level, it should clamp to a scale
-                                    if(map.zoom > 18) {
-                                        map.zoomTo(18, map.center);
-                                    }
-                                }
-                            }
-                            geomStore.load({callback:loadCallback});
-                            
                             if(plugin.merge) {
                                 app.fireEvent("getmergeinfo", plugin.mergeStore, plugin.oldCommitId, plugin.newCommitId, plugin.ancestorCommitId, diffPanel.getSelectionModel().getSelected().data, plugin.transactionId);
                             } else {
@@ -331,17 +224,20 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         } else {
             this.diffLayer.removeAllFeatures();
         }
-        var length = this.diffStore.data.items.length;
+        
+        var store = this.merge === true ? this.mergeStore : this.diffStore;
 
+        var length = store.data.items.length;
         for(var index = 0; index < length; index++) {
-            var data = this.diffStore.data.items[index].data;
-            var style = OpenLayers.Util.applyDefaults(data.change === "REMOVED" ? this.oldStyle : data.change === "ADDED" ? this.newStyle : this.modifiedStyle,
+            var data = store.data.items[index].data;
+            var style = OpenLayers.Util.applyDefaults(data.change === "REMOVED" ? this.oldStyle : data.change === "ADDED" ? this.newStyle : data.change === "CONFLICT" ? this.conflictStyle : this.modifiedStyle,
                     OpenLayers.Feature.Vector.style['default']);
             var geom = OpenLayers.Geometry.fromWKT(data.geometry);
             var feature = new OpenLayers.Feature.Vector(geom);
             feature.style = style;
             this.diffLayer.addFeatures(feature);
         }
+
         var layer = app.mapPanel.map.getLayer(this.diffLayer.id);
         if(length === 0) {
             if(layer) {
@@ -355,27 +251,6 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         app.mapPanel.map.zoomToExtent(this.diffLayer.getDataExtent());
         if(app.mapPanel.map.zoom > 18) {
             app.mapPanel.map.zoomTo(18, app.mapPanel.map.center);
-        }
-    },
-    
-    clearLayers: function() {
-        if(this.currentGeomLayer) {
-            var layer = app.mapPanel.map.getLayer(this.currentGeomLayer.id);
-            if(layer != null) {
-                app.mapPanel.map.removeLayer(layer);
-            }
-        }
-        if(this.mergeGeomLayer) {
-            var layer = app.mapPanel.map.getLayer(this.mergeGeomLayer.id);
-            if(layer != null) {
-                app.mapPanel.map.removeLayer(layer);
-            }
-        }
-        if(this.oldGeomLayer) {
-            var layer = app.mapPanel.map.getLayer(this.oldGeomLayer.id);
-            if(layer != null) {
-                app.mapPanel.map.removeLayer(layer);
-            }
         }
     }
 });

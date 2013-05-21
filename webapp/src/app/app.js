@@ -269,6 +269,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     "changelayer" : function(e) {
                         setMapLayersCookie();
                         console.log("map.events.changelayer: ", e);
+                        gxp.GeoGitUtil.getGeometryAttributeName(true);
                     },
                     scope : map
                 });
@@ -326,7 +327,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 if(featureDiffPanel.hidden) {
                     featureDiffPanel.show();
                     diffLayersWindow.show();
-                    
+                    diffLayersWindow.items.items[0].items.items[1].disable();
                     diffLayersWindow.setPosition(app.mapPanel.getWidth() / 2 - diffLayersWindow.getWidth() / 2, app.mapPanel.tbar.getHeight());
                     app.portal.featureDiffPanel.setPosition(app.mapPanel.getWidth() / 2 - app.portal.featureDiffPanel.getWidth() / 2, 
                             app.mapPanel.getHeight() - app.portal.featureDiffPanel.getHeight());
@@ -340,6 +341,11 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 this.tools['attribute_grid'].fireEvent("getmergeinfo", store, oldCommitId, newCommitId, ancestorCommitId, data, transactionId);
                 if(featureDiffPanel.hidden) {
                     featureDiffPanel.show();
+                    diffLayersWindow.show();
+                    diffLayersWindow.items.items[0].items.items[1].enable();
+                    diffLayersWindow.setPosition(app.mapPanel.getWidth() / 2 - diffLayersWindow.getWidth() / 2, app.mapPanel.tbar.getHeight());
+                    app.portal.featureDiffPanel.setPosition(app.mapPanel.getWidth() / 2 - app.portal.featureDiffPanel.getWidth() / 2, 
+                            app.mapPanel.getHeight() - app.portal.featureDiffPanel.getHeight());
                 }
                 
                 app.portal.doLayout();
@@ -355,6 +361,8 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     westPanel.expand();
                 }
                 app.portal.featureDiffPanel.hide();
+                app.portal.westpanel.diffDoneButton.hide();
+                diffLayersWindow.hide();
                 app.portal.doLayout();
             },
             "conflictsDetected": function() {
@@ -370,6 +378,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 this.tools['attribute_grid'].fireEvent("endMerge");
                 app.portal.westpanel.hide();
                 app.portal.featureDiffPanel.hide();
+                diffLayersWindow.hide();
                 app.portal.doLayout();
             }
         };
@@ -438,12 +447,20 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     ref: "../featureDiffPanel",
                     xtype: "window",
                     hidden: true,
-                    closable: false,
+                    closable: true,
                     layout: "fit",
                     height: 200,
                     width: 600,
                     constrainHeader: true,
-                    title: this.Title_Feature_Diff
+                    title: this.Title_Feature_Diff,
+                    listeners: {
+                        "beforeclose": function(panel) {
+                            panel.hide();
+                            diffLayersWindow.hide();
+                            app.tools['attribute_grid'].clearLayers();
+                            return false;
+                        }
+                    }
                 }]
             }, {
             	ref: "westpanel",
@@ -476,22 +493,22 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                             }
                         }
 
-                        if(app.tools.diffpanel.oldGeomLayer) {
-                            var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.oldGeomLayer.id);
+                        if(app.tools.attribute_grid.oldGeomLayer) {
+                            var layer = app.mapPanel.map.getLayer(app.tools.attribute_grid.oldGeomLayer.id);
                             if(layer !== null) {
                                 app.mapPanel.map.removeLayer(layer);
                             }
                         }
 
-                        if(app.tools.diffpanel.mergeGeomLayer) {
-                            var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.mergeGeomLayer.id);
+                        if(app.tools.attribute_grid.mergeGeomLayer) {
+                            var layer = app.mapPanel.map.getLayer(app.tools.attribute_grid.mergeGeomLayer.id);
                             if(layer !== null) {
                                 app.mapPanel.map.removeLayer(layer);
                             }
                         }
 
-                        if(app.tools.diffpanel.currentGeomLayer) {
-                            var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.currentGeomLayer.id);
+                        if(app.tools.attribute_grid.currentGeomLayer) {
+                            var layer = app.mapPanel.map.getLayer(app.tools.attribute_grid.currentGeomLayer.id);
                             if(layer !== null) {
                                 app.mapPanel.map.removeLayer(layer);
                             }
@@ -704,11 +721,18 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         	outputTarget: "westpanel",
         	newStyle: {fillColor: "#00FF00", fillOpacity: 0.1, strokeColor: "#00FF00", strokeWidth: 5},
             oldStyle: {fillColor: "#FF0000", fillOpacity: 0.1, strokeColor: "#FF0000", strokeWidth: 5},
-            modifiedStyle: {fillColor: "#FFFF00", fillOpacity: 0.1, strokeColor: "#FFFF00", strokeWidth: 5}
+            modifiedStyle: {fillColor: "#FFFF00", fillOpacity: 0.1, strokeColor: "#FFFF00", strokeWidth: 5},
+            conflictStyle: {fillColor: "#FFA500", fillOpacity: 0.1, strokeColor: "#FFA500", strokeWidth: 5}
         },{
             ptype: "gxp_geogitattributegrid",
             id: "attribute_grid",
-            outputTarget: "featureDiffPanel"
+            outputTarget: "featureDiffPanel",
+            newStyle: {fillColor: "#00FF00", fillOpacity: 0.1, strokeColor: "#00FF00", strokeWidth: 5},
+            oldStyle: {fillColor: "#FF0000", fillOpacity: 0.1, strokeColor: "#FF0000", strokeWidth: 5},
+            modifiedStyle: {fillColor: "#FFFF00", fillOpacity: 0.1, strokeColor: "#FFFF00", strokeWidth: 5},
+            conflictStyle: {fillColor: "#FFA500", fillOpacity: 0.1, strokeColor: "#FFA500", strokeWidth: 5},
+            ourStyle: {fillColor: "#0000FF", fillOpacity: 0.1, strokeColor: "#0000FF", strokeWidth: 5},
+            theirStyle: {fillColor: "#FF00FF", fillOpacity: 0.1, strokeColor: "#FF00FF", strokeWidth: 5}
         },{
             ptype: "app_distancebearing",
             actionTarget: "toolsPanel",
@@ -896,6 +920,8 @@ Ext.onReady(function() {
 	WGS84 = new OpenLayers.Projection("EPSG:4326");
 	GoogleMercator = new OpenLayers.Projection("EPGS:900913");
 	
+
+	
     // load language setting from cookie if available
 	var lang = "en";
 	if (document.cookie.length > 0) {
@@ -976,21 +1002,24 @@ Ext.onReady(function() {
                 items: [
                     {
                         xtype: 'button',
-                        text: salamati.Viewer.prototype.Title_Old,
+                        tooltip: salamati.Viewer.prototype.Title_Old,
+                        iconCls: "gxp-icon-distance-bearing",
                         handler: function() {
-                            app.tools['diffpanel'].fireEvent("showOldGeometry");
+                            app.tools['attribute_grid'].fireEvent("showOldGeometry");
                         }
                     },{
                         xtype: 'button',
-                        text: salamati.Viewer.prototype.Title_Merged,
+                        tooltip: salamati.Viewer.prototype.Title_Merged,
+                        iconCls: "salamati-icon-addfeature",                       
                         handler: function() {
-                            app.tools['diffpanel'].fireEvent("showMergeGeometry");
+                            app.tools['attribute_grid'].fireEvent("showMergeGeometry");
                         }
                     },{
                         xtype: 'button',
-                        text: salamati.Viewer.prototype.Title_New,
+                        tooltip: salamati.Viewer.prototype.Title_New,
+                        iconCls: "salamati-icon-getfeatureinfo",
                         handler: function() {
-                            app.tools['diffpanel'].fireEvent("showCurrentGeometry");
+                            app.tools['attribute_grid'].fireEvent("showCurrentGeometry");
                         }
                     }
                 ]

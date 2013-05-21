@@ -17,6 +17,8 @@ gxp.GeoGitUtil = {
     
     merging: false,
     
+    geometryAttributeName: null,
+    
     transactionIds: {},
         
     /**
@@ -141,8 +143,6 @@ gxp.GeoGitUtil = {
 						success: function(results){
 							var jsonFormatter = new OpenLayers.Format.JSON();
 							var featureTypeInfo = jsonFormatter.read(results.responseText);
-							console.log("featureTypeInfo", featureTypeInfo);
-							console.log("dataStore", dataStore);
 							layer.metadata.isGeogit = true;
 							layer.metadata.geogitStore = dataStore.name;
 							layer.metadata.nativeName = featureTypeInfo.featureType.nativeName;
@@ -248,5 +248,22 @@ gxp.GeoGitUtil = {
 	        return false;
 	    }
 	    return true;
+	},
+	
+	getGeometryAttributeName: function(overwrite) {
+	    if(this.geometryAttibuteName === null || overwrite) {
+	        var geomRegex = /gml:((Multi)?(Point|Line|Polygon|Curve|Surface|Geometry)).*/;
+	        if(app.tools['feature_manager'].schema && app.tools['feature_manager'].schema.reader) {
+	            var properties = app.tools['feature_manager'].schema.reader.raw.featureTypes[0].properties;
+	            for(var propIndex=0; propIndex < properties.length; propIndex++) {
+	                var match = geomRegex.exec(properties[propIndex].type);
+	                if(match) {
+	                    this.geometryAttributeName = properties[propIndex].name;
+	                    break;
+	                }
+	            }
+	        }
+	    }
+	    return this.geometryAttributeName;
 	}
 };

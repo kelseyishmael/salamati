@@ -243,7 +243,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         					plugin.dataStore = layer.metadata.geogitStore;
         					plugin.path = layer.metadata.nativeName;
         					
-    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?path=' + layer.metadata.nativeName + '&until=' + layer.metadata.branch + '&output_format=JSON';
+    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?firstParentOnly=true&path=' + layer.metadata.nativeName + '&until=' + layer.metadata.branch + '&output_format=JSON';
     		        		plugin.store.url = plugin.url;
     		        		plugin.store.proxy.conn.url = plugin.url;
     		        		plugin.store.proxy.url = plugin.url;

@@ -252,14 +252,17 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                         var selectedNode = plugin.treeRoot.findChild("selected", true, true);
                                         var node = panel.getSelectionModel().getSelectedNode();
                                         var localBranchNode = selectedNode.parentNode;
+                                        var workspace = localBranchNode.attributes.workspace;
+                                        var dataStore = localBranchNode.attributes.dataStore;
                                         OpenLayers.Request.GET({
-                                            url: plugin.geoserverUrl + 'geogit/' + localBranchNode.attributes.workspace + ':' + localBranchNode.attributes.dataStore + '/beginTransaction?output_format=JSON',
+                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
                                             success: function(results){
                                                 var transactionInfo = Ext.decode(results.responseText);
                                                 var repoNode = localBranchNode.parentNode.parentNode;
-                                                gxp.GeoGitUtil.addTransactionId(transactionInfo.response.Transaction.ID, repoNode.attributes.repoId);
+                                                var transactionId = transactionInfo.response.Transaction.ID;
+                                                gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
                                                 OpenLayers.Request.GET({
-                                                    url: plugin.geoserverUrl + 'geogit/' + localBranchNode.attributes.workspace + ':' + localBranchNode.attributes.dataStore + '/checkout?branch=' + selectedNode.text + '&transactionId=' + transactionInfo.response.Transaction.ID + '&output_format=JSON',
+                                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/checkout?branch=' + selectedNode.text + '&transactionId=' + transactionId + '&output_format=JSON',
                                                     success: function(results) {
                                                         var checkoutInfo = Ext.decode(results.responseText);        
                                                         plugin.originalBranch = checkoutInfo.response.OldTarget;
@@ -268,11 +271,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                         cancelButton.show();
                                                         
                                                         var dryRunStore = new Ext.data.Store({
-                                                            url: plugin.geoserverUrl + 'geogit/' + localBranchNode.attributes.workspace + ':' + localBranchNode.attributes.dataStore + '/merge?commit=' + node.text + '&transactionId=' + transactionInfo.response.Transaction.ID + '&output_format=JSON',
+                                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/merge?commit=' + node.text + '&transactionId=' + transactionId + '&output_format=JSON',
                                                             reader: gxp.GeoGitUtil.mergeReader,
                                                             autoLoad: false
                                                         });
-                                                        app.fireEvent("beginMerge", dryRunStore, transactionInfo.response.Transaction.ID, selectedNode.text, node.text);
+                                                        console.log("mergestore", dryRunStore);
+                                                        app.fireEvent("beginMerge", dryRunStore, transactionId, selectedNode.text, node.text);
                                                     },
                                                     failure: plugin.errorFetching
                                                 });                                   
