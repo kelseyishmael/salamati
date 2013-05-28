@@ -14,7 +14,28 @@
 Ext.namespace("gxp.plugins");
 
 gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
-
+    
+    /* i18n */
+    attributesTitle: "Attributes",
+    historyTitle: "History",
+    hour: "hour",
+    hours: "hours",
+    day: "day",
+    days: "days",
+    ago: "ago",
+    authored: "authored",
+    geometry: "Geometry",
+    was: "was",
+    now: "now",
+    added: "ADDED",
+    removed: "REMOVED",
+    modified: "MODIFIED",
+    nextCommitText: "Next",    
+    nextCommitTooltip: "See what changed in the next commit",    
+    prevCommitText: "Prev",    
+    prevCommitTooltip: "See what changed in the previous commit",
+    /* end i18n */
+    
     /** api: config[url]
      *  ``String``
      *  Url of the web-api endpoint of GeoGit.
@@ -26,21 +47,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
      *  If not set, a default template will be provided.
      */
 
-    historyTpl: '<ol><div class="info">{[this.formatDate()]}</div><tpl for="."><tpl if="this.checkForGeometry(name, xindex)"><li class="diff"><div class="attr-name">Geometry was {change}.</div></li></tpl><tpl if="this.checkForGeometry(name, -1) == false"><li class="diff"><div class="attr-name">{name} was {change}.</div><tpl if="change == &quot;MODIFIED&quot;"><div class="attr-value">Was {oldvalue}, now {newvalue}.</div></tpl><tpl if="change == &quot;ADDED&quot;"><div class="attr-value">Now {newvalue}.</div></tpl><tpl if="change == &quot;REMOVED&quot;"><div class="attr-value">Was {oldvalue}.</div></tpl></li></tpl></tpl>',
-
-    /* i18n */
-    attributesTitle: "Attributes",
-    historyTitle: "History",
-    hour: "hour",
-    hours: "hours",
-    day: "day",
-    days: "days",
-    ago: "ago",
-    nextCommitText: "Next",    
-    nextCommitTooltip: "See what changed in the next commit",    
-    prevCommitText: "Prev",    
-    prevCommitTooltip: "See what changed in the previous commit",
-    /* end i18n */
+    historyTpl: '<ol><div class="info">{[this.formatDate()]}</div><tpl for="."><tpl if="this.checkForGeometry(name, xindex)"><li class="diff"><div class="attr-name">{[this.formatChangeResponse(values.change, values.name, true)]}</div></li></tpl><tpl if="this.checkForGeometry(name, -1) == false"><li class="diff"><div class="attr-name">{[this.formatChangeResponse(values.change, values.name, false)]}</div><tpl if="change == &quot;MODIFIED&quot;"><div class="attr-value">{[this.formatValueResponse(values.oldvalue, values.newvalue)]}</div></tpl><tpl if="change == &quot;ADDED&quot;"><div class="attr-value">{[this.formatValueResponse(null, values.newvalue)]}</div></tpl><tpl if="change == &quot;REMOVED&quot;"><div class="attr-value">{[this.formatValueResponse(values.oldvalue, null)]}</div></tpl></li></tpl></tpl>',
 
     border: false,
     activeTab: 0,
@@ -230,7 +237,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             formatDate: function() {
             	var value = me.commits[me.commitIndex].data.date;           	
                 var now = new Date(), result = '';
-                result += me.commits[me.commitIndex].data.author + ", authored ";
+                result += me.commits[me.commitIndex].data.author + ", " + me.authored + " ";
                 if (value > now.add(Date.DAY, -1)) {
                     var hours = Math.round((now-value)/(1000*60*60));
                     result += hours + ' ';
@@ -244,6 +251,27 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                     result += ' ' + me.ago + '.';
                     return result;
                 }
+            },
+            formatChangeResponse: function(changeType, name, geometry) {
+                var result = "";
+                var change = changeType === "ADDED" ? me.added : changeType === "REMOVED" ? me.removed : me.modified;
+                if(geometry) {
+                    result = me.geometry + ' ' + me.was + ' ' + change + '.';
+                    return result;
+                }
+                result = name + ' ' + me.was + ' ' + change + '.';
+                return result;
+            },
+            formatValueResponse: function(oldValue, newValue) {
+                var result = "";
+                if(oldValue && newValue) {
+                    result = me.was + ' ' + oldValue + ', ' + me.now + ' ' + newValue + '.';
+                } else if(oldValue) {
+                    result = me.was + ' ' + oldValue + '.';
+                } else {
+                    result = me.now + ' ' + newValue + '.';
+                }
+                return result;
             },
             checkForGeometry: function(type, xindex) {
             	var name = gxp.GeoGitUtil.getGeometryAttributeName();

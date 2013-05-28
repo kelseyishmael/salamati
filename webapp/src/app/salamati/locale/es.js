@@ -11,7 +11,7 @@ GeoExt.Lang.add("es", {
         Text_Ok: "Aceptar",  //meh, can't be right
         Text_Cancel: "Cancelar",
         Text_Hospitals: "Hospitales",
-        Text_Hazzards: "Riesgos",
+        Text_Hazards: "Riesgos",
         Text_DistanceLines: "L�neas Distancia",
         Text_Distance: "Distancia",
         Text_Bearing: "Cojinete",
@@ -35,6 +35,7 @@ GeoExt.Lang.add("es", {
         Title_Old: "es_Old",
         Title_New: "es_New",
         Title_Merged: "es_Merged",
+        Title_Done: "es_Done",
         Title_Geometry_Diff: "es_Geometry Diff",
         ActionTip_Default: "Distancia/Cojinete",
         ActionTip_Edit: "Obtener informaci�n"
@@ -60,7 +61,13 @@ GeoExt.Lang.add("es", {
         Text_Remote: "es_Remote",
         Text_Remotes: "es_Remotes",
         Text_Tags: "es_Tags",
-        Text_Merge: "es_Merge"
+        Text_Merge: "es_Merge",
+        Text_FinishViewing: "(es)Please finish viewing and/or editing of features before you attempt to merge.",
+        Text_Cancel: "es_Cancel",
+        Text_Accept: "es_Accept",
+        Text_CancelPopup: "(es)Are you sure you want to cancel this merge?",
+        Text_AcceptPopup: "(es)Are you sure you want to complete this merge?",
+        Text_MergeStartPopup: "(es)Are you sure you want to start the merge process?"
     },
     "gxp.plugins.GeoGitFeatureAttributeGrid.prototype": {
         Text_Name: "es_Name",
@@ -79,8 +86,8 @@ GeoExt.Lang.add("es", {
         cancelButtonTooltip: '(es)Stop editing, discard changes',
         saveButtonText: 'es_Save',
         saveButtonTooltip: '(es)Save changes',
-        orthoButtonText: 'es_Fix',
-        orthoButtonTooltip: '(es)Make a polygon orthogonalized'
+        orthoButtonText: '(es)Right Angle',
+        orthoButtonTooltip: '(es)Fix a polygon to have right angles.'
     },
     "gxp.plugins.VersionedEditor.prototype": {
         attributesTitle: "es_Attributes",
@@ -90,6 +97,13 @@ GeoExt.Lang.add("es", {
         day: "es_day",
         days: "es_days",
         ago: "es_ago",
+        authored: "es_authored",
+        geometry: "es_Geometry",
+        was: "es_was",
+        now: "es_now",
+        added: "es_ADDED",
+        removed: "es_REMOVED",
+        modified: "es_MODIFIED",
         nextCommitText: "es_Next",    
         nextCommitTooltip: "(es)See what changed in the next commit",    
         prevCommitText: "es_Prev",    
@@ -98,9 +112,14 @@ GeoExt.Lang.add("es", {
     "gxp.plugins.DiffPanel.prototype": {
         Title_Fid: "es_fid",
         Title_Change: "es_Change",
-        Text_Zoom: "es_Zoom To Extent"
+        Title_Conflict: "es_Conflict",
+        Text_Zoom: "es_Zoom To Extent",
+        Text_ConflictPopup: " (es)conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge."
     },
     "gxp.plugins.LayerTree.prototype": {
         Title_ZoomTo: "es_Zoom to Layer"
+    },
+    "gxp.plugins.GeoGitHistoryButton.prototype": {
+        historyButtonText: "(es)Show/Hide History"
     }
 });

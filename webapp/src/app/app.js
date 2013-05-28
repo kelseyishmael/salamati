@@ -68,6 +68,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
     Title_Old: "Old",
     Title_New: "New",
     Title_Merged: "Merged",
+    Title_Done: "Done",
 	Search_Submit: "Default Go",
 	ActionTip_Default: "Distance/Bearing of features from click location",
 	ActionTip_Edit: "Get feature info",
@@ -324,6 +325,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             },
             "getattributeinfo" : function(store, oldCommitId, newCommitId, path) {
                 var featureDiffPanel = app.portal.featureDiffPanel;
+                var diffLayersWindow = app.portal.diffLayersWindow;
                 this.tools['attribute_grid'].fireEvent("getattributeinfo", store, oldCommitId, newCommitId, path);
                 if(featureDiffPanel.hidden) {
                     featureDiffPanel.show();
@@ -339,6 +341,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             },
             "getmergeinfo": function(store, oldCommitId, newCommitId, ancestorCommitId, data, transactionId) {
                 var featureDiffPanel = app.portal.featureDiffPanel;
+                var diffLayersWindow = app.portal.diffLayersWindow;
                 this.tools['attribute_grid'].fireEvent("getmergeinfo", store, oldCommitId, newCommitId, ancestorCommitId, data, transactionId);
                 if(featureDiffPanel.hidden) {
                     featureDiffPanel.show();
@@ -363,7 +366,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 }
                 app.portal.featureDiffPanel.hide();
                 app.portal.westpanel.diffDoneButton.hide();
-                diffLayersWindow.hide();
+                app.portal.diffLayersWindow.hide();
                 app.portal.doLayout();
             },
             "conflictsDetected": function() {
@@ -379,7 +382,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 this.tools['attribute_grid'].fireEvent("endMerge");
                 app.portal.westpanel.hide();
                 app.portal.featureDiffPanel.hide();
-                diffLayersWindow.hide();
+                app.portal.diffLayersWindow.hide();
                 app.portal.doLayout();
             }
         };
@@ -444,7 +447,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 region: "center",
                 border: false,
                 items: ["mymap",
-                    win, diffLayersWindow, {
+                    win, {
                     ref: "../featureDiffPanel",
                     xtype: "window",
                     hidden: true,
@@ -457,11 +460,55 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     listeners: {
                         "beforeclose": function(panel) {
                             panel.hide();
-                            diffLayersWindow.hide();
+                            app.portal.diffLayersWindow.hide();
                             app.tools['attribute_grid'].clearLayers();
                             return false;
                         }
                     }
+                }, {
+                    title: salamati.Viewer.prototype.Title_Geometry_Diff,
+                    ref: "../diffLayersWindow",
+                    closeAction: "hide",
+                    xtype: "window",
+                    resizable: false,
+                    closable: false,
+                    layout: "fit",
+                    items: [
+                        {
+                            xtype: "panel",
+                            id: "idDiffLayersWindowPanel",
+                            cls: "mydifflayerwindowclass",
+                            layout: "hbox",
+                            layoutConfig: {
+                                align: 'center',
+                                padding: '5'
+                            },
+                            items: [
+                                {
+                                    xtype: 'button',
+                                    tooltip: salamati.Viewer.prototype.Title_Old,
+                                    iconCls: "salamati-icon-oldgeometry",
+                                    handler: function() {
+                                        app.tools['attribute_grid'].fireEvent("showOldGeometry");
+                                    }
+                                },{
+                                    xtype: 'button',
+                                    tooltip: salamati.Viewer.prototype.Title_Merged,
+                                    iconCls: "salamati-icon-mergedgeometry",                       
+                                    handler: function() {
+                                        app.tools['attribute_grid'].fireEvent("showMergeGeometry");
+                                    }
+                                },{
+                                    xtype: 'button',
+                                    tooltip: salamati.Viewer.prototype.Title_New,
+                                    iconCls: "salamati-icon-newgeometry",
+                                    handler: function() {
+                                        app.tools['attribute_grid'].fireEvent("showCurrentGeometry");
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 }]
             }, {
             	ref: "westpanel",
@@ -476,9 +523,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             	width: 200,
             	items: [{
                     xtype: 'button',
-                    text: 'Done',
+                    text: this.Title_Done,
                     ref: 'diffDoneButton',
-                    cls: "diffDoneButtonClass",
+                    cls: 'diffDoneButtonClass diffDoneButtonTextClass',
                     hidden: true,
                     width: 200,
                     handler: function() {
@@ -486,7 +533,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                         app.portal.westpanel.diffDoneButton.hide();
 
                         app.portal.featureDiffPanel.hide();
-                        diffLayersWindow.hide();
+                        app.portal.diffLayersWindow.hide();
                         if(app.tools.diffpanel.diffLayer) {
                             var layer = app.mapPanel.map.getLayer(app.tools.diffpanel.diffLayer.id);
                             if(layer !== null) {
@@ -795,7 +842,6 @@ var toolContainer = new Ext.Container({
 });
 
 var win = null;
-var diffLayersWindow = null;
 
 var showSpinner = function(conn, options){
 	console.log("showspinner");
@@ -983,53 +1029,6 @@ Ext.onReady(function() {
 				document.cookie = "toolsWindowXY=" + element.x + "|" + element.y;
 			}
 		}
-	});
-	
-	//move this later
-	diffLayersWindow = new Ext.Window({
-	    title: salamati.Viewer.prototype.Title_Geometry_Diff,
-        ref: "../diffLayersWindow",
-        closeAction: "hide",
-        xtype: "window",
-        resizable: false,
-        closable: false,
-        layout: "fit",
-        items: [
-            {
-                xtype: "panel",
-                id: "idDiffLayersWindowPanel",
-                cls: "mytoolwindowclass",
-                layout: "hbox",
-                layoutConfig: {
-                    align: 'center',
-                    padding: '5'
-                },
-                items: [
-                    {
-                        xtype: 'button',
-                        tooltip: salamati.Viewer.prototype.Title_Old,
-                        iconCls: "gxp-icon-distance-bearing",
-                        handler: function() {
-                            app.tools['attribute_grid'].fireEvent("showOldGeometry");
-                        }
-                    },{
-                        xtype: 'button',
-                        tooltip: salamati.Viewer.prototype.Title_Merged,
-                        iconCls: "salamati-icon-addfeature",                       
-                        handler: function() {
-                            app.tools['attribute_grid'].fireEvent("showMergeGeometry");
-                        }
-                    },{
-                        xtype: 'button',
-                        tooltip: salamati.Viewer.prototype.Title_New,
-                        iconCls: "salamati-icon-getfeatureinfo",
-                        handler: function() {
-                            app.tools['attribute_grid'].fireEvent("showCurrentGeometry");
-                        }
-                    }
-                ]
-            }
-        ]
 	});
 });
 

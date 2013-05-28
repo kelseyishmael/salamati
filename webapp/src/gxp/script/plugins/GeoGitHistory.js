@@ -185,8 +185,8 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
             contextMenu: new Ext.menu.Menu({
                 items: [
                     {
-                        xtype: 'button',
                         text: plugin.Text_Show_Diff,
+                        iconCls: 'salamati-icon-diff',
                         handler: function() {
                             plugin.selectedRows.sort(function(a,b){return a-b});
                             plugin.oldCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;

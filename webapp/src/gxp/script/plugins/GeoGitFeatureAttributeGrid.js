@@ -208,10 +208,10 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                 this.clearLayers();
             },
             endMerge: function() {
-                this.grid.getColumnModel().setColumnHeader(1,"Old");
+                this.grid.getColumnModel().setColumnHeader(1,app.Title_Old);
                 this.grid.getColumnModel().columns[1].dataIndex = "oldvalue";
                 this.grid.getColumnModel().setHidden(2,true);
-                this.grid.getColumnModel().setColumnHeader(3,"New");
+                this.grid.getColumnModel().setColumnHeader(3,app.Title_New);
                 this.grid.getColumnModel().columns[3].dataIndex = "newvalue";
                 this.grid.reconfigure(this.store, this.grid.getColumnModel());
                 this.grid.view.refresh();
@@ -248,7 +248,7 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                     dataIndex: 'name'
                 },{
                     id: 'leftvalue',
-                    header: "Old",
+                    header: app.Title_Old,
                     dataIndex: "oldvalue",
                     renderer: function(value, metaData, record, rowIndex, colIndex, store) {
                         if(record.data.change !== undefined) {
@@ -260,7 +260,7 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                     }
                 },{
                     id: 'mergevalue',
-                    header: "Merge",
+                    header: app.Title_Merged,
                     dataIndex: "theirvalue",
                     hidden: true,
                     renderer: function(value, metaData, record, rowIndex, colIndex, store) {
@@ -286,7 +286,7 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                     }
                 },{
                     id: 'rightvalue',
-                    header: "New",
+                    header: app.Title_New,
                     dataIndex: "newvalue",
                     renderer: function(value, metaData, record, rowIndex, colIndex, store) {
                         if(record.data.change !== undefined) {

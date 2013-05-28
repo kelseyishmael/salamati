@@ -30,6 +30,14 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     /** api: ptype = gxp_diffpanel */
     ptype: "gxp_diffpanel",
     
+    /*i18n*/
+    Title_Fid: "fid",
+    Title_Change: "Change",
+    Title_Conflict: "Conflict",
+    Text_Zoom: "Zoom To Extent",
+    Text_ConflictPopup: " conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
+    /*end i18n*/
+    
     /**
      * Ext.data.Store
      */
@@ -96,6 +104,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 this.mergeStore.proxy.url = store.url;
                 this.merge = true;
                 this.transactionId = transactionId;
+                var plugin = this;
                 this.mergeStore.load({
                     callback: function() {
                         var mergeData = this.mergeStore.reader.jsonData.response.Merge;
@@ -104,8 +113,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                         this.ancestorCommitId = mergeData.ancestor;
                         if(mergeData.conflicts !== undefined) {
                             Ext.Msg.show({
-                                title: "Conflicts",
-                                msg: "We have detected " + mergeData.conflicts + " conflicts as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
+                                title: plugin.Title_Conflict,
+                                msg: mergeData.conflicts + plugin.Text_ConflictPopup,
                                 buttons: Ext.Msg.OK,
                                 fn: function(button) {
                                     app.fireEvent("conflictsDetected");

@@ -15,7 +15,7 @@ gxp.FeatureEditMixin = {
         cancelButtonTooltip: 'Stop editing, discard changes',
         saveButtonText: 'Save',
         saveButtonTooltip: 'Save changes',
-        orthoButtonText: 'Fix',
+        orthoButtonText: 'Right Angle',
         orthoButtonTooltip: 'Make a polygon orthogonalized',
         /** private config overrides **/
         layout: "fit",
@@ -220,6 +220,7 @@ gxp.FeatureEditMixin = {
                 text: this.orthoButtonText,
                 tooltip: this.orthoButtonTooltip,
                 hidden: true,
+                iconCls: 'salamati-icon-rightangles',
                 handler: function() {
                     var point;
                     var dragControl = this.modifyControl.dragControl;

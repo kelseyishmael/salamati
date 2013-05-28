@@ -34,6 +34,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     Text_Remotes: "Remotes",
     Text_Tags: "Tags",
     Text_Merge: "Merge",
+    Text_FinishViewing: "Please finish viewing and/or editing of features before you attempt to merge.",
+    Text_Cancel: "Cancel",
+    Text_Accept: "Accept",
+    Text_CancelPopup: "Are you sure you want to cancel this merge?",
+    Text_AcceptPopup: "Are you sure you want to complete this merge?",
+    Text_MergeStartPopup: "Are you sure you want to start the merge process?",
     /* end i18n */
     
     treeRoot: null,
@@ -104,12 +110,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         var plugin = this;
         
         var cancelButton = new Ext.Button({
-            text: "Cancel",
+            text: plugin.Text_Cancel,
             hidden: true,
             handler: function() {
                 Ext.Msg.show({
-                    title: "Cancel",
-                    msg: "Are you sure you want to cancel this merge?",
+                    title: plugin.Text_Cancel,
+                    msg: plugin.Text_CancelPopup,
                     buttons: Ext.Msg.YESNO,
                     fn: function(button) {
                         if(button === "yes") {
@@ -142,12 +148,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         });
         
         this.acceptButton = new Ext.Button({
-            text: "Accept",
+            text: plugin.Text_Accept,
             hidden: true,
             handler: function() {
                 Ext.Msg.show({
-                    title: "Accept",
-                    msg: "Are you sure you want to complete this merge?",
+                    title: plugin.Text_Accept,
+                    msg: plugin.Text_AcceptPopup,
                     buttons: Ext.Msg.YESNO,
                     fn: function(button) {
                         if(button === "yes") {
@@ -235,17 +241,17 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             contextMenu: new Ext.menu.Menu({
                 items: [
                     {
-                        xtype: 'button',
                         text: plugin.Text_Merge,
+                        iconCls: 'salamati-icon-merge',
                         handler: function() {
                             if(app.tools.feature_editor.popup && !app.tools.feature_editor.popup.hidden) {
-                                alert("Please finish viewing and/or editing of features before you attempt to merge.");
+                                alert(plugin.Text_FinishViewing);
                                 panel.contextMenu.hide();
                                 return;
                             }
                             Ext.Msg.show({
-                                title: "Merge",
-                                msg: "Are you sure you want to start the merge process?",
+                                title: plugin.Text_Merge,
+                                msg: plugin.Text_MergeStartPopup,
                                 buttons: Ext.Msg.YESNO,
                                 fn: function(button) {
                                     if(button === "yes") {
