@@ -58,15 +58,15 @@ gxp.plugins.GeoGitHistoryButton = Ext.extend(gxp.plugins.Tool, {
             
             var isGeoGit = false;
             
-            if(record && record.data && record.data.layer 
-            		&& record.data.layer.metadata && record.data.layer.metadata.isGeogit){
-            	isGeoGit = record.data.layer.metadata.isGeogit;
+            if(record && record.data && record.data.layer){
+            	gxp.GeoGitUtil.isGeoGitLayer(record.data.layer, function(layerInQuestion){
+            		if(layerInQuestion !== false && layerInQuestion.metadata.isGeogit){
+            			historyButtonAction.setDisabled(false);
+            		}else{
+            			historyButtonAction.setDisabled(true);
+            		}
+            	});
             }
-            
-            historyButtonAction.setDisabled(
-                //!record ? true : false
-            	!isGeoGit ? true : false
-            );
         }, this);
         var enforceOne = function(store) {
         	historyButtonAction.setDisabled(
