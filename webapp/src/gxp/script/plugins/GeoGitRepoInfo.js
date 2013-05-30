@@ -281,7 +281,6 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                             reader: gxp.GeoGitUtil.mergeReader,
                                                             autoLoad: false
                                                         });
-                                                        console.log("mergestore", dryRunStore);
                                                         app.fireEvent("beginMerge", dryRunStore, transactionId, selectedNode.text, node.text);
                                                     },
                                                     failure: plugin.errorFetching

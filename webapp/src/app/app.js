@@ -260,6 +260,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                         setMapLayersCookie();
                         console.log("map.events.addlayer: ", e);
                         gxp.GeoGitUtil.isGeoGitLayer(e.layer);
+                        gxp.GeoGitUtil.getGeometryAttributeName(true);
                     },
                     "removelayer" : function(e) {
                         setMapLayersCookie();
@@ -311,9 +312,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 }
                 app.portal.doLayout();
             },
-            "commitdiffselected" : function(store, oldCommitId, newCommitId) {
+            "commitdiffselected" : function(store, oldCommitId, newCommitId, layerProjection) {
                 var westPanel = app.portal.westpanel;
-                this.tools['diffpanel'].fireEvent("commitdiffselected", store, oldCommitId, newCommitId);
+                this.tools['diffpanel'].fireEvent("commitdiffselected", store, oldCommitId, newCommitId, layerProjection);
 
                 if(westPanel.hidden) {
                     westPanel.show();
@@ -323,10 +324,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 app.portal.featureDiffPanel.hide();
                 app.portal.doLayout();
             },
-            "getattributeinfo" : function(store, oldCommitId, newCommitId, path) {
+            "getattributeinfo" : function(store, oldCommitId, newCommitId, path, layerProjection) {
                 var featureDiffPanel = app.portal.featureDiffPanel;
                 var diffLayersWindow = app.portal.diffLayersWindow;
-                this.tools['attribute_grid'].fireEvent("getattributeinfo", store, oldCommitId, newCommitId, path);
+                this.tools['attribute_grid'].fireEvent("getattributeinfo", store, oldCommitId, newCommitId, path, layerProjection);
                 if(featureDiffPanel.hidden) {
                     featureDiffPanel.show();
                     diffLayersWindow.show();
@@ -969,7 +970,7 @@ var searchField = new Ext.form.TextField({
 Ext.onReady(function() {
 	
 	WGS84 = new OpenLayers.Projection("EPSG:4326");
-	GoogleMercator = new OpenLayers.Projection("EPGS:900913");
+	GoogleMercator = new OpenLayers.Projection("EPSG:900913");
 	
 
 	

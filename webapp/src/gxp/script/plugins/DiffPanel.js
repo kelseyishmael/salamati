@@ -70,6 +70,12 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     transactionId: null,
     
+    pageNumber: 0,
+    
+    nextPage: false,
+    
+    layerProjection: null,
+    
     constructor: function() {
         this.addEvents(
             /** api: event[commitdiffselected]
@@ -83,21 +89,45 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
             "commitdiffselected"
         );
         this.on({
-            commitdiffselected: function(store, oldCommitId, newCommitId) {          
+            commitdiffselected: function(store, oldCommitId, newCommitId, layerProjection) {          
                 if(this.grid.view) {
                     this.diffStore.clearData();
                     this.grid.view.refresh();
                 }
+                this.pageNumber = 0;
                 this.diffStore.url = store.url;
                 this.diffStore.proxy.conn.url = store.url;
                 this.diffStore.proxy.url = store.url;
-                this.diffStore.load({callback: this.addDiffLayer, scope: this});
+                this.layerProjection = layerProjection;
+                var plugin = this;
+                this.diffStore.load({
+                    callback: function() {
+                        if(plugin.diffStore.reader.jsonData.response.nextPage) {
+                            Ext.Msg.show({
+                                title: "Diff",
+                                msg: "There were more than 100 features changed inbetween these commits. To see more features scroll down to the bottom of the diff panel.",
+                                buttons: Ext.Msg.OK,
+                                scope: this,
+                                icon: Ext.MessageBox.INFO,
+                                animEl: this.grid.ownerCt.getEl()
+                            });
+                            plugin.nextPage = true;
+                        } else {
+                            plugin.nextPage = false;
+                        }
+                        plugin.addDiffLayer(layerProjection);
+                    },
+                    scope: this
+                });
                 this.oldCommitId = oldCommitId;
                 this.newCommitId = newCommitId;
                 app.portal.doLayout();
             },
             beginMerge: function(store, transactionId) {
                 this.mergeStore.clearData();
+                this.diffStore.clearData();
+                this.pageNumber = 0;
+                this.nextPage = false;
                 this.grid.reconfigure(this.mergeStore, this.grid.getColumnModel());
                 this.mergeStore.url = store.url;
                 this.mergeStore.proxy.conn.url = store.url;
@@ -191,7 +221,20 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 }]
             }),
             viewConfig: {
-                forceFit: true
+                forceFit: true,
+                // took this stuff from http://www.sencha.com/learn/grid-faq/#Maintain_GridPanel_scroll_position_across_Store_reloads
+                // to maintain scroll position as more commits are added to the grid store
+                onLoad: Ext.emptyFn,
+                listeners: {
+                    beforerefresh: function(v) {
+                       v.scrollTop = v.scroller.dom.scrollTop;
+                       v.scrollHeight = v.scroller.dom.scrollHeight;
+                    },
+                    refresh: function(v) {
+                       v.scroller.dom.scrollTop = v.scrollTop + 
+                        (v.scrollTop == 0 ? 0 : v.scroller.dom.scrollHeight - v.scrollHeight);
+                    }
+                }
             },
             listeners: {
                 cellcontextmenu: function(grid, rowIndex, cellIndex, event) {
@@ -199,6 +242,38 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                         diffPanel.contextMenu.showAt(event.getXY());
                     }
                     event.stopEvent();
+                },
+                bodyscroll: function(scrollLeft, scrollTop) {
+                    if(this.getView().scroller.dom.scrollHeight - this.getView().scroller.dom.offsetHeight <= scrollTop+20 && plugin.nextPage) {
+                        if(plugin.merge) {
+                            return;
+                        }
+                        var url = plugin.diffStore.url.replace("page="+plugin.pageNumber, "page="+(plugin.pageNumber+1));
+                        plugin.pageNumber += 1;
+                        plugin.diffStore.url = url;
+                        plugin.diffStore.proxy.conn.url = url;
+                        plugin.diffStore.proxy.url = url;
+                        plugin.diffStore.load({
+                            callback: function() {
+                                if(plugin.diffStore.reader.jsonData.response.nextPage) {
+                                    Ext.Msg.show({
+                                        title: "Diff",
+                                        msg: "There were more than " + (100 * (plugin.pageNumber + 1)) + " features changed inbetween these commits. To see more features scroll down to the bottom of the diff panel.",
+                                        buttons: Ext.Msg.OK,
+                                        scope: plugin,
+                                        icon: Ext.MessageBox.INFO,
+                                        animEl: plugin.grid.ownerCt.getEl()
+                                    });                                   
+                                    plugin.nextPage = true;
+                                } else {
+                                    plugin.nextPage = false;
+                                }
+                                plugin.addDiffLayer(plugin.layerProjection, true);
+                            },
+                            scope: this,
+                            add: true
+                        });
+                    }
                 }
             },
             contextMenu: new Ext.menu.Menu({
@@ -210,7 +285,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                             if(plugin.merge) {
                                 app.fireEvent("getmergeinfo", plugin.mergeStore, plugin.oldCommitId, plugin.newCommitId, plugin.ancestorCommitId, diffPanel.getSelectionModel().getSelected().data, plugin.transactionId);
                             } else {
-                                app.fireEvent("getattributeinfo", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, diffPanel.getSelectionModel().getSelected().data.fid);
+                                app.fireEvent("getattributeinfo", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, diffPanel.getSelectionModel().getSelected().data.fid, plugin.layerProjection);
                             }
                             diffPanel.contextMenu.hide();
                         }
@@ -227,26 +302,46 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         var diffPanel = gxp.plugins.DiffPanel.superclass.addOutput.call(this, config);
     },
     
-    addDiffLayer: function() {        
+    addDiffLayer: function(layerProjection, append) {        
         if(this.diffLayer === null) {
             this.diffLayer = new OpenLayers.Layer.Vector("Diff");
-        } else {
+        } else if (!append) {
             this.diffLayer.removeAllFeatures();
         }
         
         var store = this.merge === true ? this.mergeStore : this.diffStore;
 
         var length = store.data.items.length;
+        var counter = 0;
         for(var index = 0; index < length; index++) {
             var data = store.data.items[index].data;
             var style = OpenLayers.Util.applyDefaults(data.change === "REMOVED" ? this.oldStyle : data.change === "ADDED" ? this.newStyle : data.change === "CONFLICT" ? this.conflictStyle : this.modifiedStyle,
                     OpenLayers.Feature.Vector.style['default']);
             var geom = OpenLayers.Geometry.fromWKT(data.geometry);
+            if(layerProjection) {
+                var newProj = new OpenLayers.Projection(layerProjection);
+                geom.transform(newProj, GoogleMercator);
+            } else if(data.crs){
+                var newProj = new OpenLayers.Projection(data.crs);
+                geom.transform(newProj, GoogleMercator);
+            } else {
+                counter++;
+            }
             var feature = new OpenLayers.Feature.Vector(geom);
             feature.style = style;
             this.diffLayer.addFeatures(feature);
         }
-
+        if(counter > 0) {
+            var plugin = this;
+            Ext.Msg.show({
+                title: "Diff",
+                msg: counter + " features didn't have a CRS associated with them, diff layer results may not be accurate.",
+                buttons: Ext.Msg.OK,
+                scope: plugin,
+                icon: Ext.MessageBox.WARNING,
+                animEl: plugin.grid.ownerCt.getEl()
+            });
+        }
         var layer = app.mapPanel.map.getLayer(this.diffLayer.id);
         if(length === 0) {
             if(layer) {

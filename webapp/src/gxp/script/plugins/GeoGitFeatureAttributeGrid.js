@@ -77,7 +77,7 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
             "showMergeGeometry"
         );
         this.on({
-            getattributeinfo: function(store, oldCommitId, newCommitId, path, transactionId) { 
+            getattributeinfo: function(store, oldCommitId, newCommitId, path, layerProjection) { 
                 if(this.grid.view) {
                     this.store.clearData();
                     this.grid.view.refresh();
@@ -88,7 +88,7 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                 this.store.url = url;
                 this.store.proxy.conn.url = url;
                 this.store.proxy.url = url;
-                this.store.load({callback: function() {this.addGeometryLayers(this.store);}, scope: this});
+                this.store.load({callback: function() {this.addGeometryLayers(this.store, layerProjection);}, scope: this});
                 app.portal.doLayout();
             },
             showOldGeometry: function() {
@@ -111,10 +111,12 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                     if(layer != null) {
                         app.mapPanel.map.removeLayer(layer);
                     } else {
-                        app.mapPanel.map.addLayer(this.mergeGeomLayer);
-                        app.mapPanel.map.zoomToExtent(this.mergeGeomLayer.getDataExtent());
-                        if(app.mapPanel.map.zoom > 18) {
-                            app.mapPanel.map.zoomTo(18, app.mapPanel.map.center);
+                        if(this.mergeGeomLayer.features.length > 0) {
+                            app.mapPanel.map.addLayer(this.mergeGeomLayer);
+                            app.mapPanel.map.zoomToExtent(this.mergeGeomLayer.getDataExtent());
+                            if(app.mapPanel.map.zoom > 18) {
+                                app.mapPanel.map.zoomTo(18, app.mapPanel.map.center);
+                            }
                         }
                     }
                 }
@@ -189,7 +191,7 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                                 });
                                 arrayStore.loadData(array);
                                 var recordIndex = store.findExact('fid', data.fid);
-                                plugin.addGeometryLayers(arrayStore, true, store.getAt(recordIndex));
+                                plugin.addGeometryLayers(arrayStore, data.crs, true, store.getAt(recordIndex));
                                 plugin.grid.reconfigure(arrayStore, plugin.grid.getColumnModel());
                             },
                             failure: this.errorFetching
@@ -333,7 +335,18 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
         }
     },
     
-    addGeometryLayers: function(geomStore, merge, featureInfo) {
+    addGeometryLayers: function(geomStore, layerProjection, merge, featureInfo) {
+        if(layerProjection === null || layerProjection === undefined || layerProjection === "") {
+            var plugin = this;
+            Ext.Msg.show({
+                title: "Feature Diff",
+                msg: "This feature didn't have a CRS associated with it, layer results may not be accurate.",
+                buttons: Ext.Msg.OK,
+                scope: plugin,
+                icon: Ext.MessageBox.WARNING,
+                animEl: plugin.grid.ownerCt.getEl()
+            });
+        }
         var name = gxp.GeoGitUtil.getGeometryAttributeName();
         var geomDiff = null;
         var map = app.mapPanel.map;
@@ -354,6 +367,10 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
             
             if(oldGeomText) {
                 var oldGeometry = OpenLayers.Geometry.fromWKT(oldGeomText);
+                if(layerProjection) {
+                    var newProj = new OpenLayers.Projection(layerProjection);
+                    oldGeometry.transform(newProj, GoogleMercator);
+                }
                 var oldFeature = new OpenLayers.Feature.Vector(oldGeometry);
                 bounds = oldGeometry.getBounds();
                 if(this.oldGeomLayer === null) {
@@ -376,6 +393,10 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
             }
             if(newGeomText) {
                 var newGeometry = OpenLayers.Geometry.fromWKT(newGeomText);
+                if(layerProjection) {
+                    var newProj = new OpenLayers.Projection(layerProjection);
+                    newGeometry.transform(newProj, GoogleMercator);
+                }
                 var newFeature = new OpenLayers.Feature.Vector(newGeometry);
                 bounds = newGeometry.getBounds();
                 if(this.currentGeomLayer === null) {
@@ -400,6 +421,10 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                 if(featureInfo.data.change !== "REMOVED") {
                     var mergeGeomText = featureInfo.data.geometry;
                     var mergeGeometry = OpenLayers.Geometry.fromWKT(mergeGeomText);
+                    if(layerProjection) {
+                        var newProj = new OpenLayers.Projection(layerProjection);
+                        mergeGeometry.transform(newProj, GoogleMercator);
+                    }
                     var mergeFeature = new OpenLayers.Feature.Vector(mergeGeometry);
                     bounds = mergeGeometry.getBounds();
                     if(this.mergeGeomLayer === null) {

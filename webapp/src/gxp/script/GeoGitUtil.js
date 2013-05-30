@@ -61,6 +61,9 @@ gxp.GeoGitUtil = {
            },{
                name: 'geometry',
                mapping: 'geometry'
+           },{
+               name: 'crs',
+               mapping: 'crs'
            }
         ]
     }),
@@ -80,6 +83,9 @@ gxp.GeoGitUtil = {
            },{
                name: 'geometry',
                mapping: 'geometry'
+           },{
+               name: 'crs',
+               mapping: 'crs'
            }
         ]
     }),
@@ -143,6 +149,7 @@ gxp.GeoGitUtil = {
 						success: function(results){
 							var jsonFormatter = new OpenLayers.Format.JSON();
 							var featureTypeInfo = jsonFormatter.read(results.responseText);
+							layer.metadata.projection = featureTypeInfo.featureType.srs;
 							layer.metadata.isGeogit = true;
 							layer.metadata.geogitStore = dataStore.name;
 							layer.metadata.nativeName = featureTypeInfo.featureType.nativeName;

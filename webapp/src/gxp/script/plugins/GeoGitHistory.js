@@ -68,6 +68,12 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     merging: false,
     
+    pageNumber: 0,
+    
+    nextPage: false,
+    
+    layerProjection: null,
+    
     constructor: function() {
         this.addEvents(
                 /** api: event[conflictsDetected]
@@ -172,7 +178,20 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                 }]
             }),
             viewConfig: {
-                forceFit: true
+                forceFit: true,
+                // took this stuff from http://www.sencha.com/learn/grid-faq/#Maintain_GridPanel_scroll_position_across_Store_reloads
+                // to maintain scroll position as more commits are added to the grid store
+                onLoad: Ext.emptyFn,
+                listeners: {
+                    beforerefresh: function(v) {
+                       v.scrollTop = v.scroller.dom.scrollTop;
+                       v.scrollHeight = v.scroller.dom.scrollHeight;
+                    },
+                    refresh: function(v) {
+                       v.scroller.dom.scrollTop = v.scrollTop + 
+                        (v.scrollTop == 0 ? 0 : v.scroller.dom.scrollHeight - v.scrollHeight);
+                    }
+                }
             },
             listeners: {
     			cellcontextmenu: function(grid, rowIndex, cellIndex, event) {
@@ -180,6 +199,27 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     			        geogitHistory.contextMenu.showAt(event.getXY());
     			    }
     			    event.stopEvent();
+    			},
+    			bodyscroll: function(scrollLeft, scrollTop) {
+    			    
+    			    if(this.getView().scroller.dom.scrollHeight - this.getView().scroller.dom.offsetHeight <= scrollTop+20 && plugin.nextPage) {
+    			        var url = plugin.store.url.replace("page="+plugin.pageNumber, "page="+(plugin.pageNumber+1));
+    			        plugin.pageNumber += 1;
+    			        plugin.store.url = url;
+    			        plugin.store.proxy.conn.url = url;
+    			        plugin.store.proxy.url = url;
+    			        plugin.store.load({
+                            callback: function() {
+                                if(plugin.store.reader.jsonData.response.nextPage) {
+                                    plugin.nextPage = true;
+                                } else {
+                                    plugin.nextPage = false;
+                                }
+                            },
+                            scope: this,
+                            add: true
+                        });
+    			    }
     			}
             },
             contextMenu: new Ext.menu.Menu({
@@ -197,12 +237,12 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                             }
                             var geoserverIndex = plugin.url.indexOf('geoserver/');
                             var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
-                            var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + plugin.oldCommitId + '&newRefSpec=' + plugin.newCommitId + '&showGeometryChanges=true&output_format=JSON';
+                            var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + plugin.oldCommitId + '&newRefSpec=' + plugin.newCommitId + '&showGeometryChanges=true&page=0&show=100&output_format=JSON';
                             plugin.diffStore.url = url;
                             plugin.diffStore.proxy.conn.url = url;
                             plugin.diffStore.proxy.url = url;
                             
-                            app.fireEvent("commitdiffselected", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId);
+                            app.fireEvent("commitdiffselected", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, plugin.layerProjection);
                             geogitHistory.contextMenu.hide();
                         }
                     }
@@ -242,12 +282,23 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         					plugin.workspace = workspace;
         					plugin.dataStore = layer.metadata.geogitStore;
         					plugin.path = layer.metadata.nativeName;
+        					plugin.layerProjection = layer.metadata.projection;
         					
-    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?firstParentOnly=true&path=' + layer.metadata.nativeName + '&until=' + layer.metadata.branch + '&output_format=JSON';
+    		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?firstParentOnly=true&until=' + layer.metadata.branch + '&page=0&output_format=JSON';
     		        		plugin.store.url = plugin.url;
     		        		plugin.store.proxy.conn.url = plugin.url;
     		        		plugin.store.proxy.url = plugin.url;
-    		        		plugin.store.load();
+    		        		plugin.store.load({
+    		        		    callback: function() {
+    		        		        if(plugin.store.reader.jsonData.response.nextPage) {
+    		        		            plugin.nextPage = true;
+    		        		        } else {
+    		        		            plugin.nextPage = false;
+    		        		        }
+    		        		    },
+    		        		    scope: this
+    		        		});
+    		        		plugin.pageNumber = 0;
     					}else{ // isNotGeoGit
     					    plugin.output[0].ownerCt.hide();
     					    plugin.target.portal.doLayout();
