@@ -74,6 +74,8 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
      *  ``Boolean`` Do not show a border.
      */
     border: false,
+    
+    mediaPopup: null,
 
     /** private: method[initComponent]
      */
@@ -119,6 +121,67 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                     }
                 }
                 var value = feature.attributes[name];
+                
+                if (name == "media") {
+                    this.excludeFields.push(name);
+                    var mediaEntries;
+                    if(value == null || value == '') {
+                        mediaEntries = new Array();
+                    } else {
+                        mediaEntries = JSON.parse(value);
+                    }
+                    
+                    var popuphtml = "No media.";
+                    
+                    if(mediaEntries.length > 0) {
+                	var width = mediaEntries.length*76;
+                	var height = 76;
+                	if(width > 200) {
+                	    width = 200;
+                	    height += 15;
+                	}
+                	popuphtml = 
+                	    "<div style=\"width:" + width + "px !important;height:" + height + "px !important;\" class=\"imageRow\">" +
+                	    "  <div style=\"width:500px;\">" +
+                	    "    <div class=\"set\">";
+                	for(var i = 0; i < mediaEntries.length; i++) {
+                	    var url = this.schema.url.substring(0, this.schema.url.indexOf('geoserver/wfs'));
+                	    url += "file-service/services/document/download?blobKey=" + mediaEntries[i];
+                	    if(i==0) {
+                		popuphtml +=
+                		    "<div class=\"single first\">";
+                	    } else if(i==mediaEntries.length-1) {
+                		popuphtml +=
+                		    "<div class=\"single\">";
+                	    } else {
+                		popuphtml +=
+                		    "<div class=\"single last\">";
+                	    }
+                	    popuphtml +=
+                		"      <a href=\"" + url + "\" rel=\"lightbox[media]\"><img height=60 width=60 src=\"" + url + "\" /></a>" +
+                		"    </div>";
+                	    
+                	}
+                	popuphtml +=
+                	    "    </div>" +
+                	    "  </div>" +
+                	    "</div>";  
+                    }
+              	
+                    this.mediaPopup = new GeoExt.Popup({
+                	    title: "Media",
+                	    location: feature,
+                	    autoWidth: true,
+                	    autoHeight: true,
+                	    html: popuphtml,
+                	    collapsible: true,
+                	    unpinnable: false,
+                	    closable: false
+                	});
+                    this.mediaPopup.show();
+                    return;
+                }
+                
                 var fieldCfg = GeoExt.form.recordToField(r);
                 var annotations = this.getAnnotationsFromSchema(r);
                 if (annotations && annotations.label) {
@@ -244,6 +307,9 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
         if (this.featureEditor) {
             this.featureEditor.un("canceledit", this.onCancelEdit, this);
             this.featureEditor = null;
+        }
+        if(this.mediaPopup != null) {
+    	    this.mediaPopup.close();
         }
         gxp.plugins.FeatureEditorGrid.superclass.destroy.call(this);
     },
