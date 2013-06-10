@@ -225,20 +225,22 @@ gxp.FeatureEditMixin = {
                     var point;
                     var dragControl = this.modifyControl.dragControl;
                     var geometry = this.feature.geometry;
-                        
-                    gxp.Orthogonalization.orthogonalize(this.feature, this.map);
-                    this.feature.layer.redraw();
-                            
-                    for(var i = 0; i < geometry.components.length; i++){
-                        for(var j = 0; j < geometry.components[i].components.length; j++){
-                            for(var y = 0; y < geometry.components[i].components[j].components.length;y++){
-                                point = geometry.components[i].components[j].components[y];
-                                dragControl.feature = this.feature;
-                                pixel = new OpenLayers.Pixel(point.x, point.y);
-                                dragControl.downFeature(pixel);
-                                dragControl.moveFeature(pixel);
-                                dragControl.upFeature(pixel);
-                                dragControl.doneDragging(pixel);
+
+                    var success = gxp.Orthogonalization.orthogonalize(this.feature, this.map);
+                    if(success === true) {
+                        this.feature.layer.redraw();
+
+                        for(var i = 0; i < geometry.components.length; i++){
+                            for(var j = 0; j < geometry.components[i].components.length; j++){
+                                for(var y = 0; y < geometry.components[i].components[j].components.length;y++){
+                                    point = geometry.components[i].components[j].components[y];
+                                    dragControl.feature = this.feature;
+                                    pixel = new OpenLayers.Pixel(point.x, point.y);
+                                    dragControl.downFeature(pixel);
+                                    dragControl.moveFeature(pixel);
+                                    dragControl.upFeature(pixel);
+                                    dragControl.doneDragging(pixel);
+                                }
                             }
                         }
                     }

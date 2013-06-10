@@ -92,22 +92,30 @@ gxp.Orthogonalization = {
 		
 		// Updates the polygon with the new points
 		updatePolygon: function(feature) {			
-			var newRing = new OpenLayers.Geometry.LinearRing(this.points);
-			feature.geometry.components[0].addComponent(newRing);
+		    var newRing = new OpenLayers.Geometry.LinearRing(this.points);
+		    feature.geometry.removeComponent(feature.geometry.components[0]);
+            feature.geometry.addComponent(newRing);
+		},
+		
+		updateMultiPolygon: function(feature) {
+		    var newRing = new OpenLayers.Geometry.LinearRing(this.points);
+		    feature.geometry.components[0].removeComponent(feature.geometry.components[0].components[0]);
+            feature.geometry.components[0].addComponent(newRing);
 		}
 };
 
 gxp.Orthogonalization.orthogonalize = function(feature, map) {
-	// make sure this is a multipolygon
-	if(feature.geometry.CLASS_NAME !== "OpenLayers.Geometry.MultiPolygon") {
-		alert("wrong type");
-		return false;
-	}
-	this.points = feature.geometry.getVertices();
+	// check for multipolygon or polygon
+    if(feature.geometry.CLASS_NAME === "OpenLayers.Geometry.MultiPolygon") {
+        this.points = feature.geometry.components[0].components[0].getVertices();        
+    } else if(feature.geometry.CLASS_NAME === "OpenLayers.Geometry.Polygon") {
+        this.points = feature.geometry.components[0].getVertices();        
+    } else {
+        alert("wrong type");
+        return false;
+    }
 
-	feature.geometry.components[0].removeComponent(feature.geometry.components[0].components[0]);
-
-	// number of steps that it will try to get close to orthogonal
+    // number of steps that it will try to get close to orthogonal
 	var steps = 1000;
 	// threshold for being considered close enough
 	var tolerance = 1.0e-8;
@@ -128,8 +136,11 @@ gxp.Orthogonalization.orthogonalize = function(feature, map) {
 			break;
 		}
 	}
-	
-	this.updatePolygon(feature);
+	if(feature.geometry.CLASS_NAME === "OpenLayers.Geometry.MultiPolygon") {
+	    this.updateMultiPolygon(feature);
+	} else {
+	    this.updatePolygon(feature);
+	}
 	
 	return true;
 }
