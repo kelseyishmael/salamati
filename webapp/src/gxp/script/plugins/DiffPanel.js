@@ -147,14 +147,16 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                                 msg: mergeData.conflicts + plugin.Text_ConflictPopup,
                                 buttons: Ext.Msg.OK,
                                 fn: function(button) {
+                                    plugin.addDiffLayer();
                                     app.fireEvent("conflictsDetected");
                                 },
-                                scope: this,
+                                scope: plugin,
                                 icon: Ext.MessageBox.WARNING,
-                                animEl: this.grid.ownerCt.getEl()
+                                animEl: plugin.grid.ownerCt.getEl()
                             });
-                        }
-                        this.addDiffLayer();
+                        } else {
+                            plugin.addDiffLayer();
+                        }                        
                     },
                     scope: this
                 });                
