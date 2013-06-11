@@ -35,7 +35,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     Title_Change: "Change",
     Title_Conflict: "Conflict",
     Text_Zoom: "Zoom To Extent",
-    Text_ConflictPopup: " conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
+    Text_ConflictPopup: "Conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
     /*end i18n*/
     
     /**
@@ -144,7 +144,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                         if(mergeData.conflicts !== undefined) {
                             Ext.Msg.show({
                                 title: plugin.Title_Conflict,
-                                msg: mergeData.conflicts + plugin.Text_ConflictPopup,
+                                msg: plugin.Text_ConflictPopup,
                                 buttons: Ext.Msg.OK,
                                 fn: function(button) {
                                     plugin.addDiffLayer();

@@ -76,9 +76,9 @@ GeoExt.Lang.add("en", {
         Text_TransactionCancelFailed: "Couldn't cancel transaction.",
         Text_TransactionEndFailed: "Couldn't finish transaction.",
         Text_Updated: "updated",
-        Text_Added: "added",
-        Text_Removed: "removed",
-        Text_Modified: "modified",
+        Text_Added: "Added",
+        Text_Removed: "Removed",
+        Text_Modified: "Modified",
         Text_UpToDate: " is already up to date.",
         Text_RemoteInfo: "Remote Information",
         Text_URL: "URL",
@@ -126,9 +126,9 @@ GeoExt.Lang.add("en", {
         geometry: "Geometry",
         was: "was",
         now: "now",
-        added: "ADDED",
-        removed: "REMOVED",
-        modified: "MODIFIED",
+        added: "Added",
+        removed: "Removed",
+        modified: "Modified",
         nextCommitText: "Next",    
         nextCommitTooltip: "See what changed in the next commit",    
         prevCommitText: "Prev",    
@@ -139,7 +139,7 @@ GeoExt.Lang.add("en", {
         Title_Change: "Change",
         Title_Conflict: "Conflict",
         Text_Zoom: "Zoom To Extent",
-        Text_ConflictPopup: " conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge."
+        Text_ConflictPopup: "Conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge."
     },
     "gxp.plugins.LayerTree.prototype": {
         Title_ZoomTo: "Zoom to Layer"

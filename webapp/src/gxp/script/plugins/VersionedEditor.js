@@ -256,10 +256,10 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
                 var result = "";
                 var change = changeType === "ADDED" ? me.added : changeType === "REMOVED" ? me.removed : me.modified;
                 if(geometry) {
-                    result = me.geometry + ' ' + me.was + ' ' + change + '.';
+                    result = me.geometry + ': ' + change + '.';
                     return result;
                 }
-                result = name + ' ' + me.was + ' ' + change + '.';
+                result = name + ': ' + change + '.';
                 return result;
             },
             formatValueResponse: function(oldValue, newValue) {
