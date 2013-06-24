@@ -371,6 +371,7 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                         }
                     },
                     activate: function() {
+                        this.selectControl.unselectAll();
                         this.target.doAuthorized(this.roles, function() {
                             featureManager.showLayer(
                                 this.id, this.showSelectedOnly && "selected"
@@ -450,6 +451,9 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                 var feature = evt.feature;
                 if (feature) {
                     this.fireEvent("featureeditable", this, feature, false);
+                }
+                if(feature && popup && popup.editing) {
+                    popup.fireEvent("canceledit", popup, feature);
                 }
                 if (feature && feature.geometry && popup && !popup.hidden) {
                     if(popup.closable) {
@@ -542,6 +546,13 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                                 },
                                 "hide": function() {
                                     if (!popup.closable) {
+                                        
+                                        if(popup.editing) {
+                                            popup.stopEditing(false);
+                                            if (feature.layer && feature.layer.selectedFeatures.indexOf(feature) !== -1) {
+                                                this.selectControl.unselect(feature);
+                                            }
+                                        }
                                         popup.setFeature(null);
                                         popup.reset(null);
                                     }
@@ -984,8 +995,8 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
         if(this.popup && this.popup.feature === feature) {
             return;
         }
-        this.selectControl.unselectAll(
-            this.popup && this.popup.editing && {except: this.popup.feature});
+        //this may or may not be necessary
+        //this.selectControl.unselectAll(this.popup && this.popup.editing && {except: this.popup.feature});
         this.selectControl.select(feature);
     }
 });
