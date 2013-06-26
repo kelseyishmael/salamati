@@ -59,6 +59,16 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
     
     theirStyle: null,
     
+    url: null,
+    
+    fid: null,
+    
+    transactionId: null,
+    
+    theirsRemoved: false,
+    
+    oursRemoved: false,
+    
     constructor: function() {
         this.addEvents(
             /** api: event[getattributeinfo]
@@ -143,14 +153,38 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                 var plugin = this;
                 plugin.clearLayers();
                 index = store.url.indexOf('merge?');
+                console.log("data",data);
+                if(data.change === "CONFLICT") {
+                    console.log("conflict", this.grid);
+                    if(data.ourvalue === "0000000000000000000000000000000000000000") {
+                        plugin.oursRemoved = true;
+                    } else if(data.theirvalue === "0000000000000000000000000000000000000000") {
+                        plugin.theirsRemoved = true;
+                    }
+                    this.grid.buttons[0].show();
+                    this.grid.buttons[1].show();
+                } else {
+                    console.log("fine", this.grid);
+                    this.grid.buttons[0].hide();
+                    this.grid.buttons[1].hide();
+                }
+                if(index === -1) {
+                    plugin.url = store.url;
+                } else {
+                    plugin.url = store.url.substring(0, index);
+                }                
+                plugin.fid = data.fid;
+                plugin.transactionId = transactionId;
                 OpenLayers.Request.GET({
-                    url: store.url.substring(0, index) + "featurediff?all=true&oldCommitId=" + ancestorCommitId + "&newCommitId="+ newCommitId + "&path=" + data.fid + "&transactionId=" + transactionId + "&output_format=JSON",
+                    url: plugin.url + "featurediff?all=true&oldCommitId=" + ancestorCommitId + "&newCommitId="+ newCommitId + "&path=" + data.fid + "&transactionId=" + transactionId + "&output_format=JSON",
                     success: function(results){
                         var theirInfo = Ext.decode(results.responseText);
+                        console.log("theirInfo", theirInfo);
                         OpenLayers.Request.GET({
-                            url: store.url.substring(0, index) + "featurediff?all=true&oldCommitId=" + ancestorCommitId + "&newCommitId="+ oldCommitId + "&path=" + data.fid + "&transactionId=" + transactionId + "&output_format=JSON",
+                            url: plugin.url + "featurediff?all=true&oldCommitId=" + ancestorCommitId + "&newCommitId="+ oldCommitId + "&path=" + data.fid + "&transactionId=" + transactionId + "&output_format=JSON",
                             success: function(results){
                                 var ourInfo = Ext.decode(results.responseText);
+                                console.log("ourInfo", ourInfo);
                                 var array = [];
                                 for(var index = 0; index < theirInfo.response.diff.length; index++) {
                                     var ourvalue;
@@ -201,6 +235,8 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                 });
             },
             beginMerge: function(store, transactionId, ours, theirs) {
+                this.grid.buttons[0].setText(ours);
+                this.grid.buttons[1].setText(theirs);
                 this.grid.getColumnModel().setColumnHeader(1,ours);
                 this.grid.getColumnModel().columns[1].dataIndex = "ourvalue";
                 this.grid.getColumnModel().setHidden(2,false);
@@ -210,6 +246,8 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                 this.clearLayers();
             },
             endMerge: function() {
+                this.grid.buttons[0].hide();
+                this.grid.buttons[1].hide();
                 this.grid.getColumnModel().setColumnHeader(1,app.Title_Old);
                 this.grid.getColumnModel().columns[1].dataIndex = "oldvalue";
                 this.grid.getColumnModel().setHidden(2,true);
@@ -311,7 +349,114 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                         return "x-hide-nosize";
                     }
                 }
-            }
+            },
+            buttons: [
+                {
+                    xtype: 'button',
+                    text: "ours",
+                    hidden: true,
+                    tooltip:"Resolve conflict using this version of the feature.",
+                    handler: function() {
+                        if(!plugin.oursRemoved) {
+                            OpenLayers.Request.GET({
+                                url: plugin.url + 'checkout?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&ours=true&output_format=JSON',
+                                success: function(results){
+                                    var checkoutInfo = Ext.decode(results.responseText);
+                                    console.log("checkoutInfo", checkoutInfo);
+                                    if(checkoutInfo.response.error) {
+                                        alert("Something went wrong with checkout");
+                                    } else {
+                                        OpenLayers.Request.GET({
+                                            url: plugin.url + 'add?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
+                                            success: function(results){
+                                                var addInfo = Ext.decode(results.responseText);
+                                                console.log("addInfo", addInfo);
+                                                if(addInfo.response.error) {
+                                                    alert("Something went wrong with add");
+                                                } else {
+                                                    app.fireEvent("conflictResolved", plugin.fid);
+                                                    plugin.grid.buttons[0].hide();
+                                                    plugin.grid.buttons[1].hide();
+                                                }
+                                            },
+                                            failure: plugin.errorFetching
+                                        }); 
+                                    }
+                                },
+                                failure: plugin.errorFetching
+                            });  
+                        } else {
+                            OpenLayers.Request.GET({
+                                url: plugin.url + 'remove?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
+                                success: function(results){
+                                    var removeInfo = Ext.decode(results.responseText);
+                                    console.log("removeInfo", removeInfo);
+                                    if(removeInfo.response.error) {
+                                        alert("Something went wrong with remove");
+                                    } else {
+                                        app.fireEvent("conflictResolved", plugin.fid);
+                                        plugin.grid.buttons[0].hide();
+                                        plugin.grid.buttons[1].hide();
+                                    }
+                                },
+                                failure: plugin.errorFetching
+                            }); 
+                        }
+                    }
+                },{
+                    xtype: 'button',
+                    text: "theirs",     
+                    hidden: true,
+                    tooltip:"Resolve conflict using this version of the feature.",
+                    handler: function() {
+                        if(!plugin.theirsRemoved) {
+                            OpenLayers.Request.GET({
+                                url: plugin.url + 'checkout?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&theirs=true&output_format=JSON',
+                                success: function(results){
+                                    var checkoutInfo = Ext.decode(results.responseText);
+                                    console.log("checkoutInfo", checkoutInfo);
+                                    if(checkoutInfo.response.error) {
+                                        alert("Something went wrong in checkout");
+                                    } else {
+                                        OpenLayers.Request.GET({
+                                            url: plugin.url + 'add?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
+                                            success: function(results){
+                                                var addInfo = Ext.decode(results.responseText);
+                                                console.log("addInfo", addInfo);
+                                                if(addInfo.response.error) {
+                                                    alert("Something went wrong with add");
+                                                } else {
+                                                    app.fireEvent("conflictResolved", plugin.fid);
+                                                    plugin.grid.buttons[0].hide();
+                                                    plugin.grid.buttons[1].hide();
+                                                }
+                                            },
+                                            failure: plugin.errorFetching
+                                        }); 
+                                    }
+                                },
+                                failure: plugin.errorFetching
+                            }); 
+                        } else {
+                            OpenLayers.Request.GET({
+                                url: plugin.url + 'remove?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
+                                success: function(results){
+                                    var removeInfo = Ext.decode(results.responseText);
+                                    console.log("removeInfo", removeInfo);
+                                    if(removeInfo.response.error) {
+                                        alert("Something went wrong with remove");
+                                    } else {
+                                        app.fireEvent("conflictResolved", plugin.fid);
+                                        plugin.grid.buttons[0].hide();
+                                        plugin.grid.buttons[1].hide();
+                                    }
+                                },
+                                failure: plugin.errorFetching
+                            }); 
+                        }
+                    }
+                }
+                ]
         });
         
         config = Ext.apply(this.grid, config || {});

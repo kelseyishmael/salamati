@@ -123,43 +123,68 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 this.newCommitId = newCommitId;
                 app.portal.doLayout();
             },
-            beginMerge: function(store, transactionId) {
+            beginMerge: function(store, transactionId, load) {
                 this.mergeStore.clearData();
                 this.diffStore.clearData();
                 this.pageNumber = 0;
-                this.nextPage = false;
-                this.grid.reconfigure(this.mergeStore, this.grid.getColumnModel());
-                this.mergeStore.url = store.url;
-                this.mergeStore.proxy.conn.url = store.url;
-                this.mergeStore.proxy.url = store.url;
+                this.nextPage = false;                
                 this.merge = true;
                 this.transactionId = transactionId;
                 var plugin = this;
-                this.mergeStore.load({
-                    callback: function() {
-                        var mergeData = this.mergeStore.reader.jsonData.response.Merge;
-                        this.oldCommitId = mergeData.ours;
-                        this.newCommitId = mergeData.theirs;
-                        this.ancestorCommitId = mergeData.ancestor;
-                        if(mergeData.conflicts !== undefined) {
-                            Ext.Msg.show({
-                                title: plugin.Title_Conflict,
-                                msg: plugin.Text_ConflictPopup,
-                                buttons: Ext.Msg.OK,
-                                fn: function(button) {
-                                    plugin.addDiffLayer();
-                                    app.fireEvent("conflictsDetected");
-                                },
-                                scope: plugin,
-                                icon: Ext.MessageBox.WARNING,
-                                animEl: plugin.grid.ownerCt.getEl()
-                            });
-                        } else {
-                            plugin.addDiffLayer();
-                        }                        
-                    },
-                    scope: this
-                });                
+                if(load === true) {
+                    this.grid.reconfigure(this.mergeStore, this.grid.getColumnModel());
+                    this.mergeStore.url = store.url;
+                    this.mergeStore.proxy.conn.url = store.url;
+                    this.mergeStore.proxy.url = store.url;               
+                    this.mergeStore.load({
+                        callback: function() {
+                            var mergeData = this.mergeStore.reader.jsonData.response.Merge;
+                            this.oldCommitId = mergeData.ours;
+                            this.newCommitId = mergeData.theirs;
+                            this.ancestorCommitId = mergeData.ancestor;
+                            if(mergeData.conflicts !== undefined) {
+                                Ext.Msg.show({
+                                    title: plugin.Title_Conflict,
+                                    msg: plugin.Text_ConflictPopup,
+                                    buttons: Ext.Msg.OK,
+                                    fn: function(button) {
+                                        plugin.addDiffLayer();
+                                        app.fireEvent("conflictsDetected", mergeData.conflicts);
+                                    },
+                                    scope: plugin,
+                                    icon: Ext.MessageBox.WARNING,
+                                    animEl: plugin.grid.ownerCt.getEl()
+                                });
+                            } else {
+                                plugin.addDiffLayer();
+                            }                        
+                        },
+                        scope: this
+                    });           
+                } else {
+                    this.mergeStore = store;
+                    this.grid.reconfigure(this.mergeStore, this.grid.getColumnModel());
+                    var mergeData = this.mergeStore.reader.jsonData.response.Merge;
+                    this.oldCommitId = mergeData.ours;
+                    this.newCommitId = mergeData.theirs;
+                    this.ancestorCommitId = mergeData.ancestor;
+                    if(mergeData.conflicts !== undefined) {
+                        Ext.Msg.show({
+                            title: plugin.Title_Conflict,
+                            msg: plugin.Text_ConflictPopup,
+                            buttons: Ext.Msg.OK,
+                            fn: function(button) {
+                                plugin.addDiffLayer();
+                                app.fireEvent("conflictsDetected", mergeData.conflicts);
+                            },
+                            scope: plugin,
+                            icon: Ext.MessageBox.WARNING,
+                            animEl: plugin.grid.ownerCt.getEl()
+                        });
+                    } else {
+                        plugin.addDiffLayer();
+                    }    
+                }
                 app.portal.doLayout();         
             },
             endMerge: function() {
@@ -172,6 +197,11 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 this.grid.reconfigure(this.diffStore, this.grid.getColumnModel());
                 this.merge = false;
                 this.transactionId = null;
+            },
+            conflictResolved: function(fid) {
+                var recordIndex = this.mergeStore.findExact('fid', fid);
+                this.mergeStore.data.items[recordIndex].data.change = "RESOLVED";
+                this.grid.view.refresh();
             },
             scope: this
         });

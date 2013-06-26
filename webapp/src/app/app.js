@@ -355,9 +355,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 
                 app.portal.doLayout();
             },
-            "beginMerge": function(store, transactionId, ours, theirs) {
+            "beginMerge": function(store, transactionId, ours, theirs, load) {
                 var westPanel = app.portal.westpanel;
-                this.tools['diffpanel'].fireEvent("beginMerge", store, transactionId);
+                this.tools['diffpanel'].fireEvent("beginMerge", store, transactionId, load);
                 this.tools['feature_editor'].fireEvent("beginMerge");
                 this.tools['geogithistory'].fireEvent("beginMerge"); 
                 this.tools['attribute_grid'].fireEvent("beginMerge", store, transactionId, ours, theirs);
@@ -370,11 +370,14 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 app.portal.diffLayersWindow.hide();
                 app.portal.doLayout();
             },
-            "conflictsDetected": function() {
-                this.tools['repo_info'].fireEvent("conflictsDetected");
+            "conflictsDetected": function(numConflicts) {
+                this.tools['repo_info'].fireEvent("conflictsDetected", numConflicts);
             },
-            "conflictsResolved": function() {
-                this.tools['repo_info'].fireEvent("conflictsResolved");
+            "conflictResolved": function(fid) {
+                this.tools['repo_info'].fireEvent("conflictResolved");
+                this.tools['diffpanel'].fireEvent("conflictResolved", fid);
+                app.portal.featureDiffPanel.hide();
+                app.portal.diffLayersWindow.hide();
             },
             "endMerge": function() {        
                 this.tools['diffpanel'].fireEvent("endMerge");

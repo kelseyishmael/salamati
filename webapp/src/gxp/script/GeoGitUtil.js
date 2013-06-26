@@ -86,6 +86,12 @@ gxp.GeoGitUtil = {
            },{
                name: 'crs',
                mapping: 'crs'
+           },{
+               name: 'theirvalue',
+               mapping: 'theirvalue'
+           },{
+               name: 'ourvalue',
+               mapping: 'ourvalue'
            }
         ]
     }),
