@@ -20,6 +20,8 @@ gxp.GeoGitUtil = {
     geometryAttributeName: null,
     
     transactionIds: {},
+    
+    objectIdNull: "0000000000000000000000000000000000000000",
         
     /**
      * JSON reader for the log operation in GeoGit

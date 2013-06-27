@@ -263,6 +263,9 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                 this.merging = false;
                 this.enableOrDisable();
             },
+            cancelEdit: function() {
+                this.selectControl.unselectAll();
+            },
             scope: this
         });
         gxp.plugins.FeatureEditor.superclass.constructor.apply(this, arguments);        

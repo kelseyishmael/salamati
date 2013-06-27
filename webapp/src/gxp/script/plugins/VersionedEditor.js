@@ -34,6 +34,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     nextCommitTooltip: "See what changed in the next commit",    
     prevCommitText: "Prev",    
     prevCommitTooltip: "See what changed in the previous commit",
+    Text_NoCrs: "This feature didn't have a CRS associated with it, layer results may not be accurate.",
     /* end i18n */
     
     /** api: config[url]
@@ -76,8 +77,6 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     dataStore: null,
     
     store: null,
-    
-    nullObjectId: "0000000000000000000000000000000000000000",
     
     commitIndex: 0,
     
@@ -155,7 +154,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     	}     
 
         var plugin = this;        
-        
+        var featureManager = app.tools[this.featureManager];
         var isGeoGit = function(layer){
         	if(plugin.feature == null || plugin.feature.fid == null || layer === false) {
         		return;
@@ -177,9 +176,9 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         			"load": function() {
         				plugin.commits = store.data.items;  
         				if(plugin.commits.length > 1) {
-        					plugin.createDiffStore(plugin.commits[0].id, plugin.commits[1].id, addPanel);
+        					plugin.createDiffStore(plugin.commits[0].id, plugin.commits[1].id, addPanel, featureManager.layerRecord.data.layer.metadata.projection);
         				} else {
-        					plugin.createDiffStore(plugin.commits[0].id, plugin.nullObjectId, addPanel);
+        					plugin.createDiffStore(plugin.commits[0].id, gxp.GeoGitUtil.objectIdNull, addPanel, featureManager.layerRecord.data.layer.metadata.projection);
         				}
         				
         			}
@@ -192,11 +191,11 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         	featureType = this.schema.baseParams['TYPENAME'];
         }
 
-        var featureManager = app.tools[this.featureManager];
+        
         gxp.GeoGitUtil.isGeoGitLayer(featureManager.layerRecord.data.layer, isGeoGit);
     },
 
-    createDiffStore: function(newCommitId, oldCommitId, addPanel) {
+    createDiffStore: function(newCommitId, oldCommitId, addPanel, layerProjection) {
         var url = this.url + 'geogit/' + this.workspace + ':' + this.dataStore + '/featurediff';
         url = Ext.urlAppend(url, 'path=' + this.path + '&oldCommitId='+ oldCommitId + '&newCommitId=' + newCommitId + '&output_format=json');
         var me = this;
@@ -279,7 +278,17 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             		if(xindex === -1) {
             			return true;
             		}
-            		
+            		if(layerProjection === null || layerProjection === undefined || layerProjection === "") {
+                        var plugin = this;
+                        Ext.Msg.show({
+                            title: historyTitle,
+                            msg: plugin.Text_NoCrs,
+                            buttons: Ext.Msg.OK,
+                            scope: plugin,
+                            icon: Ext.MessageBox.WARNING,
+                            animEl: plugin.grid.ownerCt.getEl()
+                        });
+                    }
             		if(me.diffLayer === null) {
             		    me.diffLayer = new OpenLayers.Layer.Vector("Attr_diff");
             		} else {
@@ -288,13 +297,21 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
             		var newstyle = OpenLayers.Util.applyDefaults(me.newStyle, OpenLayers.Feature.Vector.style['default']);
             		var newvalue = me.store.data.items[xindex-1].data.newvalue;
             		var newGeom = OpenLayers.Geometry.fromWKT(newvalue);
+            		if(layerProjection) {
+            		   var proj = new OpenLayers.Projection(layerProjection);
+            		   newGeom.transform(proj, GoogleMercator); 
+            		}           		
             		var newFeature = new OpenLayers.Feature.Vector(newGeom);
             		newFeature.style = newstyle;
             		me.diffLayer.addFeatures(newFeature);
             		
             		var oldvalue = me.store.data.items[xindex-1].data.oldvalue;
-            		if(oldvalue != null){
+            		if(oldvalue !== null && oldvalue !== undefined && oldvalue !== ""){
             			var oldGeom = OpenLayers.Geometry.fromWKT(oldvalue);
+            			if(layerProjection) {
+            			    var proj = new OpenLayers.Projection(layerProjection);
+            			    oldGeom.transform(proj, GoogleMercator);
+            			}          			
             			var oldstyle = OpenLayers.Util.applyDefaults(me.oldStyle, OpenLayers.Feature.Vector.style['default']);
             			var oldFeature = new OpenLayers.Feature.Vector(oldGeom);
             			oldFeature.style = oldstyle;
@@ -323,7 +340,7 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
     previousCommit: function() {
     	if(this.commitIndex < this.commits.length-1) {
     		this.commitIndex += 1;
-    		var oldCommitId = this.commits.length-1 > this.commitIndex ? this.commits[this.commitIndex+1].id : this.nullObjectId;
+    		var oldCommitId = this.commits.length-1 > this.commitIndex ? this.commits[this.commitIndex+1].id : gxp.GeoGitUtil.objectIdNull;
     		this.updateDiffPanel(this.commits[this.commitIndex].id, oldCommitId);
     	}
     },

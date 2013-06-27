@@ -41,6 +41,12 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
     /* i18n */
     Text_Name: "Name",
     Text_Value: "Value",
+    Text_ButtonTooltip: "Resolve conflict using this version of the feature.",
+    Text_CheckoutError: "Something went wrong with checkout",
+    Text_AddError: "Something went wrong with add",
+    Text_RemoveError: "Something went wrong with remove",
+    Text_FeatureDiff: "Feature Diff",
+    Text_NoCrs: "This feature didn't have a CRS associated with it, layer results may not be accurate.",
     /* end i18n */
     
     oldGeomLayer: null,
@@ -153,18 +159,15 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                 var plugin = this;
                 plugin.clearLayers();
                 index = store.url.indexOf('merge?');
-                console.log("data",data);
                 if(data.change === "CONFLICT") {
-                    console.log("conflict", this.grid);
-                    if(data.ourvalue === "0000000000000000000000000000000000000000") {
+                    if(data.ourvalue === gxp.GeoGitUtil.objectIdNull) {
                         plugin.oursRemoved = true;
-                    } else if(data.theirvalue === "0000000000000000000000000000000000000000") {
+                    } else if(data.theirvalue === gxp.GeoGitUtil.objectIdNull) {
                         plugin.theirsRemoved = true;
                     }
                     this.grid.buttons[0].show();
                     this.grid.buttons[1].show();
                 } else {
-                    console.log("fine", this.grid);
                     this.grid.buttons[0].hide();
                     this.grid.buttons[1].hide();
                 }
@@ -179,12 +182,10 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                     url: plugin.url + "featurediff?all=true&oldCommitId=" + ancestorCommitId + "&newCommitId="+ newCommitId + "&path=" + data.fid + "&transactionId=" + transactionId + "&output_format=JSON",
                     success: function(results){
                         var theirInfo = Ext.decode(results.responseText);
-                        console.log("theirInfo", theirInfo);
                         OpenLayers.Request.GET({
                             url: plugin.url + "featurediff?all=true&oldCommitId=" + ancestorCommitId + "&newCommitId="+ oldCommitId + "&path=" + data.fid + "&transactionId=" + transactionId + "&output_format=JSON",
                             success: function(results){
                                 var ourInfo = Ext.decode(results.responseText);
-                                console.log("ourInfo", ourInfo);
                                 var array = [];
                                 for(var index = 0; index < theirInfo.response.diff.length; index++) {
                                     var ourvalue;
@@ -355,24 +356,22 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                     xtype: 'button',
                     text: "ours",
                     hidden: true,
-                    tooltip:"Resolve conflict using this version of the feature.",
+                    tooltip:plugin.Text_ButtonTooltip,
                     handler: function() {
                         if(!plugin.oursRemoved) {
                             OpenLayers.Request.GET({
                                 url: plugin.url + 'checkout?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&ours=true&output_format=JSON',
                                 success: function(results){
                                     var checkoutInfo = Ext.decode(results.responseText);
-                                    console.log("checkoutInfo", checkoutInfo);
                                     if(checkoutInfo.response.error) {
-                                        alert("Something went wrong with checkout");
+                                        alert(plugin.Text_CheckoutError);
                                     } else {
                                         OpenLayers.Request.GET({
                                             url: plugin.url + 'add?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
                                             success: function(results){
                                                 var addInfo = Ext.decode(results.responseText);
-                                                console.log("addInfo", addInfo);
                                                 if(addInfo.response.error) {
-                                                    alert("Something went wrong with add");
+                                                    alert(plugin.Text_AddError);
                                                 } else {
                                                     app.fireEvent("conflictResolved", plugin.fid);
                                                     plugin.grid.buttons[0].hide();
@@ -390,9 +389,8 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                                 url: plugin.url + 'remove?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
                                 success: function(results){
                                     var removeInfo = Ext.decode(results.responseText);
-                                    console.log("removeInfo", removeInfo);
                                     if(removeInfo.response.error) {
-                                        alert("Something went wrong with remove");
+                                        alert(plugin.Text_RemoveError);
                                     } else {
                                         app.fireEvent("conflictResolved", plugin.fid);
                                         plugin.grid.buttons[0].hide();
@@ -407,24 +405,22 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                     xtype: 'button',
                     text: "theirs",     
                     hidden: true,
-                    tooltip:"Resolve conflict using this version of the feature.",
+                    tooltip: plugin.Text_ButtonTooltip,
                     handler: function() {
                         if(!plugin.theirsRemoved) {
                             OpenLayers.Request.GET({
                                 url: plugin.url + 'checkout?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&theirs=true&output_format=JSON',
                                 success: function(results){
                                     var checkoutInfo = Ext.decode(results.responseText);
-                                    console.log("checkoutInfo", checkoutInfo);
                                     if(checkoutInfo.response.error) {
-                                        alert("Something went wrong in checkout");
+                                        alert(plugin.Text_CheckoutError);
                                     } else {
                                         OpenLayers.Request.GET({
                                             url: plugin.url + 'add?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
                                             success: function(results){
                                                 var addInfo = Ext.decode(results.responseText);
-                                                console.log("addInfo", addInfo);
                                                 if(addInfo.response.error) {
-                                                    alert("Something went wrong with add");
+                                                    alert(plugin.Text_AddError);
                                                 } else {
                                                     app.fireEvent("conflictResolved", plugin.fid);
                                                     plugin.grid.buttons[0].hide();
@@ -442,9 +438,8 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
                                 url: plugin.url + 'remove?transactionId=' + plugin.transactionId + '&path=' + plugin.fid + '&output_format=JSON',
                                 success: function(results){
                                     var removeInfo = Ext.decode(results.responseText);
-                                    console.log("removeInfo", removeInfo);
                                     if(removeInfo.response.error) {
-                                        alert("Something went wrong with remove");
+                                        alert(plugin.Text_RemoveError);
                                     } else {
                                         app.fireEvent("conflictResolved", plugin.fid);
                                         plugin.grid.buttons[0].hide();
@@ -484,8 +479,8 @@ gxp.plugins.GeoGitFeatureAttributeGrid = Ext.extend(gxp.plugins.Tool, {
         if(layerProjection === null || layerProjection === undefined || layerProjection === "") {
             var plugin = this;
             Ext.Msg.show({
-                title: "Feature Diff",
-                msg: "This feature didn't have a CRS associated with it, layer results may not be accurate.",
+                title: plugin.Text_FeatureDiff,
+                msg: plugin.Text_NoCrs,
                 buttons: Ext.Msg.OK,
                 scope: plugin,
                 icon: Ext.MessageBox.WARNING,

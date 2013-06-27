@@ -93,11 +93,23 @@ GeoExt.Lang.add("es", {
         Text_RemoteExists: "Ya existe un repositorio remoto con ese nombre. Por favor, introduzca un nombre distinto.",
         Text_RemoteAddError: "Se ha producido un error creando el repositorio remoto.",
         Text_RemoteRemoveVerification: "¿Está seguro de que quiere eliminar este repositorio remoto?",
-        Text_RemoteRemoveError: "Se ha producido un error eliminando el repositorio remoto."
+        Text_RemoteRemoveError: "Se ha producido un error eliminando el repositorio remoto.",
+        Text_CommitError: "(es)Couldn't commit: ",
+        Text_ConflictResolved: "(es)All conflicts have been resolved, please press the accept button to complete the merge.",
+        Text_PushComplete: "(es)Push Completed.",
+        Text_PullConflicts: "(es)This pull has resulted in merge conflicts, you will be able to complete this pull as you would a merge.",
+        Text_FetchComplete: "(es)Fetch Completed.",
+        Text_FetchFailed: "(es)Failed to Fetch from the remote, either that remote doesn't exist or you are unable to connect to it."
     },
     "gxp.plugins.GeoGitFeatureAttributeGrid.prototype": {
         Text_Name: "Nombre",
-        Text_Value: "Valor"
+        Text_Value: "Valor",
+        Text_ButtonTooltip: "(es)Resolve conflict using this version of the feature.",
+        Text_CheckoutError: "(es)Something went wrong with checkout",
+        Text_AddError: "(es)Something went wrong with add",
+        Text_RemoveError: "(es)Something went wrong with remove",
+        Text_FeatureDiff: "Diferencia entre features",
+        Text_NoCrs: "(es)This feature didn't have a CRS associated with it, layer results may not be accurate."
     },
     "gxp.FeatureEditPanel.prototype": {
         closeMsgTitle: '¿Guardar los cambios?',
@@ -133,14 +145,18 @@ GeoExt.Lang.add("es", {
         nextCommitText: "Siguiente",    
         nextCommitTooltip: "Ver cambios en el siguiente commit",    
         prevCommitText: "Anterior",    
-        prevCommitTooltip: "Ver cambios en el commit anterior"
+        prevCommitTooltip: "Ver cambios en el commit anterior",
+        Text_NoCrs: "(es)This feature didn't have a CRS associated with it, layer results may not be accurate."
     },
     "gxp.plugins.DiffPanel.prototype": {
         Title_Fid: "fid",
         Title_Change: "Cambiar",
         Title_Conflict: "Conflicto",
         Text_Zoom: "Zoom a la extensión",
-        Text_ConflictPopup: "Se han detectado conflictos como resultado de esta combinación. Antes de poder completar la operación de fusión debe resolver lo conflictos. NOTA: La resolución de conflictos no está aún disponible!. Haga clic en el botón de cancelar para detener la operación de fusión."
+        Text_ConflictPopup: "Se han detectado conflictos como resultado de esta combinación. Antes de poder completar la operación de fusión debe resolver lo conflictos. Haga clic en el botón de cancelar para detener la operación de fusión.",
+        Text_Diff: "Diferencia",
+        Text_MoreDiffs: "(es)There were more features changed inbetween these commits. To see more scroll down to the bottom of the diff panel.",
+        Text_NoCrs: "(es) features didn't have a CRS associated with them, diff layer results may not be accurate."
     },
     "gxp.plugins.LayerTree.prototype": {
         Title_ZoomTo: "Zoom a la capa"

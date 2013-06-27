@@ -66,6 +66,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     Text_RemoteAddError: "There was an error creating this remote.",
     Text_RemoteRemoveVerification: "Are you sure you want to remove this remote from the repository?",
     Text_RemoteRemoveError: "There was an error removing this remote.",
+    Text_CommitError: "Couldn't commit: ",
+    Text_ConflictResolved: "All conflicts have been resolved, please press the accept button to complete the merge.",
+    Text_PushComplete: "Push Completed.",
+    Text_PullConflicts: "This pull has resulted in merge conflicts, you will be able to complete this pull as you would a merge.",
+    Text_FetchComplete: "Fetch Completed.",
+    Text_FetchFailed: "Failed to Fetch from the remote, either that remote doesn't exist or you are unable to connect to it.",
     /* end i18n */
     
     treeRoot: null,
@@ -120,13 +126,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                         url: plugin.geoserverUrl + 'geogit/' + repoNode.attributes.workspace + ':' + repoNode.attributes.dataStore + '/commit?transactionId=' + transactionId + '&all=true&output_format=JSON',
                         success: function(results){
                             var commitInfo = Ext.decode(results.responseText);
-                            console.log("commitInfo", commitInfo);
                             if(commitInfo.response.error || commitInfo.response.success === false) {
-                                alert("Couldn't commit, reason: " + commitInfo.response.error);
+                                alert(plugin.Text_CommitError + commitInfo.response.error);
                             } else {
                                 Ext.Msg.show({
                                     title: plugin.Text_Merge,
-                                    msg: "All conflicts have been resolved, please press the accept button to complete the merge.",
+                                    msg: plugin.Text_ConflictResolved,
                                     buttons: Ext.Msg.OK,
                                     fn: function(button) {
                                         plugin.acceptButton.enable();
@@ -412,7 +417,6 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             var dataStore = repoNode.attributes.dataStore;
                             var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
                             var refSpec = selectedNode.text + ':' + node.text.substring(0,node.text.indexOf(" ("));
-                            console.log("refspec", refSpec);
                             OpenLayers.Request.GET({
                                 url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
                                 success: function(results){
@@ -427,7 +431,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                             if(pushInfo.response.error) {
                                                 msg = pushInfo.response.error;
                                             } else {
-                                                msg = "Push Completed.";
+                                                msg = plugin.Text_PushComplete;
                                             }
                                             Ext.Msg.show({
                                                 title: plugin.Text_Push,
@@ -468,7 +472,6 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             var dataStore = repoNode.attributes.dataStore;
                             var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
                             var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
-                            console.log("refspec", refSpec);
                             OpenLayers.Request.GET({
                                 url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
                                 success: function(results){
@@ -492,9 +495,8 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                     reader: gxp.GeoGitUtil.mergeReader,
                                                     autoLoad: false
                                                 });
-                                                testStore.loadData(pullInfo);                                             
-                                                console.log("testStore", testStore);                                                
-                                                msg = "This pull has resulted in merge conflicts, you will be able to complete this pull as you would a merge.";
+                                                testStore.loadData(pullInfo);                                                                                            
+                                                msg = plugin.Text_PullConflicts;
                                                 conflicts = true;
                                             } else {
                                                 msg = selectedNode.text + plugin.Text_UpToDate;
@@ -522,6 +524,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                         plugin.acceptButton.enable();
                                                         plugin.acceptButton.show();
                                                         cancelButton.show();
+                                                        app.fireEvent("cancelEdit");
                                                         app.fireEvent("beginMerge", testStore, transactionId, selectedNode.text, node.text, false);
                                                     }
                                                 },
@@ -555,7 +558,22 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                         url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/fetch?prune=true&remote=' + node.text + '&transactionId=' + transactionId + '&output_format=JSON',
                                         success: function(results) {
                                             var fetchInfo = Ext.decode(results.responseText);
-
+                                            var msg = "";
+                                            if(fetchInfo.response.error) {
+                                                msg = plugin.Text_FetchFailed;
+                                            } else {
+                                                msg = plugin.Text_FetchComplete;
+                                            }
+                                            Ext.Msg.show({
+                                                title: plugin.Text_Fetch,
+                                                msg: msg,
+                                                buttons: Ext.Msg.OK,
+                                                fn: function(button) {
+                                                    return;
+                                                },
+                                                scope: plugin,
+                                                icon: Ext.MessageBox.INFO
+                                            });    
                                             OpenLayers.Request.GET({
                                                 url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
                                                 success: function(results){
@@ -598,7 +616,22 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                         url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/fetch?all=true&prune=true&transactionId=' + transactionId + '&output_format=JSON',
                                         success: function(results) {
                                             var fetchInfo = Ext.decode(results.responseText);
-
+                                            var msg = "";
+                                            if(fetchInfo.response.error) {
+                                                msg = plugin.Text_FetchFailed;
+                                            } else {
+                                                msg = plugin.Text_FetchComplete;
+                                            }
+                                            Ext.Msg.show({
+                                                title: plugin.Text_FetchAll,
+                                                msg: msg,
+                                                buttons: Ext.Msg.OK,
+                                                fn: function(button) {
+                                                    return;
+                                                },
+                                                scope: plugin,
+                                                icon: Ext.MessageBox.INFO
+                                            });    
                                             OpenLayers.Request.GET({
                                                 url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
                                                 success: function(results){

@@ -388,6 +388,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 app.portal.featureDiffPanel.hide();
                 app.portal.diffLayersWindow.hide();
                 app.portal.doLayout();
+            },
+            "cancelEdit": function() {
+                this.tools['feature_editor'].fireEvent("cancelEdit");
             }
         };
 

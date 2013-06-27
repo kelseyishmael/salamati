@@ -92,11 +92,23 @@ GeoExt.Lang.add("en", {
         Text_RemoteExists: "A remote by that name already exists, please enter a different name.",
         Text_RemoteAddError: "There was an error creating this remote.",
         Text_RemoteRemoveVerification: "Are you sure you want to remove this remote from the repository?",
-        Text_RemoteRemoveError: "There was an error removing this remote."
+        Text_RemoteRemoveError: "There was an error removing this remote.",
+        Text_CommitError: "Couldn't commit: ",
+        Text_ConflictResolved: "All conflicts have been resolved, please press the accept button to complete the merge.",
+        Text_PushComplete: "Push Completed.",
+        Text_PullConflicts: "This pull has resulted in merge conflicts, you will be able to complete this pull as you would a merge.",
+        Text_FetchComplete: "Fetch Completed.",
+        Text_FetchFailed: "Failed to Fetch from the remote, either that remote doesn't exist or you are unable to connect to it."
     },
     "gxp.plugins.GeoGitFeatureAttributeGrid.prototype": {
         Text_Name: "Name",
-        Text_Value: "Value"
+        Text_Value: "Value",
+        Text_ButtonTooltip: "Resolve conflict using this version of the feature.",
+        Text_CheckoutError: "Something went wrong with checkout",
+        Text_AddError: "Something went wrong with add",
+        Text_RemoveError: "Something went wrong with remove",
+        Text_FeatureDiff: "Feature Diff",
+        Text_NoCrs: "This feature didn't have a CRS associated with it, layer results may not be accurate."
     },
     "gxp.FeatureEditPanel.prototype": {
         closeMsgTitle: 'Save Changes?',
@@ -132,14 +144,18 @@ GeoExt.Lang.add("en", {
         nextCommitText: "Next",    
         nextCommitTooltip: "See what changed in the next commit",    
         prevCommitText: "Prev",    
-        prevCommitTooltip: "See what changed in the previous commit"
+        prevCommitTooltip: "See what changed in the previous commit",
+        Text_NoCrs: "This feature didn't have a CRS associated with it, layer results may not be accurate."
     },    
     "gxp.plugins.DiffPanel.prototype": {
         Title_Fid: "fid",
         Title_Change: "Change",
         Title_Conflict: "Conflict",
         Text_Zoom: "Zoom To Extent",
-        Text_ConflictPopup: "Conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge."
+        Text_ConflictPopup: "Conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. Press the cancel button in the GeoGit panel to abort the merge.",
+        Text_Diff: "Diff",
+        Text_MoreDiffs: "There were more features changed inbetween these commits. To see more scroll down to the bottom of the diff panel.",
+        Text_NoCrs: " features didn't have a CRS associated with them, diff layer results may not be accurate."
     },
     "gxp.plugins.LayerTree.prototype": {
         Title_ZoomTo: "Zoom to Layer"

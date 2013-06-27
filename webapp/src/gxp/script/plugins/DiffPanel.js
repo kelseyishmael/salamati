@@ -35,7 +35,10 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     Title_Change: "Change",
     Title_Conflict: "Conflict",
     Text_Zoom: "Zoom To Extent",
-    Text_ConflictPopup: "Conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. NOTE: Resolving conflicts in a merge is currently unsupported! Press the cancel button in the GeoGit panel to abort the merge.",
+    Text_ConflictPopup: "Conflicts have been detected as a result of this merge. Before you can complete this merge these conflicts must be resolved. Press the cancel button in the GeoGit panel to abort the merge.",
+    Text_Diff: "Diff",
+    Text_MoreDiffs: "There were more features changed inbetween these commits. To see more scroll down to the bottom of the diff panel.",
+    Text_NoCrs: " features didn't have a CRS associated with them, diff layer results may not be accurate.",
     /*end i18n*/
     
     /**
@@ -104,8 +107,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                     callback: function() {
                         if(plugin.diffStore.reader.jsonData.response.nextPage) {
                             Ext.Msg.show({
-                                title: "Diff",
-                                msg: "There were more than 100 features changed inbetween these commits. To see more features scroll down to the bottom of the diff panel.",
+                                title: plugin.Text_Diff,
+                                msg: plugin.Text_MoreDiffs,
                                 buttons: Ext.Msg.OK,
                                 scope: this,
                                 icon: Ext.MessageBox.INFO,
@@ -289,8 +292,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                             callback: function() {
                                 if(plugin.diffStore.reader.jsonData.response.nextPage) {
                                     Ext.Msg.show({
-                                        title: "Diff",
-                                        msg: "There were more than " + (100 * (plugin.pageNumber + 1)) + " features changed inbetween these commits. To see more features scroll down to the bottom of the diff panel.",
+                                        title: plugin.Text_Diff,
+                                        msg: plugin.Text_MoreDiffs,
                                         buttons: Ext.Msg.OK,
                                         scope: plugin,
                                         icon: Ext.MessageBox.INFO,
@@ -366,8 +369,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         if(counter > 0) {
             var plugin = this;
             Ext.Msg.show({
-                title: "Diff",
-                msg: counter + " features didn't have a CRS associated with them, diff layer results may not be accurate.",
+                title: plugin.Text_Diff,
+                msg: counter + plugin.Text_NoCrs,
                 buttons: Ext.Msg.OK,
                 scope: plugin,
                 icon: Ext.MessageBox.WARNING,
