@@ -481,6 +481,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                     OpenLayers.Request.GET({
                                         url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/pull?ref=' + refSpec + '&remoteName=' + node.attributes.remoteName + '&transactionId=' + transactionId + '&output_format=JSON',
                                         success: function(results) {
+                                            app.fireEvent("featureEditorUnselectAll");
                                             var pullInfo = Ext.decode(results.responseText);
                                             var msg = "";
                                             var conflicts = false;
@@ -511,7 +512,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                         OpenLayers.Request.GET({
                                                             url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
                                                             success: function(results){
-                                                                var transactionInfo = Ext.decode(results.responseText);                       
+                                                                var transactionInfo = Ext.decode(results.responseText);
                                                                 if(transactionInfo.response.Transaction.ID === undefined) {
                                                                     gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
                                                                 } else {
@@ -524,7 +525,6 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                         plugin.acceptButton.enable();
                                                         plugin.acceptButton.show();
                                                         cancelButton.show();
-                                                        app.fireEvent("cancelEdit");
                                                         app.fireEvent("beginMerge", testStore, transactionId, selectedNode.text, node.text, false);
                                                     }
                                                 },

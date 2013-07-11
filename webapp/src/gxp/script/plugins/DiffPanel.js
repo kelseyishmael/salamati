@@ -382,15 +382,20 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
             if(layer) {
                 app.mapPanel.map.removeLayer(layer);
             }
+            if(!this.merge) {
+                alert("No differences found");
+            }
             return;
+        } else {
+            app.fireEvent("diffstoshow", this.merge);
         }
         if(layer === null) {
             app.mapPanel.map.addLayer(this.diffLayer);
         }
-        app.mapPanel.map.zoomToExtent(this.diffLayer.getDataExtent());
-        if(app.mapPanel.map.zoom > 18) {
-            app.mapPanel.map.zoomTo(18, app.mapPanel.map.center);
-        }
+//        app.mapPanel.map.zoomToExtent(this.diffLayer.getDataExtent());
+//        if(app.mapPanel.map.zoom > 18) {
+//            app.mapPanel.map.zoomTo(18, app.mapPanel.map.center);
+//        }
     }
 });
 Ext.preg(gxp.plugins.DiffPanel.prototype.ptype, gxp.plugins.DiffPanel);

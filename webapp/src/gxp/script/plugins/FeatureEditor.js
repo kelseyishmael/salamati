@@ -263,7 +263,7 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                 this.merging = false;
                 this.enableOrDisable();
             },
-            cancelEdit: function() {
+            featureEditorUnselectAll: function() {
                 this.selectControl.unselectAll();
             },
             scope: this
@@ -454,16 +454,17 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                 var feature = evt.feature;
                 if (feature) {
                     this.fireEvent("featureeditable", this, feature, false);
-                }
-                if(feature && popup && popup.editing) {
-                    popup.fireEvent("canceledit", popup, feature);
-                }
-                if (feature && feature.geometry && popup && !popup.hidden) {
-                    if(popup.closable) {
-                        popup.close();
-                        popup = null;
-                    } else if(feature === popup.feature) {
-                        popup.hide();
+
+                    if(popup && popup.editing) {
+                        popup.fireEvent("canceledit", popup, feature);
+                    }
+                    if(feature.geometry && popup && !popup.hidden) {
+                        if(popup.closable) {
+                            popup.close();
+                            popup = null;
+                        } else if(feature === popup.feature) {
+                            popup.hide();
+                        }
                     }
                 }
             },
@@ -509,8 +510,8 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                         featureManager.showLayer(this.id, this.showSelectedOnly && "selected");
                     }
 
-                    if(popup) { 
-                        popup.setFeature(featureStore.getByFeature(feature));
+                    if(popup) {
+                        popup.setFeature(feature);
                         popup.reset(this);
                         popup.show();
                         if(popup.disabled) {
@@ -552,10 +553,12 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                                         
                                         if(popup.editing) {
                                             popup.stopEditing(false);
-                                            if (feature.layer && feature.layer.selectedFeatures.indexOf(feature) !== -1) {
-                                                this.selectControl.unselect(feature);
-                                            }
                                         }
+                                        
+                                        if (feature.layer && feature.layer.selectedFeatures.indexOf(feature) !== -1) {
+                                            this.selectControl.unselect(feature);
+                                        }
+                                        
                                         popup.setFeature(null);
                                         popup.reset(null);
                                     }
@@ -614,6 +617,7 @@ gxp.plugins.FeatureEditor = Ext.extend(gxp.plugins.ClickableFeatures, {
                                                     }
                                                 }
                                                 var layer = newFeatureManager.layerRecord;
+                                                
                                                 this.target.fireEvent("featureedit", newFeatureManager, {
                                                     name: layer.get("name"),
                                                     source: layer.get("source")

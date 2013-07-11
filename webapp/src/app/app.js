@@ -315,12 +315,20 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             "commitdiffselected" : function(store, oldCommitId, newCommitId, layerProjection) {
                 var westPanel = app.portal.westpanel;
                 this.tools['diffpanel'].fireEvent("commitdiffselected", store, oldCommitId, newCommitId, layerProjection);
-
+            },
+            "diffstoshow" : function(merging) {
+                var westPanel = app.portal.westpanel;
                 if(westPanel.hidden) {
                     westPanel.show();
                     westPanel.expand();
                 }
+                
                 app.fireEvent("togglesouthpanel");
+
+                if(!merging) {
+                    app.portal.westpanel.diffDoneButton.show();
+                }
+                
                 app.portal.featureDiffPanel.hide();
                 app.portal.doLayout();
             },
@@ -335,8 +343,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     diffLayersWindow.setPosition(app.mapPanel.getWidth() / 2 - diffLayersWindow.getWidth() / 2, app.mapPanel.tbar.getHeight());
                     app.portal.featureDiffPanel.setPosition(app.mapPanel.getWidth() / 2 - app.portal.featureDiffPanel.getWidth() / 2, 
                             app.mapPanel.getHeight() - app.portal.featureDiffPanel.getHeight());
-                    
-                    app.portal.westpanel.diffDoneButton.show();
                 }
                 app.portal.doLayout();
             },
@@ -389,8 +395,8 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 app.portal.diffLayersWindow.hide();
                 app.portal.doLayout();
             },
-            "cancelEdit": function() {
-                this.tools['feature_editor'].fireEvent("cancelEdit");
+            "featureEditorUnselectAll": function() {
+                this.tools['feature_editor'].fireEvent("featureEditorUnselectAll");
             }
         };
 
