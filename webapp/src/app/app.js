@@ -688,6 +688,13 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         if (config.tools) {
             tools = tools.concat(config.tools);
         }
+        if(!config.userprofilename) {
+            config.userprofilename = config.username;
+        } else {
+            if(config.username) {
+        	config.userprofilename = config.userprofilename + " (" + config.username + ")";
+            }
+        }
         tools.push({
             ptype: 'gn_xhrtrouble'
         }, {
@@ -743,7 +750,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         	ptype: "gxp_geogitrepoinfo",
         	id: "repo_info",
         	outputTarget: "repopanel",
-            featureManager: "feature_manager"
+            featureManager: "feature_manager",
+            username: config.userprofilename,
+            useremail: config.userprofileemail
         }, {
             ptype: "gxp_featuremanager",
             id: "feature_manager",

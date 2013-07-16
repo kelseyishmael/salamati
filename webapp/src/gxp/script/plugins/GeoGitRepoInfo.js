@@ -98,6 +98,10 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     originalBranch: null,
     
     numConflicts: 0,
+    
+    username: null,
+    
+    useremail: null,
 
     constructor: function() {
         this.addEvents(
@@ -122,8 +126,17 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                     var selectedNode = plugin.treeRoot.findChild("selected", true, true);
                     var repoNode = selectedNode.parentNode.parentNode.parentNode;
                     var transactionId = gxp.GeoGitUtil.transactionIds[repoNode.attributes.repoId];
+                    
+                    var authorString = "";
+                    if(plugin.username !== undefined && plugin.username !== null) {
+                        authorString += '&authorName=' + encodeURIComponent(plugin.username);
+                    }
+                    if(plugin.useremail !== undefined && plugin.useremail !== null) {
+                        authorString += '&authorEmail=' + encodeURIComponent(plugin.useremail);
+                    }
+                    
                     OpenLayers.Request.GET({
-                        url: plugin.geoserverUrl + 'geogit/' + repoNode.attributes.workspace + ':' + repoNode.attributes.dataStore + '/commit?transactionId=' + transactionId + '&all=true&output_format=JSON',
+                        url: plugin.geoserverUrl + 'geogit/' + repoNode.attributes.workspace + ':' + repoNode.attributes.dataStore + '/commit?transactionId=' + transactionId + authorString + '&all=true&output_format=JSON',
                         success: function(results){
                             var commitInfo = Ext.decode(results.responseText);
                             if(commitInfo.response.error || commitInfo.response.success === false) {
@@ -386,8 +399,16 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                         plugin.acceptButton.show();
                                                         cancelButton.show();
                                                         
+                                                        var authorString = "";
+                                                        if(plugin.username !== undefined && plugin.username !== null) {
+                                                            authorString += '&authorName=' + encodeURIComponent(plugin.username);
+                                                        }
+                                                        if(plugin.useremail !== undefined && plugin.useremail !== null) {
+                                                            authorString += '&authorEmail=' + encodeURIComponent(plugin.useremail);
+                                                        }
+                                                        
                                                         var dryRunStore = new Ext.data.Store({
-                                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/merge?commit=' + node.text + '&transactionId=' + transactionId + '&output_format=JSON',
+                                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/merge?commit=' + node.text + '&transactionId=' + transactionId + authorString + '&output_format=JSON',
                                                             reader: gxp.GeoGitUtil.mergeReader,
                                                             autoLoad: false
                                                         });
@@ -478,8 +499,17 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                     var transactionInfo = Ext.decode(results.responseText);
                                     var transactionId = transactionInfo.response.Transaction.ID;
                                     gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
+                                    
+                                    var authorString = "";
+                                    if(plugin.username !== undefined && plugin.username !== null) {
+                                        authorString += '&authorName=' + encodeURIComponent(plugin.username);
+                                    }
+                                    if(plugin.useremail !== undefined && plugin.useremail !== null) {
+                                        authorString += '&authorEmail=' + encodeURIComponent(plugin.useremail);
+                                    }
+                                    
                                     OpenLayers.Request.GET({
-                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/pull?ref=' + refSpec + '&remoteName=' + node.attributes.remoteName + '&transactionId=' + transactionId + '&output_format=JSON',
+                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/pull?ref=' + refSpec + '&remoteName=' + node.attributes.remoteName + '&transactionId=' + transactionId + authorString + '&output_format=JSON',
                                         success: function(results) {
                                             app.fireEvent("featureEditorUnselectAll");
                                             var pullInfo = Ext.decode(results.responseText);
