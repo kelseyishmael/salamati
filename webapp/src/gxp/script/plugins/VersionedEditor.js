@@ -203,31 +203,33 @@ gxp.plugins.VersionedEditor = Ext.extend(Ext.TabPanel, {
         	url: url,
     		reader: gxp.GeoGitUtil.featureDiffReader,
         		listeners: {
-        			"load": function() { 
-        			    var buttons = me.historyTab.getTopToolbar().items.items;
-        				if(me.commitIndex === 0) {
-        					buttons[1].disable();
-        					
-        					if(me.commitIndex === me.commits.length-1) {
-        						buttons[0].disable();
-        					} else if(buttons[0].disabled === true) {
-        						buttons[0].enable();
-        					}
-        				} else if(me.commitIndex === me.commits.length-1) {
-        					if(buttons[0].disabled != true) {
-        						buttons[0].disable();
-        					}
-        					if(buttons[1].disabled === true) {
-        						buttons[1].enable();
-        					}
-        				} else {
-        					if(buttons[0].disabled === true) {
-        						buttons[0].enable();
-        					}else if(buttons[1].disabled === true) {
-        						buttons[1].enable();
-        					}
-        				}
-        			}
+        		    "load": function() { 
+        		        if(me.historyTab) {
+        		            var buttons = me.historyTab.getTopToolbar().items.items;
+        		            if(me.commitIndex === 0) {
+        		                buttons[1].disable();
+
+        		                if(me.commitIndex === me.commits.length-1) {
+        		                    buttons[0].disable();
+        		                } else if(buttons[0].disabled === true) {
+        		                    buttons[0].enable();
+        		                }
+        		            } else if(me.commitIndex === me.commits.length-1) {
+        		                if(buttons[0].disabled != true) {
+        		                    buttons[0].disable();
+        		                }
+        		                if(buttons[1].disabled === true) {
+        		                    buttons[1].enable();
+        		                }
+        		            } else {
+        		                if(buttons[0].disabled === true) {
+        		                    buttons[0].enable();
+        		                }else if(buttons[1].disabled === true) {
+        		                    buttons[1].enable();
+        		                }
+        		            }
+        		        }
+        		    }
         		},
     			autoLoad: true
     		});

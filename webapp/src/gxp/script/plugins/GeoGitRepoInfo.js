@@ -95,6 +95,8 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     
     acceptButton: null,
     
+    cancelButton: null,
+    
     originalBranch: null,
     
     numConflicts: 0,
@@ -102,6 +104,14 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     username: null,
     
     useremail: null,
+    
+    syncObjects: [],
+    
+    autoSync: null,
+    
+    syncing: false,
+    
+    syncPaused: false,
 
     constructor: function() {
         this.addEvents(
@@ -182,7 +192,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         
         var plugin = this;
         
-        var cancelButton = new Ext.Button({
+        this.cancelButton = new Ext.Button({
             text: plugin.Text_Cancel,
             hidden: true,
             handler: function() {
@@ -204,7 +214,11 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                         plugin.originalBranch = null;
                                         gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
                                         plugin.acceptButton.hide();
-                                        cancelButton.hide();
+                                        plugin.cancelButton.hide();
+                                        if(plugin.syncing) {
+                                            plugin.syncing = false;
+                                            plugin.resumeSync();
+                                        }
                                         app.fireEvent("endMerge");
                                     } else {
                                         alert(plugin.Text_TransactionCancelFailed);
@@ -246,8 +260,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                     gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
                                                     plugin.originalBranch = null;
                                                     plugin.acceptButton.hide();
-                                                    cancelButton.hide();
+                                                    plugin.cancelButton.hide();
                                                     app.fireEvent("endMerge");
+                                                    if(plugin.syncing) {
+                                                        plugin.syncing = false;
+                                                        plugin.resumeSync();   
+                                                    }
                                                 } else {
                                                     alert(plugin.Text_TransactionEndFailed);
                                                 }                       
@@ -266,8 +284,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                             gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
                                             plugin.originalBranch = null;
                                             plugin.acceptButton.hide();
-                                            cancelButton.hide();
+                                            plugin.cancelButton.hide();
                                             app.fireEvent("endMerge");
+                                            if(plugin.syncing) {
+                                                plugin.syncing = false;
+                                                plugin.resumeSync();    
+                                            }
                                         } else {
                                             alert(plugin.Text_TransactionEndFailed);
                                         }                       
@@ -289,7 +311,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             rootVisible: false,
             border: false,
             autoScroll: true,
-            tbar: [this.acceptButton, cancelButton],
+            tbar: [this.acceptButton, this.cancelButton],
             listeners: {
                 contextmenu: function(node, event) {
                     if(!node.isSelected()) {
@@ -332,6 +354,23 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                     if(repoNode.attributes.repoId === node.parentNode.parentNode.parentNode.attributes.repoId) {  
                                         repoInfo.contextMenu.items.items[1].show();
                                         repoInfo.contextMenu.items.items[2].show();
+                                        if(plugin.syncPaused) {
+                                            repoInfo.contextMenu.items.items[9].show();
+                                        } else {
+                                            var found = false;
+                                            for(var index = 0; index < plugin.syncObjects.length; index++) {
+                                                var object = plugin.syncObjects[index];
+                                                if(object.localBranch === selectedNode.text && object.remoteBranch === node.text.substring(0,node.text.indexOf(" (")) && object.remoteName === node.attributes.remoteName) {
+                                                    found = true;
+                                                    break;
+                                                }
+                                            }    
+                                            if(found) {
+                                                repoInfo.contextMenu.items.items[8].show();
+                                            } else {
+                                                repoInfo.contextMenu.items.items[7].show();
+                                            }
+                                        }
                                         repoInfo.contextMenu.showAt(event.getXY());
                                         event.stopEvent();
                                     }
@@ -368,181 +407,102 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                         iconCls: 'salamati-icon-merge',
                         hidden: true,
                         handler: function() {
-                            if(app.tools.feature_editor.popup && !app.tools.feature_editor.popup.hidden) {
-                                alert(plugin.Text_FinishViewing);
+                            if(!plugin.checkIfSyncing()) {
+                                if(app.tools.feature_editor.popup && !app.tools.feature_editor.popup.hidden) {
+                                    alert(plugin.Text_FinishViewing);
+                                    panel.contextMenu.hide();
+                                    return;
+                                }
+                                Ext.Msg.show({
+                                    title: plugin.Text_Merge,
+                                    msg: plugin.Text_MergeStartPopup,
+                                    buttons: Ext.Msg.YESNO,
+                                    fn: function(button) {
+                                        if(button === "yes") {
+                                            var selectedNode = plugin.treeRoot.findChild("selected", true, true);
+                                            var node = panel.getSelectionModel().getSelectedNode();
+                                            var repoNode = selectedNode.parentNode.parentNode.parentNode;
+                                            var workspace = repoNode.attributes.workspace;
+                                            var dataStore = repoNode.attributes.dataStore;
+                                            OpenLayers.Request.GET({
+                                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
+                                                success: function(results){
+                                                    var transactionInfo = Ext.decode(results.responseText);
+                                                    var transactionId = transactionInfo.response.Transaction.ID;
+                                                    gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
+                                                    OpenLayers.Request.GET({
+                                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/checkout?branch=' + selectedNode.text + '&transactionId=' + transactionId + '&output_format=JSON',
+                                                        success: function(results) {
+                                                            var checkoutInfo = Ext.decode(results.responseText);        
+                                                            plugin.originalBranch = checkoutInfo.response.OldTarget;
+                                                            plugin.acceptButton.enable();
+                                                            plugin.acceptButton.show();
+                                                            plugin.cancelButton.show();
+                                                            var authorString = "";
+                                                            if(plugin.username !== undefined && plugin.username !== null) {
+                                                                authorString += '&authorName=' + encodeURIComponent(plugin.username);
+                                                            }
+                                                            if(plugin.useremail !== undefined && plugin.useremail !== null) {
+                                                                authorString += '&authorEmail=' + encodeURIComponent(plugin.useremail);
+                                                            }
+                                                            var dryRunStore = new Ext.data.Store({
+                                                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/merge?commit=' + node.text + '&transactionId=' + transactionId + '&output_format=JSON',
+                                                                reader: gxp.GeoGitUtil.mergeReader,
+                                                                autoLoad: false
+                                                            });
+                                                            app.fireEvent("beginMerge", dryRunStore, transactionId, selectedNode.text, node.text, true);
+                                                        },
+                                                        failure: plugin.errorFetching
+                                                    });                                   
+                                                },
+                                                failure: plugin.errorFetching
+                                            });
+                                        }
+                                    },
+                                    scope: this,
+                                    icon: Ext.MessageBox.QUESTION,
+                                    animEl: this.ownerCt.getEl()
+                                });
+
                                 panel.contextMenu.hide();
-                                return;
                             }
-                            Ext.Msg.show({
-                                title: plugin.Text_Merge,
-                                msg: plugin.Text_MergeStartPopup,
-                                buttons: Ext.Msg.YESNO,
-                                fn: function(button) {
-                                    if(button === "yes") {
-                                        var selectedNode = plugin.treeRoot.findChild("selected", true, true);
-                                        var node = panel.getSelectionModel().getSelectedNode();
-                                        var repoNode = selectedNode.parentNode.parentNode.parentNode;
-                                        var workspace = repoNode.attributes.workspace;
-                                        var dataStore = repoNode.attributes.dataStore;
-                                        OpenLayers.Request.GET({
-                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
-                                            success: function(results){
-                                                var transactionInfo = Ext.decode(results.responseText);
-                                                var transactionId = transactionInfo.response.Transaction.ID;
-                                                gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
-                                                OpenLayers.Request.GET({
-                                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/checkout?branch=' + selectedNode.text + '&transactionId=' + transactionId + '&output_format=JSON',
-                                                    success: function(results) {
-                                                        var checkoutInfo = Ext.decode(results.responseText);        
-                                                        plugin.originalBranch = checkoutInfo.response.OldTarget;
-                                                        plugin.acceptButton.enable();
-                                                        plugin.acceptButton.show();
-                                                        cancelButton.show();
-                                                        
-                                                        var authorString = "";
-                                                        if(plugin.username !== undefined && plugin.username !== null) {
-                                                            authorString += '&authorName=' + encodeURIComponent(plugin.username);
-                                                        }
-                                                        if(plugin.useremail !== undefined && plugin.useremail !== null) {
-                                                            authorString += '&authorEmail=' + encodeURIComponent(plugin.useremail);
-                                                        }
-                                                        
-                                                        var dryRunStore = new Ext.data.Store({
-                                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/merge?commit=' + node.text + '&transactionId=' + transactionId + authorString + '&output_format=JSON',
-                                                            reader: gxp.GeoGitUtil.mergeReader,
-                                                            autoLoad: false
-                                                        });
-                                                        app.fireEvent("beginMerge", dryRunStore, transactionId, selectedNode.text, node.text, true);
-                                                    },
-                                                    failure: plugin.errorFetching
-                                                });                                   
-                                            },
-                                            failure: plugin.errorFetching
-                                        });
-                                    }
-                                },
-                                scope: this,
-                                icon: Ext.MessageBox.QUESTION,
-                                animEl: this.ownerCt.getEl()
-                            });
-                                                        
-                            panel.contextMenu.hide();
                         }
                     }, {
                         text: plugin.Text_Push,
                         hidden: true,
                         handler: function() {
-                            var node = panel.getSelectionModel().getSelectedNode();
-                            var repoNode = node.parentNode.parentNode.parentNode;
-                            var workspace = repoNode.attributes.workspace;
-                            var dataStore = repoNode.attributes.dataStore;
-                            var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
-                            var refSpec = selectedNode.text + ':' + node.text.substring(0,node.text.indexOf(" ("));
-                            OpenLayers.Request.GET({
-                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
-                                success: function(results){
-                                    var transactionInfo = Ext.decode(results.responseText);
-                                    var transactionId = transactionInfo.response.Transaction.ID;
-                                    gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
-                                    OpenLayers.Request.GET({
-                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/push?ref=' + refSpec + '&remoteName=' + node.attributes.remoteName + '&transactionId=' + transactionId + '&output_format=JSON',
-                                        success: function(results) {
-                                            var pushInfo = Ext.decode(results.responseText);
-                                            var msg = "";
-                                            if(pushInfo.response.error) {
-                                                msg = pushInfo.response.error;
-                                            } else {
-                                                msg = plugin.Text_PushComplete;
-                                            }
-                                            Ext.Msg.show({
-                                                title: plugin.Text_Push,
-                                                msg: msg,
-                                                buttons: Ext.Msg.OK,
-                                                fn: function(button) {
-                                                    OpenLayers.Request.GET({
-                                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
-                                                        success: function(results){
-                                                            var transactionInfo = Ext.decode(results.responseText);                       
-                                                            if(transactionInfo.response.Transaction.ID === undefined) {
-                                                                gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
-                                                            } else {
-                                                                alert(plugin.Text_TransactionEndFailed);
-                                                            }                       
-                                                        },
-                                                        failure: plugin.errorFetching
-                                                    });
-                                                },
-                                                scope: plugin,
-                                                icon: Ext.MessageBox.INFO
-                                            });                                            
-                                        },
-                                        failure: plugin.errorFetching
-                                    });                                   
-                                },
-                                failure: plugin.errorFetching
-                            });
-                            panel.contextMenu.hide();
-                        }
-                    }, {
-                        text: plugin.Text_Pull,
-                        hidden: true,
-                        handler: function() {                           
-                            var node = panel.getSelectionModel().getSelectedNode();
-                            var repoNode = node.parentNode.parentNode.parentNode;
-                            var workspace = repoNode.attributes.workspace;
-                            var dataStore = repoNode.attributes.dataStore;
-                            var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
-                            var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
-                            OpenLayers.Request.GET({
-                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
-                                success: function(results){
-                                    var transactionInfo = Ext.decode(results.responseText);
-                                    var transactionId = transactionInfo.response.Transaction.ID;
-                                    gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
-                                    
-                                    var authorString = "";
-                                    if(plugin.username !== undefined && plugin.username !== null) {
-                                        authorString += '&authorName=' + encodeURIComponent(plugin.username);
-                                    }
-                                    if(plugin.useremail !== undefined && plugin.useremail !== null) {
-                                        authorString += '&authorEmail=' + encodeURIComponent(plugin.useremail);
-                                    }
-                                    
-                                    OpenLayers.Request.GET({
-                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/pull?ref=' + refSpec + '&remoteName=' + node.attributes.remoteName + '&transactionId=' + transactionId + authorString + '&output_format=JSON',
-                                        success: function(results) {
-                                            app.fireEvent("featureEditorUnselectAll");
-                                            var pullInfo = Ext.decode(results.responseText);
-                                            var msg = "";
-                                            var conflicts = false;
-                                            var testStore = null;
-                                            if(pullInfo.response.error) {
-                                                msg = pullInfo.response.error;
-                                            } else if(pullInfo.response.Pull !== undefined && pullInfo.response.Pull.Ref !== undefined) {
-                                                msg = pullInfo.response.Pull.Ref + " " + plugin.Text_Updated + ": " + pullInfo.response.Pull.Added + " " + plugin.Text_Added + ", " + pullInfo.response.Pull.Removed + " " + plugin.Text_Removed + " , " + pullInfo.response.Pull.Modified + " " + plugin.Text_Modified + ".";
-                                            } else if(pullInfo.response.Merge !== undefined && pullInfo.response.Merge.conflicts !== undefined) {
-                                                testStore = new Ext.data.Store({
-                                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/',
-                                                    reader: gxp.GeoGitUtil.mergeReader,
-                                                    autoLoad: false
-                                                });
-                                                testStore.loadData(pullInfo);                                                                                            
-                                                msg = plugin.Text_PullConflicts;
-                                                conflicts = true;
-                                            } else {
-                                                msg = selectedNode.text + plugin.Text_UpToDate;
-                                            }
-
-                                            Ext.Msg.show({
-                                                title: plugin.Text_Pull,
-                                                msg: msg,
-                                                buttons: Ext.Msg.OK,
-                                                fn: function(button) {
-                                                    if(!conflicts) {
+                            if(!plugin.checkIfSyncing()) {
+                                var node = panel.getSelectionModel().getSelectedNode();
+                                var repoNode = node.parentNode.parentNode.parentNode;
+                                var workspace = repoNode.attributes.workspace;
+                                var dataStore = repoNode.attributes.dataStore;
+                                var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                                var refSpec = selectedNode.text + ':' + node.text.substring(0,node.text.indexOf(" ("));
+                                OpenLayers.Request.GET({
+                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
+                                    success: function(results){
+                                        var transactionInfo = Ext.decode(results.responseText);
+                                        var transactionId = transactionInfo.response.Transaction.ID;
+                                        gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
+                                        OpenLayers.Request.GET({
+                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/push?ref=' + refSpec + '&remoteName=' + node.attributes.remoteName + '&transactionId=' + transactionId + '&output_format=JSON',
+                                            success: function(results) {
+                                                var pushInfo = Ext.decode(results.responseText);
+                                                var msg = "";
+                                                if(pushInfo.response.error) {
+                                                    msg = pushInfo.response.error;
+                                                } else {
+                                                    msg = plugin.Text_PushComplete;
+                                                }
+                                                Ext.Msg.show({
+                                                    title: plugin.Text_Push,
+                                                    msg: msg,
+                                                    buttons: Ext.Msg.OK,
+                                                    fn: function(button) {
                                                         OpenLayers.Request.GET({
                                                             url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
                                                             success: function(results){
-                                                                var transactionInfo = Ext.decode(results.responseText);
+                                                                var transactionInfo = Ext.decode(results.responseText);                       
                                                                 if(transactionInfo.response.Transaction.ID === undefined) {
                                                                     gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
                                                                 } else {
@@ -551,140 +511,225 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                             },
                                                             failure: plugin.errorFetching
                                                         });
-                                                    } else {
-                                                        plugin.acceptButton.enable();
-                                                        plugin.acceptButton.show();
-                                                        cancelButton.show();
-                                                        app.fireEvent("beginMerge", testStore, transactionId, selectedNode.text, node.text, false);
-                                                    }
-                                                },
-                                                scope: plugin,
-                                                icon: Ext.MessageBox.INFO
-                                            });                                                                                    
-                                        },
-                                        failure: plugin.errorFetching
-                                    });                                   
-                                },
-                                failure: plugin.errorFetching
-                            });
-                            
-                            panel.contextMenu.hide();
+                                                    },
+                                                    scope: plugin,
+                                                    icon: Ext.MessageBox.INFO
+                                                });                                            
+                                            },
+                                            failure: plugin.errorFetching
+                                        });                                   
+                                    },
+                                    failure: plugin.errorFetching
+                                });
+                                panel.contextMenu.hide();
+                            }
+                        }
+                    }, {
+                        text: plugin.Text_Pull,
+                        hidden: true,
+                        handler: function() {              
+                            if(!plugin.checkIfSyncing()) {             
+                                var node = panel.getSelectionModel().getSelectedNode();
+                                var repoNode = node.parentNode.parentNode.parentNode;
+                                var workspace = repoNode.attributes.workspace;
+                                var dataStore = repoNode.attributes.dataStore;
+                                var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                                var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
+                                OpenLayers.Request.GET({
+                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
+                                    success: function(results){
+                                        var transactionInfo = Ext.decode(results.responseText);
+                                        var transactionId = transactionInfo.response.Transaction.ID;
+                                        gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
+                                        var authorString = "";
+                                        if(plugin.username !== undefined && plugin.username !== null) {
+                                            authorString += '&authorName=' + encodeURIComponent(plugin.username);
+                                        }
+                                        if(plugin.useremail !== undefined && plugin.useremail !== null) {
+                                            authorString += '&authorEmail=' + encodeURIComponent(plugin.useremail);
+                                        }
+                                        OpenLayers.Request.GET({
+                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/pull?ref=' + refSpec + '&remoteName=' + node.attributes.remoteName + '&transactionId=' + transactionId + '&output_format=JSON',
+                                            success: function(results) {
+                                                app.fireEvent("featureEditorUnselectAll");
+                                                var pullInfo = Ext.decode(results.responseText);
+                                                var msg = "";
+                                                var conflicts = false;
+                                                var testStore = null;
+                                                if(pullInfo.response.error) {
+                                                    msg = pullInfo.response.error;
+                                                } else if(pullInfo.response.Pull !== undefined && pullInfo.response.Pull.Ref !== undefined) {
+                                                    msg = pullInfo.response.Pull.Ref + " " + plugin.Text_Updated + ": " + pullInfo.response.Pull.Added + " " + plugin.Text_Added + ", " + pullInfo.response.Pull.Removed + " " + plugin.Text_Removed + " , " + pullInfo.response.Pull.Modified + " " + plugin.Text_Modified + ".";
+                                                } else if(pullInfo.response.Merge !== undefined && pullInfo.response.Merge.conflicts !== undefined) {
+                                                    testStore = new Ext.data.Store({
+                                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/',
+                                                        reader: gxp.GeoGitUtil.mergeReader,
+                                                        autoLoad: false
+                                                    });
+                                                    testStore.loadData(pullInfo);                                                                                            
+                                                    msg = plugin.Text_PullConflicts;
+                                                    conflicts = true;
+                                                } else {
+                                                    msg = selectedNode.text + plugin.Text_UpToDate;
+                                                }
+
+                                                Ext.Msg.show({
+                                                    title: plugin.Text_Pull,
+                                                    msg: msg,
+                                                    buttons: Ext.Msg.OK,
+                                                    fn: function(button) {
+                                                        if(!conflicts) {
+                                                            OpenLayers.Request.GET({
+                                                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
+                                                                success: function(results){
+                                                                    var transactionInfo = Ext.decode(results.responseText);
+                                                                    if(transactionInfo.response.Transaction.ID === undefined) {
+                                                                        gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
+                                                                    } else {
+                                                                        alert(plugin.Text_TransactionEndFailed);
+                                                                    }                       
+                                                                },
+                                                                failure: plugin.errorFetching
+                                                            });
+                                                        } else {
+                                                            plugin.acceptButton.enable();
+                                                            plugin.acceptButton.show();
+                                                            cancelButton.show();
+                                                            app.fireEvent("beginMerge", testStore, transactionId, selectedNode.text, node.text, false);
+                                                        }
+                                                    },
+                                                    scope: plugin,
+                                                    icon: Ext.MessageBox.INFO
+                                                });                                                                                    
+                                            },
+                                            failure: plugin.errorFetching
+                                        });                                   
+                                    },
+                                    failure: plugin.errorFetching
+                                });
+
+                                panel.contextMenu.hide();
+                            }
                         }
                     }, {
                         text: plugin.Text_Fetch,
                         hidden: true,
                         handler: function() {
-                            var node = panel.getSelectionModel().getSelectedNode();
-                            var repoNode = node.parentNode.parentNode;
-                            var workspace = repoNode.attributes.workspace;
-                            var dataStore = repoNode.attributes.dataStore;
-                            OpenLayers.Request.GET({
-                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
-                                success: function(results){
-                                    var transactionInfo = Ext.decode(results.responseText);
-                                    var transactionId = transactionInfo.response.Transaction.ID;
-                                    gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
-                                    OpenLayers.Request.GET({
-                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/fetch?prune=true&remote=' + node.text + '&transactionId=' + transactionId + '&output_format=JSON',
-                                        success: function(results) {
-                                            var fetchInfo = Ext.decode(results.responseText);
-                                            var msg = "";
-                                            if(fetchInfo.response.error) {
-                                                msg = plugin.Text_FetchFailed;
-                                            } else {
-                                                msg = plugin.Text_FetchComplete;
-                                            }
-                                            Ext.Msg.show({
-                                                title: plugin.Text_Fetch,
-                                                msg: msg,
-                                                buttons: Ext.Msg.OK,
-                                                fn: function(button) {
-                                                    return;
-                                                },
-                                                scope: plugin,
-                                                icon: Ext.MessageBox.INFO
-                                            });    
-                                            OpenLayers.Request.GET({
-                                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
-                                                success: function(results){
-                                                    var transactionInfo = Ext.decode(results.responseText);                       
-                                                    if(transactionInfo.response.Transaction.ID === undefined) {
-                                                        gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
-                                                        if(fetchInfo.response.Fetch.Remote && fetchInfo.response.Fetch.Remote.Branch) {                                                
-                                                            repoNode.remove(true);
-                                                            plugin.addRepo(repoNode.attributes.repoId, plugin.geoserverUrl, workspace, dataStore);
-                                                        }
-                                                    } else {
-                                                        alert(plugin.Text_TransactionEndFailed);
-                                                    }                       
-                                                },
-                                                failure: plugin.errorFetching
-                                            });                                           
-                                        },
-                                        failure: plugin.errorFetching
-                                    });                                   
-                                },
-                                failure: plugin.errorFetching
-                            });
-                            panel.contextMenu.hide();
+                            if(!plugin.checkIfSyncing()) {
+                                var node = panel.getSelectionModel().getSelectedNode();
+                                var repoNode = node.parentNode.parentNode;
+                                var workspace = repoNode.attributes.workspace;
+                                var dataStore = repoNode.attributes.dataStore;
+                                OpenLayers.Request.GET({
+                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
+                                    success: function(results){
+                                        var transactionInfo = Ext.decode(results.responseText);
+                                        var transactionId = transactionInfo.response.Transaction.ID;
+                                        gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
+                                        OpenLayers.Request.GET({
+                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/fetch?prune=true&remote=' + node.text + '&transactionId=' + transactionId + '&output_format=JSON',
+                                            success: function(results) {
+                                                var fetchInfo = Ext.decode(results.responseText);
+                                                var msg = "";
+                                                if(fetchInfo.response.error) {
+                                                    msg = plugin.Text_FetchFailed;
+                                                } else {
+                                                    msg = plugin.Text_FetchComplete;
+                                                }
+                                                Ext.Msg.show({
+                                                    title: plugin.Text_Fetch,
+                                                    msg: msg,
+                                                    buttons: Ext.Msg.OK,
+                                                    fn: function(button) {
+                                                        return;
+                                                    },
+                                                    scope: plugin,
+                                                    icon: Ext.MessageBox.INFO
+                                                });    
+                                                OpenLayers.Request.GET({
+                                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
+                                                    success: function(results){
+                                                        var transactionInfo = Ext.decode(results.responseText);                       
+                                                        if(transactionInfo.response.Transaction.ID === undefined) {
+                                                            gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
+                                                            if(fetchInfo.response.Fetch && fetchInfo.response.Fetch.Remote.Branch) {                                                
+                                                                repoNode.remove(true);
+                                                                plugin.addRepo(repoNode.attributes.repoId, plugin.geoserverUrl, workspace, dataStore);
+                                                            }
+                                                        } else {
+                                                            alert(plugin.Text_TransactionEndFailed);
+                                                        }                       
+                                                    },
+                                                    failure: plugin.errorFetching
+                                                });                                           
+                                            },
+                                            failure: plugin.errorFetching
+                                        });                                   
+                                    },
+                                    failure: plugin.errorFetching
+                                });
+                                panel.contextMenu.hide();
+                            }
                         }
                     }, {
                         text: plugin.Text_FetchAll,
                         hidden: true,
                         handler: function() {
-                            var node = panel.getSelectionModel().getSelectedNode();
-                            var repoNode = node.parentNode;
-                            var workspace = repoNode.attributes.workspace;
-                            var dataStore = repoNode.attributes.dataStore;
-                            OpenLayers.Request.GET({
-                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
-                                success: function(results){
-                                    var transactionInfo = Ext.decode(results.responseText);
-                                    var transactionId = transactionInfo.response.Transaction.ID;
-                                    gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
-                                    OpenLayers.Request.GET({
-                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/fetch?all=true&prune=true&transactionId=' + transactionId + '&output_format=JSON',
-                                        success: function(results) {
-                                            var fetchInfo = Ext.decode(results.responseText);
-                                            var msg = "";
-                                            if(fetchInfo.response.error) {
-                                                msg = plugin.Text_FetchFailed;
-                                            } else {
-                                                msg = plugin.Text_FetchComplete;
-                                            }
-                                            Ext.Msg.show({
-                                                title: plugin.Text_FetchAll,
-                                                msg: msg,
-                                                buttons: Ext.Msg.OK,
-                                                fn: function(button) {
-                                                    return;
-                                                },
-                                                scope: plugin,
-                                                icon: Ext.MessageBox.INFO
-                                            });    
-                                            OpenLayers.Request.GET({
-                                                url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
-                                                success: function(results){
-                                                    var transactionInfo = Ext.decode(results.responseText);                       
-                                                    if(transactionInfo.response.Transaction.ID === undefined) {
-                                                        gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
-                                                        if(fetchInfo.response.Fetch.Remote && fetchInfo.response.Fetch.Remote.Branch) {                                                
-                                                            repoNode.remove(true);
-                                                            plugin.addRepo(repoNode.attributes.repoId, plugin.geoserverUrl, workspace, dataStore);
-                                                        }
-                                                    } else {
-                                                        alert(plugin.Text_TransactionEndFailed);
-                                                    }                       
-                                                },
-                                                failure: plugin.errorFetching
-                                            });                                           
-                                        },
-                                        failure: plugin.errorFetching
-                                    });                                   
-                                },
-                                failure: plugin.errorFetching
-                            });
-                            panel.contextMenu.hide();
+                            if(!plugin.checkIfSyncing()) {
+                                var node = panel.getSelectionModel().getSelectedNode();
+                                var repoNode = node.parentNode;
+                                var workspace = repoNode.attributes.workspace;
+                                var dataStore = repoNode.attributes.dataStore;
+                                OpenLayers.Request.GET({
+                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/beginTransaction?output_format=JSON',
+                                    success: function(results){
+                                        var transactionInfo = Ext.decode(results.responseText);
+                                        var transactionId = transactionInfo.response.Transaction.ID;
+                                        gxp.GeoGitUtil.addTransactionId(transactionId, repoNode.attributes.repoId);
+                                        OpenLayers.Request.GET({
+                                            url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/fetch?all=true&prune=true&transactionId=' + transactionId + '&output_format=JSON',
+                                            success: function(results) {
+                                                var fetchInfo = Ext.decode(results.responseText);
+                                                var msg = "";
+                                                if(fetchInfo.response.error) {
+                                                    msg = plugin.Text_FetchFailed;
+                                                } else {
+                                                    msg = plugin.Text_FetchComplete;
+                                                }
+                                                Ext.Msg.show({
+                                                    title: plugin.Text_FetchAll,
+                                                    msg: msg,
+                                                    buttons: Ext.Msg.OK,
+                                                    fn: function(button) {
+                                                        return;
+                                                    },
+                                                    scope: plugin,
+                                                    icon: Ext.MessageBox.INFO
+                                                });    
+                                                OpenLayers.Request.GET({
+                                                    url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
+                                                    success: function(results){
+                                                        var transactionInfo = Ext.decode(results.responseText);                       
+                                                        if(transactionInfo.response.Transaction.ID === undefined) {
+                                                            gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
+                                                            if(fetchInfo.response.Fetch.Remote && fetchInfo.response.Fetch.Remote.Branch) {                                                
+                                                                repoNode.remove(true);
+                                                                plugin.addRepo(repoNode.attributes.repoId, plugin.geoserverUrl, workspace, dataStore);
+                                                            }
+                                                        } else {
+                                                            alert(plugin.Text_TransactionEndFailed);
+                                                        }                       
+                                                    },
+                                                    failure: plugin.errorFetching
+                                                });                                           
+                                            },
+                                            failure: plugin.errorFetching
+                                        });                                   
+                                    },
+                                    failure: plugin.errorFetching
+                                });
+                                panel.contextMenu.hide();
+                            }
                         }
                     }, {
                         text: plugin.Text_RemoteAdd,
@@ -833,6 +878,115 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                 icon: Ext.MessageBox.QUESTION
                             });
                             panel.contextMenu.hide();
+                        }
+                    }, {
+                        text: "Auto-Sync",
+                        hidden: true,
+                        menu: {
+                            items: [{
+                                text: "5 minutes",
+                                handler: function() {
+                                    var node = panel.getSelectionModel().getSelectedNode();
+                                    var repoNode = node.parentNode.parentNode.parentNode;
+                                    var workspace = repoNode.attributes.workspace;
+                                    var dataStore = repoNode.attributes.dataStore;
+                                    var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                                    var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
+                                    var syncObject = {
+                                            dataStore: dataStore,
+                                            workspace: workspace,
+                                            localBranch: selectedNode.text,
+                                            remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
+                                            remoteName: node.attributes.remoteName,
+                                            repoId: repoNode.attributes.repoId,
+                                            timeStamp: new Date().getTime() + 30000,
+                                            syncInterval: 30000//300000  5 minutes in milliseconds
+                                    }
+                                    plugin.syncObjects.push(syncObject);
+                                    plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
+                                    console.log("syncObjects", plugin.syncObjects);
+                                    if(plugin.autoSync === null) {
+                                        plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+                                    }
+                                }
+                            }, {
+                                text: "30 minutes",
+                                handler: function() {
+                                    var node = panel.getSelectionModel().getSelectedNode();
+                                    var repoNode = node.parentNode.parentNode.parentNode;
+                                    var workspace = repoNode.attributes.workspace;
+                                    var dataStore = repoNode.attributes.dataStore;
+                                    var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                                    var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
+                                    var syncObject = {
+                                            dataStore: dataStore,
+                                            workspace: workspace,
+                                            localBranch: selectedNode.text,
+                                            remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
+                                            remoteName: node.attributes.remoteName,
+                                            repoId: repoNode.attributes.repoId,
+                                            timeStamp: new Date().getTime() + 60000,
+                                            syncInterval: 60000//1800000  30 minutes in milliseconds
+                                    }
+                                    plugin.syncObjects.push(syncObject);
+                                    plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp}); 
+                                    console.log("syncObjects", plugin.syncObjects);
+                                    if(plugin.autoSync === null) {
+                                        plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+                                    }
+                                }
+                            }, {
+                                text: "1 hour",
+                                handler: function() {
+                                    var node = panel.getSelectionModel().getSelectedNode();
+                                    var repoNode = node.parentNode.parentNode.parentNode;
+                                    var workspace = repoNode.attributes.workspace;
+                                    var dataStore = repoNode.attributes.dataStore;
+                                    var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                                    var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
+                                    var syncObject = {
+                                            dataStore: dataStore,
+                                            workspace: workspace,
+                                            localBranch: selectedNode.text,
+                                            remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
+                                            remoteName: node.attributes.remoteName,
+                                            repoId: repoNode.attributes.repoId,
+                                            timeStamp: new Date().getTime() + 90000,
+                                            syncInterval: 90000//3600000  1 hour in milliseconds
+                                    }
+                                    plugin.syncObjects.push(syncObject);
+                                    plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
+                                    console.log("syncObjects", plugin.syncObjects);
+                                    if(plugin.autoSync === null) {
+                                        plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+                                    }
+                                }
+                            }]
+                        }
+                    }, {
+                        text: "Stop Auto-Sync", 
+                        hidden: true,
+                        handler: function() {
+                            var node = panel.getSelectionModel().getSelectedNode();
+                            var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                            for(var index = 0; index < plugin.syncObjects.length; index++) {
+                                var object = plugin.syncObjects[index];
+                                if(object.localBranch === selectedNode.text && object.remoteBranch === node.text.substring(0,node.text.indexOf(" (")) && object.remoteName === node.attributes.remoteName) {
+                                    plugin.syncObjects.splice(index, 1);
+                                    console.log("syncObjects", plugin.syncObjects);
+                                    break;
+                                }
+                            }    
+                            if(plugin.syncObjects.length === 0) {
+                                clearTimeout(plugin.autoSync);
+                                plugin.autoSync = null;
+                            }
+                        }
+                    }, {
+                        text: "Resume Auto-Sync", 
+                        hidden: true,
+                        handler: function() {
+                            plugin.resumeSync();
                         }
                     }
                 ], 
@@ -1039,6 +1193,175 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             },
             failure: plugin.errorFetching
         });
+    },
+
+    sync: function() {
+        var time = new Date().getTime();
+        console.log("attempt");
+        var plugin = this;
+        if(this.syncObjects[0].timeStamp <= time && !this.syncing) {
+            this.syncing = true;
+            var object = this.syncObjects[0];
+
+            // TODO: Figure out what to do in case sync fails.
+            OpenLayers.Request.GET({
+                url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/beginTransaction?output_format=JSON',
+                success: function(results){
+                    var transactionInfo = Ext.decode(results.responseText);
+                    var transactionId = transactionInfo.response.Transaction.ID;
+                    var timeout = setTimeout(function(){
+                        OpenLayers.Request.GET({
+                            url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/endTransaction?cancel=true&transactionId=' + transactionId + '&output_format=JSON',
+                            success: function(results){
+                                var transactionInfo = Ext.decode(results.responseText);                       
+                                if(transactionInfo.response.Transaction.ID !== undefined) {
+                                    alert(plugin.Text_TransactionEndFailed);
+                                }
+                                plugin.syncing = false;
+                            },
+                            failure: plugin.errorFetching
+                        });}, 600000);
+                    OpenLayers.Request.GET({
+                        url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/pull?ref=' + object.remoteBranch + ':' + object.localBranch + '&remoteName=' + object.remoteName + '&transactionId=' + transactionId + '&output_format=JSON',
+                        success: function(results) {
+                            var pullInfo = Ext.decode(results.responseText);
+                            var msg = "";
+                            var conflicts = false;
+                            var testStore = null;
+                            if(pullInfo.response.error) {
+                                msg = "Sync pull failed: " + pullInfo.response.error;
+                            } else if(pullInfo.response.Merge !== undefined && pullInfo.response.Merge.conflicts !== undefined) {
+                                testStore = new Ext.data.Store({
+                                    url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/',
+                                    reader: gxp.GeoGitUtil.mergeReader,
+                                    autoLoad: false
+                                });
+                                testStore.loadData(pullInfo);                                                                                            
+                                msg = "Sync pull failed: " + plugin.Text_PullConflicts;
+                                conflicts = true;
+                                gxp.GeoGitUtil.addTransactionId(transactionId, object.repoId);                                
+                            }
+                            if(msg !== "") {
+                                clearTimeout(timeout);
+                                Ext.Msg.show({
+                                    title: plugin.Text_Pull,
+                                    msg: msg,
+                                    buttons: Ext.Msg.OK,
+                                    fn: function(button) {
+                                        if(!conflicts) {
+                                            Ext.Msg.show({
+                                                title: "Auto-Sync",
+                                                msg: "Do you wish to continue trying to auto-sync?",
+                                                buttons: Ext.Msg.YESNO,
+                                                fn: function(button) {
+                                                    if(button === "yes") {
+                                                        OpenLayers.Request.GET({
+                                                            url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/endTransaction?cancel=true&transactionId=' + transactionId + '&output_format=JSON',
+                                                            success: function(results){
+                                                                var transactionInfo = Ext.decode(results.responseText);                       
+                                                                if(transactionInfo.response.Transaction.ID !== undefined) {
+                                                                    alert(plugin.Text_TransactionEndFailed);
+                                                                }
+                                                                plugin.syncing = false;
+                                                                plugin.syncObjects[0].timeStamp = new Date().getTime() + plugin.syncObjects[0].syncInterval;
+                                                                plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});  
+                                                            },
+                                                            failure: plugin.errorFetching
+                                                        });
+                                                    } else {
+                                                        plugin.pauseSync();
+                                                    }
+                                                },
+                                                scope: plugin,
+                                                icon: Ext.MessageBox.QUESTION
+                                            });                                              
+                                        } else {                                            
+                                            plugin.pauseSync();
+                                            plugin.acceptButton.enable();
+                                            plugin.acceptButton.show();
+                                            plugin.cancelButton.show();
+                                            app.fireEvent("cancelEdit");
+                                            app.fireEvent("beginMerge", testStore, transactionId, object.remoteBranch+" (" + object.remoteName + ")", object.localBranch, false);
+                                        }
+                                    },
+                                    scope: plugin,
+                                    icon: Ext.MessageBox.INFO
+                                });  
+                            } else {
+                                OpenLayers.Request.GET({
+                                    url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/push?ref=' + object.localBranch + ':' + object.remoteBranch + '&remoteName=' + object.remoteName + '&transactionId=' + transactionId + '&output_format=JSON',
+                                    success: function(results) {
+                                        var pushInfo = Ext.decode(results.responseText);
+                                        OpenLayers.Request.GET({
+                                            url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
+                                            success: function(results){
+                                                var transactionInfo = Ext.decode(results.responseText);                       
+                                                if(transactionInfo.response.Transaction.ID !== undefined) {
+                                                    alert(plugin.Text_TransactionEndFailed);
+                                                }
+                                                clearTimeout(timeout);
+                                                console.log("synced", object);
+                                                plugin.syncObjects[0].timeStamp = new Date().getTime() + plugin.syncObjects[0].syncInterval;
+                                                plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});            
+                                                plugin.syncing = false;
+                                            },
+                                            failure: plugin.errorFetching
+                                        });                                     
+                                    },
+                                    failure: plugin.errorFetching
+                                });                                  
+                            }
+                        },
+                        failure: plugin.errorFetching  
+                    });                                   
+                },
+                failure: plugin.errorFetching
+            });          
+        }
+
+        if(this.autoSync !== null) {
+            this.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+        }       
+    },
+    
+    pauseSync: function() {
+        clearTimeout(this.autoSync);
+        this.autoSync = null;
+        this.syncPaused = true;
+    },
+    
+    resumeSync: function() {        
+        for(var index = 0; index < this.syncObjects.length; index++) {
+            this.syncObjects[index].timeStamp = new Date().getTime() + this.syncObjects[index].syncInterval;
+        }
+        this.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
+        var plugin = this;
+        this.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+        this.syncPaused = false;
+    },
+    
+    checkIfSyncing: function() {
+        var plugin = this;
+        if(this.autoSync !== null) {
+            Ext.Msg.show({
+                title: "Auto-Sync",
+                msg: "Auto-sync is active right now, to perform this command you must first pause auto-syncing. Press ok to pause auto-syncing then attempt the command again.",
+                buttons: Ext.Msg.OKCANCEL,
+                fn: function(button) {
+                    if(button === "ok") {
+                        plugin.pauseSync();
+                        if(plugin.syncing) {
+                            alert("Auto-sync has been paused, however there is still a sync in progress please wait a few minutes to allow this to finish before trying again.");
+                        }
+                    }
+                },
+                scope: plugin,
+                icon: Ext.MessageBox.QUESTION
+            }); 
+            return true;
+        } else {
+            return false;
+        }
     },
     
     errorFetching: function(){
