@@ -248,28 +248,29 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             var selectedNode = plugin.treeRoot.findChild("selected", true, true);
                             var repoNode = selectedNode.parentNode.parentNode.parentNode;
                             var transactionId = gxp.GeoGitUtil.transactionIds[repoNode.attributes.repoId];
+                            var transactionEndSuccess = function(results){
+								var transactionInfo = Ext.decode(results.responseText);                       
+								if(transactionInfo.response.Transaction.ID === undefined) {
+									gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
+									plugin.originalBranch = null;
+									plugin.acceptButton.hide();
+									plugin.cancelButton.hide();
+									app.fireEvent("endMerge");
+									if(plugin.syncing) {
+										plugin.syncing = false;
+										plugin.resumeSync();   
+									}
+								} else {
+									alert(plugin.Text_TransactionEndFailed);
+								}                       
+							};
                             if(plugin.originalBranch) {
                                 OpenLayers.Request.GET({
                                     url: plugin.geoserverUrl + 'geogit/' + repoNode.attributes.workspace + ':' + repoNode.attributes.dataStore + '/checkout?branch=' + plugin.originalBranch + '&transactionId=' + transactionId + '&output_format=JSON',
                                     success: function(results){
                                         OpenLayers.Request.GET({
                                             url: plugin.geoserverUrl + 'geogit/' + repoNode.attributes.workspace + ':' + repoNode.attributes.dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
-                                            success: function(results){
-                                                var transactionInfo = Ext.decode(results.responseText);                       
-                                                if(transactionInfo.response.Transaction.ID === undefined) {
-                                                    gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
-                                                    plugin.originalBranch = null;
-                                                    plugin.acceptButton.hide();
-                                                    plugin.cancelButton.hide();
-                                                    app.fireEvent("endMerge");
-                                                    if(plugin.syncing) {
-                                                        plugin.syncing = false;
-                                                        plugin.resumeSync();   
-                                                    }
-                                                } else {
-                                                    alert(plugin.Text_TransactionEndFailed);
-                                                }                       
-                                            },
+                                            success: transactionEndSuccess,
                                             failure: plugin.errorFetching
                                         });
                                     },
@@ -278,22 +279,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             } else {
                                 OpenLayers.Request.GET({
                                     url: plugin.geoserverUrl + 'geogit/' + repoNode.attributes.workspace + ':' + repoNode.attributes.dataStore + '/endTransaction?transactionId=' + transactionId + '&output_format=JSON',
-                                    success: function(results){
-                                        var transactionInfo = Ext.decode(results.responseText);                       
-                                        if(transactionInfo.response.Transaction.ID === undefined) {
-                                            gxp.GeoGitUtil.addTransactionId(null, repoNode.attributes.repoId);
-                                            plugin.originalBranch = null;
-                                            plugin.acceptButton.hide();
-                                            plugin.cancelButton.hide();
-                                            app.fireEvent("endMerge");
-                                            if(plugin.syncing) {
-                                                plugin.syncing = false;
-                                                plugin.resumeSync();    
-                                            }
-                                        } else {
-                                            alert(plugin.Text_TransactionEndFailed);
-                                        }                       
-                                    },
+                                    success: transactionEndSuccess,
                                     failure: plugin.errorFetching
                                 });
                             }                           
@@ -886,80 +872,17 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             items: [{
                                 text: "5 minutes",
                                 handler: function() {
-                                    var node = panel.getSelectionModel().getSelectedNode();
-                                    var repoNode = node.parentNode.parentNode.parentNode;
-                                    var workspace = repoNode.attributes.workspace;
-                                    var dataStore = repoNode.attributes.dataStore;
-                                    var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
-                                    var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
-                                    var syncObject = {
-                                            dataStore: dataStore,
-                                            workspace: workspace,
-                                            localBranch: selectedNode.text,
-                                            remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
-                                            remoteName: node.attributes.remoteName,
-                                            repoId: repoNode.attributes.repoId,
-                                            timeStamp: new Date().getTime() + 30000,
-                                            syncInterval: 30000//300000  5 minutes in milliseconds
-                                    }
-                                    plugin.syncObjects.push(syncObject);
-                                    plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
-                                    console.log("syncObjects", plugin.syncObjects);
-                                    if(plugin.autoSync === null) {
-                                        plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
-                                    }
+                                	plugin.addSyncObject(panel,30000);
                                 }
                             }, {
                                 text: "30 minutes",
                                 handler: function() {
-                                    var node = panel.getSelectionModel().getSelectedNode();
-                                    var repoNode = node.parentNode.parentNode.parentNode;
-                                    var workspace = repoNode.attributes.workspace;
-                                    var dataStore = repoNode.attributes.dataStore;
-                                    var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
-                                    var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
-                                    var syncObject = {
-                                            dataStore: dataStore,
-                                            workspace: workspace,
-                                            localBranch: selectedNode.text,
-                                            remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
-                                            remoteName: node.attributes.remoteName,
-                                            repoId: repoNode.attributes.repoId,
-                                            timeStamp: new Date().getTime() + 60000,
-                                            syncInterval: 60000//1800000  30 minutes in milliseconds
-                                    }
-                                    plugin.syncObjects.push(syncObject);
-                                    plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp}); 
-                                    console.log("syncObjects", plugin.syncObjects);
-                                    if(plugin.autoSync === null) {
-                                        plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
-                                    }
+                                	plugin.addSyncObject(panel,180000);
                                 }
                             }, {
                                 text: "1 hour",
                                 handler: function() {
-                                    var node = panel.getSelectionModel().getSelectedNode();
-                                    var repoNode = node.parentNode.parentNode.parentNode;
-                                    var workspace = repoNode.attributes.workspace;
-                                    var dataStore = repoNode.attributes.dataStore;
-                                    var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
-                                    var refSpec = node.text.substring(0,node.text.indexOf(" (")) + ':' + selectedNode.text;
-                                    var syncObject = {
-                                            dataStore: dataStore,
-                                            workspace: workspace,
-                                            localBranch: selectedNode.text,
-                                            remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
-                                            remoteName: node.attributes.remoteName,
-                                            repoId: repoNode.attributes.repoId,
-                                            timeStamp: new Date().getTime() + 90000,
-                                            syncInterval: 90000//3600000  1 hour in milliseconds
-                                    }
-                                    plugin.syncObjects.push(syncObject);
-                                    plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
-                                    console.log("syncObjects", plugin.syncObjects);
-                                    if(plugin.autoSync === null) {
-                                        plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
-                                    }
+                                	plugin.addSyncObject(panel,360000);
                                 }
                             }]
                         }
@@ -972,15 +895,15 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             for(var index = 0; index < plugin.syncObjects.length; index++) {
                                 var object = plugin.syncObjects[index];
                                 if(object.localBranch === selectedNode.text && object.remoteBranch === node.text.substring(0,node.text.indexOf(" (")) && object.remoteName === node.attributes.remoteName) {
+                                	if(plugin.syncObjects.length === 1) {
+                                		clearTimeout(plugin.autoSync);
+                               			plugin.autoSync = null;
+                            		}
                                     plugin.syncObjects.splice(index, 1);
                                     console.log("syncObjects", plugin.syncObjects);
                                     break;
                                 }
                             }    
-                            if(plugin.syncObjects.length === 0) {
-                                clearTimeout(plugin.autoSync);
-                                plugin.autoSync = null;
-                            }
                         }
                     }, {
                         text: "Resume Auto-Sync", 
@@ -1199,7 +1122,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         var time = new Date().getTime();
         console.log("attempt");
         var plugin = this;
-        if(this.syncObjects[0].timeStamp <= time && !this.syncing) {
+        if(this.syncObjects.length > 0 && this.syncObjects[0].timeStamp <= time && !this.syncing) {
             this.syncing = true;
             var object = this.syncObjects[0];
 
@@ -1305,17 +1228,25 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                 plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});            
                                                 plugin.syncing = false;
                                             },
-                                            failure: plugin.errorFetching
+                                            failure: function() {
+                                            	plugin.syncError("There was a problem ending the sync transaction.", object);
+                                            }
                                         });                                     
                                     },
-                                    failure: plugin.errorFetching
+                                    failure: function() {
+										plugin.syncError("There was a problem pushing to the remote.", object);
+									}
                                 });                                  
                             }
                         },
-                        failure: plugin.errorFetching  
+                        failure: function() {
+							plugin.syncError("There was a problem pulling data from the remote.", object);
+						} 
                     });                                   
                 },
-                failure: plugin.errorFetching
+                failure:  function() {
+					plugin.syncError("Unable to begin a new sync transaction.", object);
+				}
             });          
         }
 
@@ -1362,6 +1293,58 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         } else {
             return false;
         }
+    },
+    
+    syncError: function(message, syncObject) {
+    	if(message === null || message === undefined) {
+    		message = "";
+    	}
+    	var plugin = this;
+        Ext.Msg.show({
+			title: "Auto-Sync Error",
+			msg: message + " Would you like to abort auto sync?",
+			buttons: Ext.Msg.YESNO,
+			fn: function(button) {
+				if(button === "yes") {
+					if(plugin.syncObjects.length === 1) {
+						clearTimeout(plugin.autoSync);
+						plugin.autoSync = null;
+                    }
+					plugin.syncObjects.splice(0, 1);
+				} else {
+					plugin.syncObjects[0].timeStamp = new Date().getTime() + plugin.syncObjects[0].syncInterval;
+                    plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});            
+				}
+				plugin.syncing = false;
+			},
+			scope: plugin,
+			icon: Ext.MessageBox.QUESTION
+		}); 
+    },
+    
+    addSyncObject: function(panel, interval) {
+    	var plugin = this;
+		var node = panel.getSelectionModel().getSelectedNode();
+		var repoNode = node.parentNode.parentNode.parentNode;
+		var workspace = repoNode.attributes.workspace;
+		var dataStore = repoNode.attributes.dataStore;
+		var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+		var syncObject = {
+				dataStore: dataStore,
+				workspace: workspace,
+				localBranch: selectedNode.text,
+				remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
+				remoteName: node.attributes.remoteName,
+				repoId: repoNode.attributes.repoId,
+				timeStamp: new Date().getTime() + interval,
+				syncInterval: interval
+		}
+		plugin.syncObjects.push(syncObject);
+		plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
+		console.log("syncObjects", plugin.syncObjects);
+		if(plugin.autoSync === null) {
+			plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+		}
     },
     
     errorFetching: function(){
