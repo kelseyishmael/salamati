@@ -258,20 +258,20 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                     },
                     "addlayer" : function(e) {
                         setMapLayersCookie();
-                        console.log("map.events.addlayer: ", e);
+                        //console.log("map.events.addlayer: ", e);
                         gxp.GeoGitUtil.isGeoGitLayer(e.layer);
                         gxp.GeoGitUtil.getGeometryAttributeName(true);
                     },
                     "removelayer" : function(e) {
                         setMapLayersCookie();
-                        console.log("map.events.removelayer: ", e);
+                        //console.log("map.events.removelayer: ", e);
                         if(e.layer.metadata.isGeoGit) {
                             app.fireEvent("togglesouthpanel");
                         }
                     },
                     "changelayer" : function(e) {
                         setMapLayersCookie();
-                        console.log("map.events.changelayer: ", e);
+                        //console.log("map.events.changelayer: ", e);
                         gxp.GeoGitUtil.getGeometryAttributeName(true);
                     },
                     scope : map
@@ -303,6 +303,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 });
             },
             "togglesouthpanel" : function() { 
+                console.log("toggle south panel")
                 var southPanel = app.portal.southPanel;
                 if(southPanel.hidden) {
                     southPanel.show();
@@ -318,12 +319,15 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             },
             "diffstoshow" : function(merging) {
                 var westPanel = app.portal.westpanel;
+                var southPanel = app.portal.southPanel;
                 if(westPanel.hidden) {
                     westPanel.show();
                     westPanel.expand();
                 }
                 
-                app.fireEvent("togglesouthpanel");
+                if(!southPanel.hidden){
+                    southPanel.hide();
+                }
 
                 if(!merging) {
                     app.portal.westpanel.diffDoneButton.show();

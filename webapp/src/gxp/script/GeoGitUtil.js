@@ -212,7 +212,7 @@ gxp.GeoGitUtil = {
     		success: function(response){
     			var describeLayer = new OpenLayers.Format.WMSDescribeLayer();
     			var results = describeLayer.read(response.responseText);
-    			console.log("describe layer results: ", results);
+    			//console.log("describe layer results: ", results);
     			if((results.length == 1) && (results[0].layerName === featureType)){
     				callback(true);
     			}

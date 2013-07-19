@@ -98,7 +98,19 @@ GeoExt.Lang.add("en", {
         Text_PushComplete: "Push Completed.",
         Text_PullConflicts: "This pull has resulted in merge conflicts, you will be able to complete this pull as you would a merge.",
         Text_FetchComplete: "Fetch Completed.",
-        Text_FetchFailed: "Failed to Fetch from the remote, either that remote doesn't exist or you are unable to connect to it."
+        Text_FetchFailed: "Failed to Fetch from the remote, either that remote doesn't exist or you are unable to connect to it.",
+        Text_AutoSync: "Auto-Sync",
+        Text_Minutes: "minutes",
+        Text_Resume: "Resume",
+        Text_Stop: "Stop",
+        Text_SyncPullFailed: "There was a problem pulling data from the remote.",
+        Text_SyncContinue: "Do you wish to continue trying to auto-sync?",
+        Text_SyncEndFailed: "There was a problem ending the sync transaction.",
+        Text_SyncPushFailed: "There was a problem pushing to the remote.",
+        Text_SyncBeginFailed: "Unable to begin a new sync transaction.",
+        Text_SyncActive: "Auto-sync is active right now, to perform this command you must first pause auto-syncing. Press ok to pause auto-syncing then attempt the command again.",
+        Text_SyncInProgress: "Auto-sync has been paused, however there is still a sync in progress please wait a few minutes to allow this to finish before trying again.",
+        Text_SyncAbort: " Would you like to abort auto sync?"
     },
     "gxp.plugins.GeoGitFeatureAttributeGrid.prototype": {
         Text_Name: "Name",

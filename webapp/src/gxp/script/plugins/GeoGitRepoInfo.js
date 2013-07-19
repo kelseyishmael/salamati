@@ -72,6 +72,18 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     Text_PullConflicts: "This pull has resulted in merge conflicts, you will be able to complete this pull as you would a merge.",
     Text_FetchComplete: "Fetch Completed.",
     Text_FetchFailed: "Failed to Fetch from the remote, either that remote doesn't exist or you are unable to connect to it.",
+    Text_AutoSync: "Auto-Sync",
+    Text_Minutes: "minutes",
+    Text_Resume: "Resume",
+    Text_Stop: "Stop",
+    Text_SyncPullFailed: "There was a problem pulling data from the remote.",
+    Text_SyncContinue: "Do you wish to continue trying to auto-sync?",
+    Text_SyncEndFailed: "There was a problem ending the sync transaction.",
+    Text_SyncPushFailed: "There was a problem pushing to the remote.",
+    Text_SyncBeginFailed: "Unable to begin a new sync transaction.",
+    Text_SyncActive: "Auto-sync is active right now, to perform this command you must first pause auto-syncing. Press ok to pause auto-syncing then attempt the command again.",
+    Text_SyncInProgress: "Auto-sync has been paused, however there is still a sync in progress please wait a few minutes to allow this to finish before trying again.",
+    Text_SyncAbort: " Would you like to abort auto sync?",
     /* end i18n */
     
     treeRoot: null,
@@ -112,6 +124,8 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     syncing: false,
     
     syncPaused: false,
+    
+    autoSyncInterval: 30000,
 
     constructor: function() {
         this.addEvents(
@@ -866,28 +880,28 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             panel.contextMenu.hide();
                         }
                     }, {
-                        text: "Auto-Sync",
+                        text: plugin.Text_AutoSync,
                         hidden: true,
                         menu: {
                             items: [{
-                                text: "5 minutes",
+                                text: "5 " + plugin.Text_Minutes,
                                 handler: function() {
-                                	plugin.addSyncObject(panel,30000);
+                                	plugin.addSyncObject(panel,300000);
                                 }
                             }, {
-                                text: "30 minutes",
+                                text: "15 " + plugin.Text_Minutes,
                                 handler: function() {
-                                	plugin.addSyncObject(panel,180000);
+                                	plugin.addSyncObject(panel,900000);
                                 }
                             }, {
-                                text: "1 hour",
+                                text: "30 " + plugin.Text_Minutes,
                                 handler: function() {
-                                	plugin.addSyncObject(panel,360000);
+                                	plugin.addSyncObject(panel,1800000);
                                 }
                             }]
                         }
                     }, {
-                        text: "Stop Auto-Sync", 
+                        text: plugin.Text_Stop + " " + plugin.Text_AutoSync, 
                         hidden: true,
                         handler: function() {
                             var node = panel.getSelectionModel().getSelectedNode();
@@ -900,13 +914,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                			plugin.autoSync = null;
                             		}
                                     plugin.syncObjects.splice(index, 1);
-                                    console.log("syncObjects", plugin.syncObjects);
                                     break;
                                 }
                             }    
                         }
                     }, {
-                        text: "Resume Auto-Sync", 
+                        text: plugin.Text_Resume + " " + plugin.Text_AutoSync, 
                         hidden: true,
                         handler: function() {
                             plugin.resumeSync();
@@ -1120,13 +1133,11 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
 
     sync: function() {
         var time = new Date().getTime();
-        console.log("attempt");
         var plugin = this;
         if(this.syncObjects.length > 0 && this.syncObjects[0].timeStamp <= time && !this.syncing) {
             this.syncing = true;
             var object = this.syncObjects[0];
 
-            // TODO: Figure out what to do in case sync fails.
             OpenLayers.Request.GET({
                 url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/beginTransaction?output_format=JSON',
                 success: function(results){
@@ -1152,7 +1163,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             var conflicts = false;
                             var testStore = null;
                             if(pullInfo.response.error) {
-                                msg = "Sync pull failed: " + pullInfo.response.error;
+                                msg = plugin.Text_SyncPullFailed + pullInfo.response.error;
                             } else if(pullInfo.response.Merge !== undefined && pullInfo.response.Merge.conflicts !== undefined) {
                                 testStore = new Ext.data.Store({
                                     url: plugin.geoserverUrl + 'geogit/' + object.workspace + ':' + object.dataStore + '/',
@@ -1160,7 +1171,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                     autoLoad: false
                                 });
                                 testStore.loadData(pullInfo);                                                                                            
-                                msg = "Sync pull failed: " + plugin.Text_PullConflicts;
+                                msg = plugin.Text_SyncPullFailed + plugin.Text_PullConflicts;
                                 conflicts = true;
                                 gxp.GeoGitUtil.addTransactionId(transactionId, object.repoId);                                
                             }
@@ -1173,8 +1184,8 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                     fn: function(button) {
                                         if(!conflicts) {
                                             Ext.Msg.show({
-                                                title: "Auto-Sync",
-                                                msg: "Do you wish to continue trying to auto-sync?",
+                                                title: plugin.Text_AutoSync,
+                                                msg: plugin.Text_SyncContinue,
                                                 buttons: Ext.Msg.YESNO,
                                                 fn: function(button) {
                                                     if(button === "yes") {
@@ -1203,7 +1214,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                             plugin.acceptButton.enable();
                                             plugin.acceptButton.show();
                                             plugin.cancelButton.show();
-                                            app.fireEvent("cancelEdit");
+                                            app.fireEvent("featureEditorUnselectAll");
                                             app.fireEvent("beginMerge", testStore, transactionId, object.remoteBranch+" (" + object.remoteName + ")", object.localBranch, false);
                                         }
                                     },
@@ -1223,35 +1234,34 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                     alert(plugin.Text_TransactionEndFailed);
                                                 }
                                                 clearTimeout(timeout);
-                                                console.log("synced", object);
                                                 plugin.syncObjects[0].timeStamp = new Date().getTime() + plugin.syncObjects[0].syncInterval;
                                                 plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});            
                                                 plugin.syncing = false;
                                             },
                                             failure: function() {
-                                            	plugin.syncError("There was a problem ending the sync transaction.", object);
+                                            	plugin.syncError(plugin.Text_SyncEndFailed, object);
                                             }
                                         });                                     
                                     },
                                     failure: function() {
-										plugin.syncError("There was a problem pushing to the remote.", object);
+										plugin.syncError(plugin.Text_SyncPushFailed, object);
 									}
                                 });                                  
                             }
                         },
                         failure: function() {
-							plugin.syncError("There was a problem pulling data from the remote.", object);
+							plugin.syncError(plugin.Text_SyncPullFailed, object);
 						} 
                     });                                   
                 },
                 failure:  function() {
-					plugin.syncError("Unable to begin a new sync transaction.", object);
+					plugin.syncError(plugin.Text_SyncBeginFailed, object);
 				}
             });          
         }
 
         if(this.autoSync !== null) {
-            this.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+            this.autoSync = setTimeout(function(){plugin.sync();}, plugin.autoSyncInterval);
         }       
     },
     
@@ -1267,7 +1277,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         }
         this.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
         var plugin = this;
-        this.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+        this.autoSync = setTimeout(function(){plugin.sync();}, plugin.autoSyncInterval);
         this.syncPaused = false;
     },
     
@@ -1275,14 +1285,14 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
         var plugin = this;
         if(this.autoSync !== null) {
             Ext.Msg.show({
-                title: "Auto-Sync",
-                msg: "Auto-sync is active right now, to perform this command you must first pause auto-syncing. Press ok to pause auto-syncing then attempt the command again.",
+                title: plugin.Text_AutoSync,
+                msg: plugin.Text_SyncActive,
                 buttons: Ext.Msg.OKCANCEL,
                 fn: function(button) {
                     if(button === "ok") {
                         plugin.pauseSync();
                         if(plugin.syncing) {
-                            alert("Auto-sync has been paused, however there is still a sync in progress please wait a few minutes to allow this to finish before trying again.");
+                            alert(plugin.Text_SyncInProgress);
                         }
                     }
                 },
@@ -1301,8 +1311,8 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     	}
     	var plugin = this;
         Ext.Msg.show({
-			title: "Auto-Sync Error",
-			msg: message + " Would you like to abort auto sync?",
+			title: plugin.Text_AutoSync,
+			msg: message + plugin.Text_SyncAbort,
 			buttons: Ext.Msg.YESNO,
 			fn: function(button) {
 				if(button === "yes") {
@@ -1341,9 +1351,8 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
 		}
 		plugin.syncObjects.push(syncObject);
 		plugin.syncObjects.sort(function(a,b){return a.timeStamp-b.timeStamp});
-		console.log("syncObjects", plugin.syncObjects);
 		if(plugin.autoSync === null) {
-			plugin.autoSync = setTimeout(function(){plugin.sync();}, 10000);
+			plugin.autoSync = setTimeout(function(){plugin.sync();}, plugin.autoSyncInterval);
 		}
     },
     
