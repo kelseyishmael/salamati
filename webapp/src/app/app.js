@@ -40,6 +40,7 @@
  * @require salamati/plugins/SalamatiTools.js
  * @require plugins/GeoGitHistory.js
  * @require plugins/GeoGitHistoryButton.js
+ * @require plugins/LayerMenuButton.js
  * @require plugins/GeoGitRepoInfo.js
  * @require plugins/DiffPanel.js
  * @require plugins/GeoGitFeatureAttributeGrid.js
@@ -738,6 +739,10 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }, {
             ptype: "app_settings",
             actionTarget: "tree.tbar"
+        }, {
+            ptype: "gxp_layermenubutton",
+            actionTarget: "tree.tbar",
+            layer_manager: "layermanager"
         }, {
         	ptype: "gxp_measure",
         	actionTarget: "map.tbar"

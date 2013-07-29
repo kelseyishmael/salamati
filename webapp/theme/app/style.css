@@ -279,6 +279,10 @@ p.css-vertical-text {
     background-image: url(img/55-network.png);
 }
 
+.x-btn .salamati-icon-diff {
+    background-image: url(img/62-contrast.png);
+}
+
 .x-btn .gxp-icon-dbhospitals {
     background-image: url(img/10-medical@2x.png);
     height: 60px !important;

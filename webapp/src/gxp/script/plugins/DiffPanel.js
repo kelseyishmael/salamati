@@ -79,6 +79,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
     
     layerProjection: null,
     
+    zoomButton: null,
+    
     constructor: function() {
         this.addEvents(
             /** api: event[commitdiffselected]
@@ -233,6 +235,23 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
             return value;
         };
         var plugin = this;
+        
+        this.zoomButton = new Ext.Button({
+            xtype: 'button',
+            text: plugin.Text_Zoom,
+            disabled: true,
+            handler: function() {
+                if(diffPanel.getSelectionModel().hasSelection()) {
+                    if(plugin.merge) {
+                	app.fireEvent("getmergeinfo", plugin.mergeStore, plugin.oldCommitId, plugin.newCommitId, plugin.ancestorCommitId, diffPanel.getSelectionModel().getSelected().data, plugin.transactionId);
+                    } else {
+                	app.fireEvent("getattributeinfo", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, diffPanel.getSelectionModel().getSelected().data.fid, plugin.layerProjection);
+                    }
+                    diffPanel.contextMenu.hide();
+                }
+            },
+            iconCls: 'gxp-icon-zoom-to'
+        });
         this.grid = new Ext.grid.GridPanel({
             store: this.diffStore,
             cls: "gxp-grid-font-cls gxp-grid-hd-font-cls",
@@ -240,6 +259,7 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
             columnLines: true,
             hideParent: false,
             flex: 1,
+            tbar: [this.zoomButton],
             colModel: new Ext.grid.ColumnModel({
                 defaults: {
                     sortable: true,
@@ -328,7 +348,17 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
                 ]
             }),
             selModel: new Ext.grid.RowSelectionModel({
-                singleSelect: true
+                singleSelect: true,
+                listeners: {
+                    rowselect: function(selection, rowIndex, record) {
+                        plugin.zoomButton.enable();
+                    },
+                    rowdeselect: function(selection, rowIndex, record) {  
+                        if(diffPanel.getSelectionModel().getCount() === 0) {
+                            plugin.zoomButton.disable();
+                        }
+                    }
+                }
             })
         });
 
@@ -343,6 +373,8 @@ gxp.plugins.DiffPanel = Ext.extend(gxp.plugins.Tool, {
         } else if (!append) {
             this.diffLayer.removeAllFeatures();
         }
+        
+        this.zoomButton.disable();
         
         var store = this.merge === true ? this.mergeStore : this.diffStore;
 

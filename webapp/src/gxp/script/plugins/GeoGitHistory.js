@@ -74,6 +74,8 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     layerProjection: null,
     
+    diffButton: null,
+    
     constructor: function() {
         this.addEvents(
                 /** api: event[conflictsDetected]
@@ -122,6 +124,30 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         	return value;
         };
         var plugin = this;
+        
+        this.diffButton = new Ext.Button({
+            text: plugin.Text_Show_Diff,
+            iconCls: 'salamati-icon-diff',
+            disabled: true,
+            handler: function() {
+                plugin.selectedRows.sort(function(a,b){return a-b});
+                plugin.oldCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;
+                if(plugin.selectedRows.length > 1) {
+                    plugin.newCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[0]).data.commit;
+                } else {
+                    plugin.newCommitId = geogitHistory.getStore().getAt(0).data.commit;
+                }
+                var geoserverIndex = plugin.url.indexOf('geoserver/');
+                var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
+                var url = geoserverUrl + 'geogit/' + plugin.workspace + ':' + plugin.dataStore + '/diff?pathFilter=' + plugin.path + '&oldRefSpec=' + plugin.oldCommitId + '&newRefSpec=' + plugin.newCommitId + '&showGeometryChanges=true&page=0&show=100&output_format=JSON';
+                plugin.diffStore.url = url;
+                plugin.diffStore.proxy.conn.url = url;
+                plugin.diffStore.proxy.url = url;
+                
+                app.fireEvent("commitdiffselected", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, plugin.layerProjection);
+                geogitHistory.contextMenu.hide();
+            }
+        });
         
         config = Ext.apply({
             xtype: "grid",
@@ -177,6 +203,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                     }
                 }]
             }),
+            tbar: [this.diffButton],
             viewConfig: {
                 forceFit: true,
                 // took this stuff from http://www.sencha.com/learn/grid-faq/#Maintain_GridPanel_scroll_position_across_Store_reloads
@@ -252,11 +279,15 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                 listeners: {
                     rowselect: function(selection, rowIndex, record) {
                         plugin.selectedRows.push(rowIndex);
+                        plugin.diffButton.enable();
                     },
                     rowdeselect: function(selection, rowIndex, record) {
                         if(plugin.selectedRows.indexOf(rowIndex) !== -1) {
                             plugin.selectedRows.remove(rowIndex);
-                        }                            
+                        }   
+                        if(plugin.selectedRows.length === 0) {
+                            plugin.diffButton.disable();
+                        }
                     }
                 }
             })
@@ -306,7 +337,8 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     					    plugin.output[0].ownerCt.hide();
     					    plugin.target.portal.doLayout();
     					}
-    					plugin.selectedRows = [];
+    					
+    					geogitHistory.getSelectionModel().clearSelections();
     				};
     				
     				gxp.GeoGitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
