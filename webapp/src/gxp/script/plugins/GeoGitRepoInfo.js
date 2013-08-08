@@ -37,6 +37,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     Text_FinishViewing: "Please finish viewing and/or editing of features before you attempt to merge.",
     Text_Cancel: "Cancel",
     Text_Accept: "Accept",
+    Text_Menu: "Menu",
     Text_CancelPopup: "Are you sure you want to cancel this merge?",
     Text_AcceptPopup: "Are you sure you want to complete this merge?",
     Text_MergeStartPopup: "Are you sure you want to start the merge process?",
@@ -108,6 +109,10 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     acceptButton: null,
     
     cancelButton: null,
+    
+    menuButton: null,
+    
+    contextMenu: null,
     
     originalBranch: null,
     
@@ -306,101 +311,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
             }
         });
         
-        var panel = new Ext.tree.TreePanel({
-            root: this.treeRoot,
-            rootVisible: false,
-            border: false,
-            autoScroll: true,
-            tbar: [this.acceptButton, this.cancelButton],
-            listeners: {
-                contextmenu: function(node, event) {
-                    if(!node.isSelected()) {
-                        panel.getSelectionModel().select(node);
-                    }
-                  
-                    if(node.attributes.type === plugin.remoteRoot) {
-                        var repoNode = node.parentNode;
-                        if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
-                            repoInfo.contextMenu.items.items[4].show();
-                            repoInfo.contextMenu.items.items[5].show();
-                            repoInfo.contextMenu.showAt(event.getXY());
-                            event.stopEvent();
-                        }
-                    } else if(node.parentNode.attributes.type === plugin.remoteRoot) {  
-                        var repoNode = node.parentNode.parentNode;
-                        if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
-                            repoInfo.contextMenu.items.items[3].show();
-                            repoInfo.contextMenu.items.items[6].show();
-                            repoInfo.contextMenu.showAt(event.getXY());
-                            event.stopEvent();
-                        }
-                    } else {
-                        var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
-                        if(selectedNode) {
-                            var repoNode = selectedNode.parentNode.parentNode.parentNode;
-                            if(node.parentNode.attributes.type === plugin.localBranchRoot) {                                
-                                if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
-                                    if(selectedNode !== node) {
-                                        if(repoNode.attributes.repoId === node.parentNode.parentNode.parentNode.attributes.repoId) {                                       
-                                            repoInfo.contextMenu.items.items[0].show(); 
-                                            repoInfo.contextMenu.showAt(event.getXY());
-                                            event.stopEvent();
-                                        }
-                                    }
-                                }
-                            }
-                            else if(node.parentNode.attributes.type === plugin.remoteBranchRoot) {
-                                if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
-                                    if(repoNode.attributes.repoId === node.parentNode.parentNode.parentNode.attributes.repoId) {  
-                                        repoInfo.contextMenu.items.items[1].show();
-                                        repoInfo.contextMenu.items.items[2].show();
-                                        if(plugin.syncPaused) {
-                                            repoInfo.contextMenu.items.items[9].show();
-                                        } else {
-                                            var found = false;
-                                            for(var index = 0; index < plugin.syncObjects.length; index++) {
-                                                var object = plugin.syncObjects[index];
-                                                if(object.localBranch === selectedNode.text && object.remoteBranch === node.text.substring(0,node.text.indexOf(" (")) && object.remoteName === node.attributes.remoteName) {
-                                                    found = true;
-                                                    break;
-                                                }
-                                            }    
-                                            if(found) {
-                                                repoInfo.contextMenu.items.items[8].show();
-                                            } else {
-                                                repoInfo.contextMenu.items.items[7].show();
-                                            }
-                                        }
-                                        repoInfo.contextMenu.showAt(event.getXY());
-                                        event.stopEvent();
-                                    }
-                                }
-                            } 
-                        }
-                    }                                   
-                },
-                beforedblclick: function(node, event) {                  
-                    if(node.attributes.selected !== undefined) {
-                        var selectedNode = plugin.treeRoot.findChild("selected", true, true);
-                        if(selectedNode) {
-                            var repoNode = selectedNode.parentNode.parentNode.parentNode;
-                            if(gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
-                                return false; 
-                            }
-                            selectedNode.attributes.selected = false;
-                            selectedNode.setCls('');
-                            if(selectedNode.text === node.text) {
-                                return false;
-                            }
-                        }
-                        
-                        node.attributes.selected = true;
-                        node.setCls('gxp-selected-branch-cls');
-                        return false;
-                    }
-                }
-            },
-            contextMenu: new Ext.menu.Menu({
+        this.contextMenu = new Ext.menu.Menu({
                 items: [
                     {
                         text: plugin.Text_Merge,
@@ -925,16 +836,200 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                             plugin.resumeSync();
                         }
                     }
-                ], 
-                listeners: {
-                    beforehide: function(menu) {
-                        var length = menu.items.length;
-                        for(var index = 0; index < length; index++) {
-                            menu.items.items[index].hide();
+                ]
+            });
+        
+        this.menuButton = new Ext.Button({
+            text: plugin.Text_Menu,
+            hidden: false,
+            menu: plugin.contextMenu
+        });
+        
+        var panel = new Ext.tree.TreePanel({
+            root: this.treeRoot,
+            rootVisible: false,
+            border: false,
+            autoScroll: true,
+            hideHeaders: false,
+            fields: ['text', 'menu'],
+            tbar: [this.acceptButton, this.cancelButton, this.menuButton],
+            columns: [{
+                xtype: 'treecolumn', //this is so we know which column will show the tree
+                text: 'Branches',
+                dataIndex: 'text',
+                sortable: false
+            },{
+        	 xtype: 'actioncolumn',
+                 width: 50,
+                 items: [{
+                     icon: Ext.MessageBox.INFO,
+                     // Use a URL in the icon config
+                     tooltip: 'Edit',
+                     handler: function (grid, rowIndex, colIndex) {
+                         var rec = grid.getStore().getAt(rowIndex);
+                         alert("Edit " + rec.get('firstname'));
+                     }
+                 }]
+            }],
+            listeners: {
+                contextmenu: function(node, event) {
+                    if(!node.isSelected()) {
+                        panel.getSelectionModel().select(node);
+                    }
+                    
+                    for(var i = 0; i < plugin.contextMenu.items.items.length; i++) {
+                	plugin.contextMenu.items.items[i].hide();
+                    }
+                  
+                    if(node.attributes.type === plugin.remoteRoot) {
+                        var repoNode = node.parentNode;
+                        if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                            plugin.contextMenu.items.items[4].show();
+                            plugin.contextMenu.items.items[5].show();
+                            plugin.contextMenu.showAt(event.getXY());
+                            event.stopEvent();
                         }
+                    } else if(node.parentNode.attributes.type === plugin.remoteRoot) {  
+                        var repoNode = node.parentNode.parentNode;
+                        if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                            repoInfo.contextMenu.items.items[3].show();
+                            repoInfo.contextMenu.items.items[6].show();
+                            repoInfo.contextMenu.showAt(event.getXY());
+                            event.stopEvent();
+                        }
+                    } else {
+                        var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                        if(selectedNode) {
+                            var repoNode = selectedNode.parentNode.parentNode.parentNode;
+                            if(node.parentNode.attributes.type === plugin.localBranchRoot) {                                
+                                if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                                    if(selectedNode !== node) {
+                                        if(repoNode.attributes.repoId === node.parentNode.parentNode.parentNode.attributes.repoId) {                                       
+                                            repoInfo.contextMenu.items.items[0].show(); 
+                                            repoInfo.contextMenu.showAt(event.getXY());
+                                            event.stopEvent();
+                                        }
+                                    }
+                                }
+                            }
+                            else if(node.parentNode.attributes.type === plugin.remoteBranchRoot) {
+                                if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                                    if(repoNode.attributes.repoId === node.parentNode.parentNode.parentNode.attributes.repoId) {  
+                                        repoInfo.contextMenu.items.items[1].show();
+                                        repoInfo.contextMenu.items.items[2].show();
+                                        if(plugin.syncPaused) {
+                                            repoInfo.contextMenu.items.items[9].show();
+                                        } else {
+                                            var found = false;
+                                            for(var index = 0; index < plugin.syncObjects.length; index++) {
+                                                var object = plugin.syncObjects[index];
+                                                if(object.localBranch === selectedNode.text && object.remoteBranch === node.text.substring(0,node.text.indexOf(" (")) && object.remoteName === node.attributes.remoteName) {
+                                                    found = true;
+                                                    break;
+                                                }
+                                            }    
+                                            if(found) {
+                                                repoInfo.contextMenu.items.items[8].show();
+                                            } else {
+                                                repoInfo.contextMenu.items.items[7].show();
+                                            }
+                                        }
+                                        repoInfo.contextMenu.showAt(event.getXY());
+                                        event.stopEvent();
+                                    }
+                                }
+                            } 
+                        }
+                    }                                   
+                },
+                beforeclick: function(node, event) {
+                    if(!node.isSelected()) {
+                        panel.getSelectionModel().select(node);
+                    }
+                    
+                    for(var i = 0; i < plugin.contextMenu.items.items.length; i++) {
+                	plugin.contextMenu.items.items[i].hide();
+                    }
+                  
+                    if(node.attributes.type === plugin.remoteRoot) {
+                        var repoNode = node.parentNode;
+                        if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                            plugin.contextMenu.items.items[4].show();
+                            plugin.contextMenu.items.items[5].show();
+                            event.stopEvent();
+                        }
+                    } else if(node.parentNode.attributes.type === plugin.remoteRoot) {  
+                        var repoNode = node.parentNode.parentNode;
+                        if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                            plugin.contextMenu.items.items[3].show();
+                            plugin.contextMenu.items.items[6].show();
+                            event.stopEvent();
+                        }
+                    } else {
+                        var selectedNode = plugin.treeRoot.findChild("selected", true, true); 
+                        if(selectedNode) {
+                            var repoNode = selectedNode.parentNode.parentNode.parentNode;
+                            if(node.parentNode.attributes.type === plugin.localBranchRoot) {                                
+                                if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                                    if(selectedNode !== node) {
+                                        if(repoNode.attributes.repoId === node.parentNode.parentNode.parentNode.attributes.repoId) {                                       
+                                            plugin.contextMenu.items.items[0].show(); 
+                                            event.stopEvent();
+                                        }
+                                    }
+                                }
+                            }
+                            else if(node.parentNode.attributes.type === plugin.remoteBranchRoot) {
+                                if(!gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                                    if(repoNode.attributes.repoId === node.parentNode.parentNode.parentNode.attributes.repoId) {  
+                                	plugin.contextMenu.items.items[1].show();
+                                	plugin.contextMenu.items.items[2].show();
+                                        if(plugin.syncPaused) {
+                                            plugin.contextMenu.items.items[9].show();
+                                        } else {
+                                            var found = false;
+                                            for(var index = 0; index < plugin.syncObjects.length; index++) {
+                                                var object = plugin.syncObjects[index];
+                                                if(object.localBranch === selectedNode.text && object.remoteBranch === node.text.substring(0,node.text.indexOf(" (")) && object.remoteName === node.attributes.remoteName) {
+                                                    found = true;
+                                                    break;
+                                                }
+                                            }    
+                                            if(found) {
+                                        	plugin.contextMenu.items.items[8].show();
+                                            } else {
+                                        	plugin.contextMenu.items.items[7].show();
+                                            }
+                                        }
+                                        event.stopEvent();
+                                    }
+                                }
+                            } 
+                        }
+                    }                                   
+                },
+                beforedblclick: function(node, event) {                  
+                    if(node.attributes.selected !== undefined) {
+                        var selectedNode = plugin.treeRoot.findChild("selected", true, true);
+                        if(selectedNode) {
+                            var repoNode = selectedNode.parentNode.parentNode.parentNode;
+                            if(gxp.GeoGitUtil.checkForTransaction(repoNode.attributes.repoId)) {
+                                return false; 
+                            }
+                            selectedNode.attributes.selected = false;
+                            selectedNode.setCls('');
+                            if(selectedNode.text === node.text) {
+                                return false;
+                            }
+                        }
+                        
+                        node.attributes.selected = true;
+                        node.setCls('gxp-selected-branch-cls');
+                        return false;
                     }
                 }
-            })
+            },
+            contextMenu: plugin.contextMenu
         });
 
         config = Ext.apply(panel, config || {});

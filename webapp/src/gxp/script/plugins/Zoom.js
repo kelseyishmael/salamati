@@ -109,11 +109,18 @@ gxp.plugins.Zoom = Ext.extend(gxp.plugins.Tool, {
             scope: this
         }*/];
         if (this.showZoomBoxAction) {
+            var zoomBox = new OpenLayers.Control.ZoomBox(this.controlOptions);
+            var zoomBoxDone = zoomBox.zoomBox;
+            var newZoomBoxDone = function () {
+        	zoomBoxDone.apply(zoomBox);
+        	zoomBox.deactivate();
+            };
+            zoomBox.zoomBox = newZoomBoxDone;
             actions.unshift(new GeoExt.Action({
                 menuText: this.zoomText,
                 iconCls: "gxp-icon-zoom",
                 tooltip: this.zoomTooltip,
-                control: new OpenLayers.Control.ZoomBox(this.controlOptions),
+                control: zoomBox,
                 map: this.target.mapPanel.map,
                 enableToggle: true,
                 allowDepress: true,
