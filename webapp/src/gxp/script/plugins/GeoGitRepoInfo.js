@@ -594,7 +594,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                         } else {
                                                             plugin.acceptButton.enable();
                                                             plugin.acceptButton.show();
-                                                            cancelButton.show();
+                                                            plugin.cancelButton.show();
                                                             app.fireEvent("beginMerge", testStore, transactionId, selectedNode.text, node.text, false);
                                                         }
                                                     },

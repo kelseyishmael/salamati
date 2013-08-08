@@ -284,7 +284,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         					plugin.path = layer.metadata.nativeName;
         					plugin.layerProjection = layer.metadata.projection;
         					var until = "";
-        					if(layer.metadata.branch !== "false") {
+        					if(layer.metadata.branch !== "false" && layer.metadata.branch !== "true") {
         					    until = '&until=' + layer.metadata.branch;
         					}
     		        		plugin.url = geoserverUrl + 'geogit/' + workspace + ':' + layer.metadata.geogitStore + '/log?firstParentOnly=true&path=' + layer.metadata.nativeName + until + '&page=0&output_format=JSON';
