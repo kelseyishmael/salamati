@@ -76,14 +76,16 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     
     diffButton: null,
     
+    grid: null,
+    
     constructor: function() {
         this.addEvents(
-                /** api: event[conflictsDetected]
-                 *  Fired when conflicts in a merge are found.
+                /** api: event[beginMerge]
+                 *  Fired when merge starts.
                  */
                 "beginMerge",
-                /** api: event[conflictsResolved]
-                 *  Fired when all conflicts in a merge are resolved.
+                /** api: event[endMerge]
+                 *  Fired when merge ends.
                  */
                 "endMerge"
         );
@@ -93,6 +95,24 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
             },
             endMerge: function() {
                 this.merging = false;
+            },
+            reloadHistory: function() {
+                var plugin = this;
+                var url = plugin.store.url.replace("page="+plugin.pageNumber, "page=0");
+                plugin.pageNumber = 0;
+                plugin.store.url = url;
+                plugin.store.proxy.conn.url = url;
+                plugin.store.proxy.url = url;
+                plugin.store.load({
+                    callback: function() {
+                        if(plugin.store.reader.jsonData.response.nextPage) {
+                            plugin.nextPage = true;
+                        } else {
+                            plugin.nextPage = false;
+                        }
+                    },
+                    scope: plugin
+                });
             },
             scope: this
         });
@@ -131,11 +151,11 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
             disabled: true,
             handler: function() {
                 plugin.selectedRows.sort(function(a,b){return a-b});
-                plugin.oldCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;
+                plugin.oldCommitId = plugin.grid.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;
                 if(plugin.selectedRows.length > 1) {
-                    plugin.newCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[0]).data.commit;
+                    plugin.newCommitId = plugin.grid.getStore().getAt(plugin.selectedRows[0]).data.commit;
                 } else {
-                    plugin.newCommitId = geogitHistory.getStore().getAt(0).data.commit;
+                    plugin.newCommitId = plugin.grid.getStore().getAt(0).data.commit;
                 }
                 var geoserverIndex = plugin.url.indexOf('geoserver/');
                 var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
@@ -145,7 +165,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                 plugin.diffStore.proxy.url = url;
                 
                 app.fireEvent("commitdiffselected", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, plugin.layerProjection);
-                geogitHistory.contextMenu.hide();
+                plugin.grid.contextMenu.hide();
             }
         });
         
@@ -222,8 +242,8 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
             },
             listeners: {
     			cellcontextmenu: function(grid, rowIndex, cellIndex, event) {
-    			    if(geogitHistory.getSelectionModel().hasSelection() && !plugin.merging) {
-    			        geogitHistory.contextMenu.showAt(event.getXY());
+    			    if(plugin.grid.getSelectionModel().hasSelection() && !plugin.merging) {
+    			        plugin.grid.contextMenu.showAt(event.getXY());
     			    }
     			    event.stopEvent();
     			},
@@ -256,11 +276,11 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                         iconCls: 'salamati-icon-diff',
                         handler: function() {
                             plugin.selectedRows.sort(function(a,b){return a-b});
-                            plugin.oldCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;
+                            plugin.oldCommitId = plugin.grid.getStore().getAt(plugin.selectedRows[plugin.selectedRows.length-1]).data.commit;
                             if(plugin.selectedRows.length > 1) {
-                                plugin.newCommitId = geogitHistory.getStore().getAt(plugin.selectedRows[0]).data.commit;
+                                plugin.newCommitId = plugin.grid.getStore().getAt(plugin.selectedRows[0]).data.commit;
                             } else {
-                                plugin.newCommitId = geogitHistory.getStore().getAt(0).data.commit;
+                                plugin.newCommitId = plugin.grid.getStore().getAt(0).data.commit;
                             }
                             var geoserverIndex = plugin.url.indexOf('geoserver/');
                             var geoserverUrl = plugin.url.substring(0, geoserverIndex + 10);
@@ -270,7 +290,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
                             plugin.diffStore.proxy.url = url;
                             
                             app.fireEvent("commitdiffselected", plugin.diffStore, plugin.oldCommitId, plugin.newCommitId, plugin.layerProjection);
-                            geogitHistory.contextMenu.hide();
+                            plugin.grid.contextMenu.hide();
                         }
                     }
                 ]
@@ -293,7 +313,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
             })
         }, config || {});
         
-        var geogitHistory = gxp.plugins.GeoGitHistory.superclass.addOutput.call(this, config);
+        this.grid = gxp.plugins.GeoGitHistory.superclass.addOutput.call(this, config);
 
         var onLayerChange = function(tool, layerRecord, schema) {
         	if(schema && schema.url){
@@ -338,7 +358,9 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
     					    plugin.target.portal.doLayout();
     					}
     					
-    					geogitHistory.getSelectionModel().clearSelections();
+    					if(plugin.grid.getSelectionModel().grid) {
+    					    plugin.grid.getSelectionModel().clearSelections();
+    					}  					
     				};
     				
     				gxp.GeoGitUtil.isGeoGitLayer(layerRecord.data.layer, callback);
@@ -351,7 +373,7 @@ gxp.plugins.GeoGitHistory = Ext.extend(gxp.plugins.Tool, {
         } 
         featureManager.on("layerchange", onLayerChange, this);
         
-        return geogitHistory;
+        return this.grid;
     }
 });
 

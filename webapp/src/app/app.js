@@ -402,6 +402,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
             },
             "featureEditorUnselectAll": function() {
                 this.tools['feature_editor'].fireEvent("featureEditorUnselectAll");
+            },
+            "reloadHistory": function() {
+                this.tools['geogithistory'].fireEvent("reloadHistory");
             }
         };
 

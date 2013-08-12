@@ -121,6 +121,10 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                     }
                 }
                 var value = feature.attributes[name];
+                type = type.split(":").pop();
+                if(value == undefined && (type == "dateTime" || type == "date")) {
+                    value = new Date().toISOString();
+                }
                 
                 if (name == "media") {
                     this.excludeFields.push(name);
@@ -191,7 +195,7 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                 var listeners;
                 if (typeof value == "string") {
                     var format;
-                    switch (type.split(":").pop()) {
+                    switch (type) {
                     case "date":
                         format = this.dateFormat;
                         fieldCfg.editable = false;
@@ -209,7 +213,7 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                         listeners = {
                                 "startedit" : function(el, value) {
                                     if (!(value instanceof Date)) {
-                                        var date = Date.parseDate(value.replace(/Z$/, ""), "c");
+                                        var date = Date.parseDate(value, "c");
                                         if (date) {
                                             this.setValue(date);
                                         }
@@ -223,7 +227,7 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                                 // return value.format(format);
                                 var date = value;
                                 if (typeof value == "string") {
-                                    date = Date.parseDate(value.replace(/Z$/, ""), "c");
+                                    date = Date.parseDate(value, "c");
                                 }
                                 return date ? date.format(format) : value;
                             };

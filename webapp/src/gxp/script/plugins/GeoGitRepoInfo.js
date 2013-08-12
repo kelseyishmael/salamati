@@ -1441,7 +1441,7 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
 				remoteBranch: node.text.substring(0,node.text.indexOf(" (")),
 				remoteName: node.attributes.remoteName,
 				repoId: repoNode.attributes.repoId,
-				timeStamp: new Date().getTime() + interval,
+				timeStamp: new Date().getTime(),
 				syncInterval: interval
 		}
 		plugin.syncObjects.push(syncObject);

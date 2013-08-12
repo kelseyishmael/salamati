@@ -141,6 +141,8 @@ gxp.FeatureEditMixin = {
         deleteButton: null,
 
         orthoButton: null,
+        
+        pointEditButton: null,
 
         map: null,
         
@@ -247,6 +249,121 @@ gxp.FeatureEditMixin = {
                 },
                 scope: this
             });
+
+            this.pointEditButton = new Ext.Button({
+                text: "Lat/Lon",
+                tooltip: "Move Point to specified Lat/Lon.",
+                hidden: true,
+                iconCls: 'salamati-icon-latlon',
+                handler: function() { 
+                    var geom = this.feature.geometry.clone();
+                    geom.transform(GoogleMercator, WGS84);
+                    var dragControl = this.modifyControl.dragControl;
+                    var window = new Ext.Window({
+                        closable: true,
+                        modal: true,
+                        draggable: false,
+                        resizable: false,
+                        hidden: false,
+                        height: 200,
+                        width: 500,
+                        title: "Edit Point",
+                        layout: "absolute",
+                        items: [{
+                            xtype: 'textfield',
+                            allowBlank: false,
+                            x: 75,
+                            y: 30,
+                            height: 30,
+                            anchor: '95%',
+                            emptyText: "Longitude",
+                            minLength: 1,
+                            value: OpenLayers.Util.getFormattedLonLat(geom.x, "lon", "dms")
+                        },{
+                            xtype: 'label',
+                            x: 10,
+                            y: 35,
+                            text: "Longitude:"
+                        },{
+                            xtype: 'textfield',
+                            allowBlank: false,
+                            height: 30,
+                            anchor: '95%',
+                            x: 75,
+                            y: 70,
+                            emptyText: "Latitude",
+                            minLength: 1,
+                            value: OpenLayers.Util.getFormattedLonLat(geom.y, "lat", "dms")
+                        },{
+                            xtype: 'label',
+                            x: 10,
+                            y: 75,
+                            text: "Latitude:"
+                        },{
+                            xtype: 'button',
+                            text: "Apply",
+                            y: 130,
+                            x: 25,
+                            height: 30,
+                            anchor: '95%',
+                            handler: function(){
+                                var lon = window.items.items[0].getValue();
+                                lon = lon.replace(/[^\dEWew\.]/g, " ").split(" ");
+                                if(lon.length === 4) {
+                                    var newlon = parseInt(lon[0]) + ((parseInt(lon[1]) + (parseFloat(lon[2])/60))/60);
+                                    if(newlon < 0 || newlon > 180) {
+                                        window.items.items[0].setValue(window.items.items[0].originalValue);
+                                        alert("Invalid coordinates, goes outside of max/min boundaries for longitude");
+                                        return;
+                                    }
+                                    if(lon[3] === "W" || lon[3] === "w") {
+                                        newlon = -newlon;
+                                    }   
+                                } else {
+                                    window.items.items[0].setValue(window.items.items[0].originalValue);
+                                    alert("Invalid format, must have Degrees Minutes Seconds Direction");
+                                    return;
+                                }
+                                var lat = window.items.items[2].getValue();
+                                lat = lat.replace(/[^\dNSns\.]/g, " ").split(" ");
+                                if(lat.length === 4) {
+                                    var newlat = (parseInt(lat[0]) + ((parseInt(lat[1]) + (parseFloat(lat[2])/60))/60));
+                                    if(newlat < 0 || newlat > 90) {
+                                        window.items.items[2].setValue(window.items.items[2].originalValue);
+                                        alert("Invalid coordinates, goes outside of max/min boundaries for latitude");
+                                        return;
+                                    }
+                                    if(lat[3] === "S" || lat[3] === "s") {
+                                        newlat = -newlat;
+                                    }                                       
+                                } else {
+                                    window.items.items[2].setValue(window.items.items[2].originalValue);
+                                    alert("Invalid format, must have Degrees Minutes Seconds Direction");
+                                    return;
+                                }                              
+                                
+                                geom.x = newlon;
+                                geom.y = newlat;
+                                
+                                geom.transform(WGS84, GoogleMercator);
+
+                                this.feature.geometry.x = geom.x;
+                                this.feature.geometry.y = geom.y;
+                                this.feature.layer.redraw();
+                                dragControl.feature = this.feature;
+                                pixel = new OpenLayers.Pixel(geom.x, geom.y);
+                                dragControl.downFeature(pixel);
+                                dragControl.moveFeature(pixel);
+                                dragControl.upFeature(pixel);
+                                dragControl.doneDragging(pixel);
+                                app.mapPanel.map.setCenter([newlon, newlat]);
+                                window.close();
+                            }, scope: this
+                        }]
+                    });
+                },
+                scope: this
+            });
                 
             this.plugins = [Ext.apply({
                 feature: feature,
@@ -264,7 +381,8 @@ gxp.FeatureEditMixin = {
                     this.deleteButton,
                     this.saveButton,
                     this.cancelButton,
-                    this.orthoButton
+                    this.orthoButton,
+                    this.pointEditButton
                 ]
             });
         },
@@ -283,10 +401,13 @@ gxp.FeatureEditMixin = {
                 this.deleteButton.hide();
                 this.saveButton.show();
                 this.cancelButton.show();
-                if(this.feature.geometry.CLASS_NAME === "OpenLayers.Geometry.MultiPolygon") {
+                if(this.feature.geometry.CLASS_NAME === "OpenLayers.Geometry.MultiPolygon"
+                    || this.feature.geometry.CLASS_NAME === "OpenLayers.Geometry.Polygon") {
                     this.orthoButton.show();
+                } else if (this.feature.geometry.CLASS_NAME === "OpenLayers.Geometry.Point") {
+                    this.pointEditButton.show();
                 }
-            
+
                 this.geometry = this.feature.geometry && this.feature.geometry.clone();
                 this.attributes = Ext.apply({}, this.feature.attributes);
 
@@ -334,6 +455,7 @@ gxp.FeatureEditMixin = {
                             }
                         }
                         this.fireEvent("featuremodified", this, feature);
+                        app.fireEvent("reloadHistory");
                     } else if(feature.state === OpenLayers.State.INSERT) {
                         this.editing = false;
                         feature.layer && feature.layer.destroyFeatures([feature]);
@@ -357,6 +479,9 @@ gxp.FeatureEditMixin = {
                     this.saveButton.hide();
                     if(!this.orthoButton.hidden) {
                         this.orthoButton.hide();
+                    }
+                    if(!this.pointEditButton.hidden) {
+                        this.pointEditButton.hide();
                     }
                     this.editButton.show();
                     this.allowDelete && this.deleteButton.show();

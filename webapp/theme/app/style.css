@@ -265,6 +265,10 @@ p.css-vertical-text {
     background-image: url(img/28-circle-out.png);
 }
 
+.x-btn .salamati-icon-latlon {
+    background-image: url(img/71-compass.png);
+}
+
 .x-btn .salamati-icon-getfeatureinfo {
     background-image: url(img/42-info@2x.png);
     height: 60px !important;
