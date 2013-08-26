@@ -57,8 +57,12 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
     Text_RemoteInfo: "Remote Information",
     Text_URL: "URL",
     Text_Name: "Name",
+    Text_Username: "Username",
+    Text_Password: "Password",
     Text_URLBlank: "The path to the remote repository.",
     Text_NameBlank: "The name to give this remote.",
+    Text_UsernameBlank: "The username for this repository.",
+    Text_PasswordBlank: "The password for this repository.",
     Text_URLValidateFail: "Please provide a path to the remote repository.",
     Text_NameValidateFail: "Please provide a name to give the remote.",
     Text_NameVerification: "Are you sure you want to create a remote called ",
@@ -652,39 +656,76 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                 draggable: false,
                                 resizable: false,
                                 hidden: false,
-                                height: 200,
+                                height: 280,
                                 width: 500,
                                 title: plugin.Text_RemoteInfo,
                                 layout: "absolute",
                                 items: [{
-                                    xtype: 'textfield',
-                                    allowBlank: false,
-                                    height: 30,
-                                    anchor: '90%',
+                                    xtype: 'label',
                                     x: 50,
-                                    y: 30,
-                                    emptyText: plugin.Text_URL,
-                                    minLength: 1,
-                                    blankText: plugin.Text_URLBlank
+                                    y: 35,
+                                    text: plugin.Text_Name + ':'
                                 },{
                                     xtype: 'textfield',
                                     allowBlank: false,
-                                    x: 50,
-                                    y: 70,
+                                    x: 130,
+                                    y: 30,
                                     height: 30,
                                     anchor: '90%',
-                                    emptyText: plugin.Text_Name,
                                     minLength: 1,
                                     blankText: plugin.Text_NameBlank
                                 },{
+                                    xtype: 'label',
+                                    x: 50,
+                                    y: 75,
+                                    text: plugin.Text_URL + ':'
+                                },{
+                                    xtype: 'textfield',
+                                    allowBlank: false,
+                                    height: 30,
+                                    anchor: '90%',
+                                    x: 130,
+                                    y: 70,
+                                    minLength: 1,
+                                    blankText: plugin.Text_URLBlank
+                                },{
+                                    xtype: 'label',
+                                    x: 50,
+                                    y: 115,
+                                    text: plugin.Text_Username + ':'
+                                },{
+                                    xtype: 'textfield',
+                                    allowBlank: true,
+                                    x: 130,
+                                    y: 110,
+                                    height: 30,
+                                    anchor: '90%',
+                                    minLength: 0,
+                                    blankText: plugin.Text_UsernameBlank
+                                },{
+                                    xtype: 'label',
+                                    x: 50,
+                                    y: 155,
+                                    text: plugin.Text_Password + ':'
+                                },{
+                                    xtype: 'textfield',
+                                    allowBlank: true,
+                                    x: 130,
+                                    y: 150,
+                                    height: 30,
+                                    anchor: '90%',
+                                    inputType: 'password',
+                                    minLength: 0,
+                                    blankText: plugin.Text_PasswordBlank
+                                },{
                                     xtype: 'button',
                                     text: plugin.Text_RemoteAdd,
-                                    y: 130,
+                                    y: 210,
                                     x: 25,
                                     height: 30,
                                     anchor: '95%',
                                     handler: function(){
-                                        if(!window.items.items[0].validate()) {
+                                        if(!window.items.items[3].validate()) {
                                             alert(plugin.Text_URLValidateFail);
                                             return;
                                         } else if (!window.items.items[1].validate()) {
@@ -692,7 +733,9 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                             return;
                                         }
                                         var name = window.items.items[1].getValue();
-                                        var path = window.items.items[0].getValue();
+                                        var path = window.items.items[3].getValue();
+                                        var username = window.items.items[5].getValue();
+                                        var password = window.items.items[7].getValue();
                                         Ext.Msg.show({
                                             title: plugin.Text_RemoteAdd,
                                             msg: plugin.Text_NameVerification + name + plugin.Text_URLVerification + path + "?",
@@ -703,8 +746,15 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                     var repoNode = remoteNode.parentNode;
                                                     var workspace = repoNode.attributes.workspace;
                                                     var dataStore = repoNode.attributes.dataStore;
+                                                    var url = plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/remote?remoteName=' + name + '&remoteURL=' + path + '&output_format=JSON';
+                                                    if(username !== '') {
+                                                	url = url + '&username=' + username;
+                                                    }
+                                                    if(password !== '') {
+                                                	url = url + '&password=' + password;
+                                                    }
                                                     OpenLayers.Request.GET({
-                                                        url: plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/remote?remoteName=' + name + '&remoteURL=' + path + '&output_format=JSON',
+                                                        url: url,
                                                         success: function(results){
                                                             var remoteInfo = Ext.decode(results.responseText);                                                           
                                                             if(remoteInfo.response.name) {
