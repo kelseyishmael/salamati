@@ -126,7 +126,7 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                     value = new Date().toISOString();
                 }
                 
-                if (name == "media") {
+                if (name == "media" || name == "fotos") {
                     this.excludeFields.push(name);
                     var mediaEntries;
                     if(value == null || value == '') {
@@ -173,7 +173,7 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                     }
               	
                     this.mediaPopup = new GeoExt.Popup({
-                	    title: "Media",
+                	    title: name,
                 	    location: feature,
                 	    autoWidth: true,
                 	    autoHeight: true,
