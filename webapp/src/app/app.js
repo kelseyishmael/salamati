@@ -40,6 +40,7 @@
  * @require salamati/plugins/SalamatiTools.js
  * @require plugins/GeoGitHistory.js
  * @require plugins/GeoGitHistoryButton.js
+ * @require plugins/AutoLayerRefreshButton.js
  * @require plugins/LayerMenuButton.js
  * @require plugins/GeoGitRepoInfo.js
  * @require plugins/DiffPanel.js
@@ -623,6 +624,7 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
                 			cls: "nominatimGridClass",
                 			hideHeaders: true,
                 			border: false,
+                			autoScroll: true,
                 			columns: [{
                 				id: 'place',
                 				//header: 'Address',
@@ -739,6 +741,9 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }, {
             ptype: "gxp_geogithistorybutton",
             actionTarget: "tree.contextMenu"
+        }, {
+            ptype: "gxp_autolayerrefreshbutton",
+            actionTarget: "tree.tbar"
         }, {
             ptype: "app_settings",
             actionTarget: "tree.tbar"

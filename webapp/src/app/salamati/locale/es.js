@@ -179,5 +179,8 @@ GeoExt.Lang.add("es", {
     },
     "gxp.plugins.GeoGitHistoryButton.prototype": {
         historyButtonText: "Motrar/Ocultar historía"
+    },
+    "gxp.plugins.AutoLayerRefreshButton.prototype": {
+        buttonTip: "(es)Toggle Automatic Layer Refresh"
     }
 });
