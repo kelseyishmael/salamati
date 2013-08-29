@@ -150,7 +150,7 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                 	    "    <div class=\"set\">";
                 	for(var i = 0; i < mediaEntries.length; i++) {
                 	    var url = this.schema.url.substring(0, this.schema.url.indexOf('geoserver/wfs'));
-                	    url += "file-service/services/document/download?blobKey=" + mediaEntries[i];
+                	    url += "file-service/" + mediaEntries[i];
                 	    if(i==0) {
                 		popuphtml +=
                 		    "<div class=\"single first\">";
