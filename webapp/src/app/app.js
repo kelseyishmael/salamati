@@ -700,10 +700,6 @@ salamati.Viewer = Ext.extend(gxp.Viewer, {
         }
         if(!config.userprofilename) {
             config.userprofilename = config.username;
-        } else {
-            if(config.username) {
-        	config.userprofilename = config.userprofilename + " (" + config.username + ")";
-            }
         }
         tools.push({
             ptype: 'gn_xhrtrouble'
