@@ -356,7 +356,7 @@ gxp.FeatureEditMixin = {
                                 dragControl.moveFeature(pixel);
                                 dragControl.upFeature(pixel);
                                 dragControl.doneDragging(pixel);
-                                app.mapPanel.map.setCenter([newlon, newlat]);
+                                app.mapPanel.map.setCenter([geom.x, geom.y]);
                                 window.close();
                             }, scope: this
                         }]
