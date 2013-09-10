@@ -401,9 +401,11 @@ gxp.FeatureEditMixin = {
                 this.deleteButton.hide();
                 this.saveButton.show();
                 this.cancelButton.show();
+                var bySegment = false;
                 if(this.feature.geometry.CLASS_NAME === "OpenLayers.Geometry.MultiPolygon"
                     || this.feature.geometry.CLASS_NAME === "OpenLayers.Geometry.Polygon") {
                     this.orthoButton.show();
+                    bySegment = true;
                 } else if (this.feature.geometry.CLASS_NAME === "OpenLayers.Geometry.Point") {
                     this.pointEditButton.show();
                 }
@@ -413,7 +415,7 @@ gxp.FeatureEditMixin = {
 
                 this.modifyControl = new OpenLayers.Control.ModifyFeature(
                         this.feature.layer,
-                        {standalone: true, vertexRenderIntent: this.vertexRenderIntent}
+                        {bySegment: bySegment, standalone: true, vertexRenderIntent: this.vertexRenderIntent}
                 );
                 this.feature.layer.map.addControl(this.modifyControl);
                 this.modifyControl.activate();

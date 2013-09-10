@@ -1,4 +1,4 @@
-/* Copyright (c) 2006-2012 by OpenLayers Contributors (see authors.txt for 
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for 
  * full list of contributors). Published under the 2-clause BSD license.
  * See license.txt in the OpenLayers distribution or repository for the
  * full text of the license. */
@@ -21,6 +21,23 @@
  *  - <OpenLayers.Control>
  */
 OpenLayers.Control.ModifyFeature = OpenLayers.Class(OpenLayers.Control, {
+
+    /**
+     * APIProperty: bySegment
+     * {Boolean} If set to true, one segment at a time will be editable (the
+     *     one under the mouse cursor on hover). This supports editing much
+     *     larger geometries. This requires the rbush library
+     *     (https://github.com/mourner/rbush) for spatial indexing. Default is
+     *     false.
+     */
+    bySegment: false,
+
+    /**
+     * APIProperty: documentDrag
+     * {Boolean} If set to true, dragging vertices will continue even if the
+     *     mouse cursor leaves the map viewport. Default is false.
+     */
+    documentDrag: false,
 
     /**
      * APIProperty: geometryTypes
@@ -245,6 +262,7 @@ OpenLayers.Control.ModifyFeature = OpenLayers.Class(OpenLayers.Control, {
 
         // configure the drag control
         var dragOptions = {
+            documentDrag: this.documentDrag,
             geometryTypes: ["OpenLayers.Geometry.Point"],
             onStart: function(feature, pixel) {
                 control.dragStart.apply(control, [feature, pixel]);
@@ -278,11 +296,43 @@ OpenLayers.Control.ModifyFeature = OpenLayers.Class(OpenLayers.Control, {
 
         // configure the keyboard handler
         var keyboardOptions = {
-            keydown: this.handleKeypress
+                keydown: this.handleKeypress
         };
         this.handlers = {
-            keyboard: new OpenLayers.Handler.Keyboard(this, keyboardOptions)
+                keyboard: new OpenLayers.Handler.Keyboard(this, keyboardOptions)
         };
+        if (this.bySegment) {
+            if (!window.rbush) {
+                throw new Error("The rbush library is required");
+            }
+            if (!OpenLayers.Control.ModifyFeature.BySegment) {
+                throw new Error("OpenLayers.Control.ModifyFeature.BySegment is missing from the build");
+            } else {
+                OpenLayers.Util.extend(this, OpenLayers.Control.ModifyFeature.BySegment);
+            }
+        }    
+    },
+
+    /**
+     * Method: createVirtualVertex
+     * Create a virtual vertex in the middle of the segment.
+     *
+     * Parameters:
+     * point1 - {<OpenLayers.Geometry.Point>} First point of the segment.
+     * point2 - {<OpenLayers.Geometry.Point>} Second point of the segment.
+     *
+     * Returns:
+     * {<OpenLayers.Feature.Vector>} The virtual vertex created.
+     */
+    createVirtualVertex: function(point1, point2) {
+        var x = (point1.x + point2.x) / 2;
+        var y = (point1.y + point2.y) / 2;
+        var point = new OpenLayers.Feature.Vector(
+                new OpenLayers.Geometry.Point(x, y),
+                null, this.virtualStyle
+        );
+        point._sketch = true;
+        return point;
     },
 
     /**
@@ -489,6 +539,9 @@ OpenLayers.Control.ModifyFeature = OpenLayers.Class(OpenLayers.Control, {
             });
         } else {
             if(vertex._index) {
+                if (vertex._index == -1) {
+                    vertex._index = OpenLayers.Util.indexOf(vertex.geometry.parent.components, vertex._next);
+                }
                 // dragging a virtual vertex
                 vertex.geometry.parent.addComponent(vertex.geometry,
                                                     vertex._index);
@@ -689,16 +742,10 @@ OpenLayers.Control.ModifyFeature = OpenLayers.Class(OpenLayers.Control, {
                         var nextVertex = geometry.components[i + 1];
                         if(prevVertex.CLASS_NAME == "OpenLayers.Geometry.Point" &&
                            nextVertex.CLASS_NAME == "OpenLayers.Geometry.Point") {
-                            var x = (prevVertex.x + nextVertex.x) / 2;
-                            var y = (prevVertex.y + nextVertex.y) / 2;
-                            var point = new OpenLayers.Feature.Vector(
-                                new OpenLayers.Geometry.Point(x, y),
-                                null, control.virtualStyle
-                            );
+                            var point = control.createVirtualVertex.call(control, prevVertex, nextVertex);
                             // set the virtual parent and intended index
                             point.geometry.parent = geometry;
                             point._index = i + 1;
-                            point._sketch = true;
                             control.virtualVertices.push(point);
                         }
                     }
