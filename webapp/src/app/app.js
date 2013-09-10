@@ -32,6 +32,7 @@
  * @require OpenLayers/Format/WKT.js
  * @require OpenLayers/Control/MousePosition.js
  * @require OpenLayers/Control/ScaleLine.js
+ * @require OpenLayers/Control/ModifyFeature/BySegment.js
  * @require salamati/plugins/Settings.js
  * @require locale/en.js
  * @require locale/es.js

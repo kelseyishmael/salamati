@@ -225,14 +225,14 @@ gxp.FeatureEditMixin = {
                 iconCls: 'salamati-icon-rightangles',
                 handler: function() {
                     var point;
-                    var dragControl = this.modifyControl.dragControl;
+                    //var dragControl = this.modifyControl.dragControl;
                     var geometry = this.feature.geometry;
 
                     var success = gxp.Orthogonalization.orthogonalize(this.feature, this.map);
                     if(success === true) {
                         this.feature.layer.redraw();
 
-                        for(var i = 0; i < geometry.components.length; i++){
+                        /*for(var i = 0; i < geometry.components.length; i++){
                             for(var j = 0; j < geometry.components[i].components.length; j++){
                                 for(var y = 0; y < geometry.components[i].components[j].components.length;y++){
                                     point = geometry.components[i].components[j].components[y];
@@ -244,7 +244,7 @@ gxp.FeatureEditMixin = {
                                     dragControl.doneDragging(pixel);
                                 }
                             }
-                        }
+                        }*/
                     }
                 },
                 scope: this
@@ -258,7 +258,7 @@ gxp.FeatureEditMixin = {
                 handler: function() { 
                     var geom = this.feature.geometry.clone();
                     geom.transform(GoogleMercator, WGS84);
-                    var dragControl = this.modifyControl.dragControl;
+                    //var dragControl = this.modifyControl.handlers.drag;
                     var window = new Ext.Window({
                         closable: true,
                         modal: true,
@@ -350,12 +350,8 @@ gxp.FeatureEditMixin = {
                                 this.feature.geometry.x = geom.x;
                                 this.feature.geometry.y = geom.y;
                                 this.feature.layer.redraw();
-                                dragControl.feature = this.feature;
-                                pixel = new OpenLayers.Pixel(geom.x, geom.y);
-                                dragControl.downFeature(pixel);
-                                dragControl.moveFeature(pixel);
-                                dragControl.upFeature(pixel);
-                                dragControl.doneDragging(pixel);
+                                this.modifyControl.dragVertex(this.feature, app.mapPanel.map.getPixelFromLonLat(new OpenLayers.LonLat(geom.x, geom.y)));
+                                this.modifyControl.dragComplete(this.feature);
                                 app.mapPanel.map.setCenter([geom.x, geom.y]);
                                 window.close();
                             }, scope: this
