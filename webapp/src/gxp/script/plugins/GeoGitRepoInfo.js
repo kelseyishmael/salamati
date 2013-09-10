@@ -746,7 +746,13 @@ gxp.plugins.GeoGitRepoInfo = Ext.extend(gxp.plugins.Tool, {
                                                     var repoNode = remoteNode.parentNode;
                                                     var workspace = repoNode.attributes.workspace;
                                                     var dataStore = repoNode.attributes.dataStore;
-                                                    var url = plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/remote?remoteName=' + name + '&remoteURL=' + path + '&output_format=JSON';
+                                                    
+                                                    var index = path.lastIndexOf('/') + 1;
+                                                    var info = path.slice(index);
+                                                    var splitinfo = info.split(":");
+                                                    var temp = encodeURIComponent(encodeURIComponent(splitinfo[0])) + ':' + encodeURIComponent(encodeURIComponent(splitinfo[1]));
+                                                    
+                                                    var url = plugin.geoserverUrl + 'geogit/' + workspace + ':' + dataStore + '/remote?remoteName=' + name + '&remoteURL=' + path.replace(info, temp) + '&output_format=JSON';
                                                     if(username !== '') {
                                                 	url = url + '&username=' + username;
                                                     }
