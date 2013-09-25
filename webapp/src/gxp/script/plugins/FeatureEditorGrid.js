@@ -133,6 +133,9 @@ gxp.plugins.FeatureEditorGrid = Ext.extend(Ext.grid.PropertyGrid, {
                         mediaEntries = new Array();
                     } else {
                         mediaEntries = JSON.parse(value);
+                        if(mediaEntries === null || mediaEntries.length === undefined) {
+                            mediaEntries = new Array();
+                        }
                     }
                     
                     var popuphtml = "No media.";
